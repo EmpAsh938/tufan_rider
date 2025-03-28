@@ -1,15 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:imepay_merchant_sdk/start_sdk.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/utils/random_id_generator.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneController = TextEditingController();
+
   final TextEditingController passwordController = TextEditingController();
 
-  LoginScreen({super.key});
+  final merchantCode = 'DEMOIMEP';
+  final merchantName = 'IME Pay Demo';
+  final merchantUrl =
+      'https://stg.imepay.com.np:7979/api/sdk/recordTransaction';
+  final amount = '100';
+  final module = 'DEMOIMEP';
+  final user = 'demoimepay';
+  final password = 'IMEPay@123';
+  final deliveryUrl = 'http://172.20.22.11:1717/api/sdk/deliveryService';
+  final buildType = BuildType.STAGE;
+
+  void _initiatePayment(BuildContext context) async {
+    final refId = generateRandomId();
+
+    try {
+      var result = await StartSdk.callSdk(
+        context,
+        merchantCode: merchantCode,
+        merchantName: merchantName,
+        merchantUrl: merchantUrl,
+        amount: amount,
+        refId: refId,
+        module: module,
+        user: user,
+        password: password,
+        deliveryUrl: deliveryUrl,
+        buildType: buildType,
+      );
+
+      print(result.toString());
+    } catch (e) {
+      print(e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +116,16 @@ class LoginScreen extends StatelessWidget {
                       backgroundColor: AppColors.neutralColor,
                       onPressed: () {
                         Navigator.pushNamed(context, '/signup');
-                      }))
+                      })),
+              const SizedBox(height: 8),
+              SizedBox(
+                  width: double.infinity,
+                  child: CustomButton(
+                    text: 'Payment',
+                    backgroundColor: AppColors.primaryRed,
+                    onPressed: () => _initiatePayment(context),
+                    // Navigator.pushNamed(context, '/signup');
+                  ))
             ],
           ),
         ),

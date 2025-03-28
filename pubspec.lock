@@ -197,6 +197,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.4"
+  get:
+    dependency: transitive
+    description:
+      name: get
+      sha256: c79eeb4339f1f3deffd9ec912f8a923834bec55f7b49c9e882b8fef2c139d425
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.7.2"
   get_it:
     dependency: "direct main"
     description:
@@ -233,10 +241,10 @@ packages:
     dependency: "direct main"
     description:
       name: google_maps_flutter
-      sha256: "209856c8e5571626afba7182cf634b2910069dc567954e76ec3e3fb37f5e9db3"
+      sha256: "621125e35e81ca39ef600e45243d2be93167e61def72bc7207b0c4a635c58506"
       url: "https://pub.dev"
     source: hosted
-    version: "2.10.0"
+    version: "2.10.1"
   google_maps_flutter_android:
     dependency: transitive
     description:
@@ -293,6 +301,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  imepay_merchant_sdk:
+    dependency: "direct main"
+    description:
+      name: imepay_merchant_sdk
+      sha256: "1ed291e06999165344f47a214722eb243eb70c801a972e30ce220e7c01e2aa10"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2+4"
   intl:
     dependency: transitive
     description:

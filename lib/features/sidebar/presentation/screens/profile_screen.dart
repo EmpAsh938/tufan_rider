@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
-import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';

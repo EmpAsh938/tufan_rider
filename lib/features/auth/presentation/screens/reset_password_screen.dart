@@ -85,7 +85,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: (_currentPage + 1) / 4,
+                      value: (_currentPage + 1) / 3,
                       backgroundColor: AppColors.gray,
                       color: AppColors.primaryColor,
                       minHeight: 8,

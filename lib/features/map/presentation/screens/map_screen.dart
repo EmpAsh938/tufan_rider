@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
@@ -11,23 +14,41 @@ class MapBookingScreen extends StatefulWidget {
 }
 
 class _MapBookingScreenState extends State<MapBookingScreen> {
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
+
+  static const CameraPosition _kGooglePlex = CameraPosition(
+    target: LatLng(37.42796133580664, -122.085749655962),
+    zoom: 14.4746,
+  );
+
   bool isActive = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
+      body: Container(
+        padding: const EdgeInsets.only(
+          top: kToolbarHeight,
+        ),
         child: Stack(
           children: [
             // Placeholder for map section (Insert Map here)
-            Container(
+            SizedBox(
               height: MediaQuery.of(context).size.height,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/map_placeholder.png'),
-                  fit: BoxFit.cover,
-                ),
+              // decoration: BoxDecoration(
+              //   image: DecorationImage(
+              //     image: AssetImage('assets/images/map_placeholder.png'),
+              //     fit: BoxFit.cover,
+              //   ),
+              // ),
+              child: GoogleMap(
+                mapType: MapType.hybrid,
+                initialCameraPosition: _kGooglePlex,
+                onMapCreated: (GoogleMapController controller) {
+                  _controller.complete(controller);
+                },
               ),
             ),
             DraggableScrollableSheet(
