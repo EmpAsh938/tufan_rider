@@ -3,6 +3,7 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -110,7 +111,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         children: [
           Image.asset(
-            'assets/images/tufan.png',
+            Assets.images.tufan.path,
             height: 80,
             fit: BoxFit.contain,
           ),
@@ -163,7 +164,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         children: [
           Image.asset(
-            'assets/images/tufan.png',
+            Assets.images.tufan.path,
             height: 80,
             fit: BoxFit.contain,
           ),
@@ -198,7 +199,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         children: [
           Image.asset(
-            'assets/images/tufan.png',
+            Assets.images.tufan.path,
             height: 80,
             fit: BoxFit.contain,
           ),
@@ -241,7 +242,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         children: [
           Image.asset(
-            'assets/images/tufan.png',
+            Assets.images.tufan.path,
             height: 80,
             fit: BoxFit.contain,
           ),
@@ -257,7 +258,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             hintText: 'Set your password',
             labelText: 'Set your password',
             obscureText: true,
-            suffixIcon: Image.asset('assets/icons/hide-eye-crossbar.png'),
+            suffixIcon: Image.asset(Assets.icons.hideEyeCrossbar.path),
             suffixIconColor: AppColors.gray,
           ),
           const SizedBox(height: 10),
@@ -266,7 +267,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             hintText: 'Re-enter your password',
             labelText: 'Re-enter your password',
             obscureText: true,
-            suffixIcon: Image.asset('assets/icons/hide-eye-crossbar.png'),
+            suffixIcon: Image.asset(Assets.icons.hideEyeCrossbar.path),
             suffixIconColor: AppColors.gray,
           ),
           const SizedBox(height: 10),

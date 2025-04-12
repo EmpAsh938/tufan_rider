@@ -6,6 +6,7 @@ import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/utils/random_id_generator.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 labelText: 'Enter your mobile number',
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                prefixIcon: Image.asset('assets/icons/flag_nepal.png'),
+                prefixIcon: Image.asset(Assets.icons.flagNepal.path),
               ),
               const SizedBox(height: 16),
               CustomTextField(
@@ -84,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'Enter your password',
                 labelText: 'Enter your password',
                 obscureText: true,
-                suffixIcon: Image.asset('assets/icons/hide-eye-crossbar.png'),
+                suffixIcon: Image.asset(Assets.icons.hideEyeCrossbar.path),
                 suffixIconColor: AppColors.gray,
               ),
               const SizedBox(height: 24),
@@ -139,6 +140,6 @@ class LogoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset('assets/images/tufan.png');
+    return Image.asset(Assets.images.tufan.path);
   }
 }

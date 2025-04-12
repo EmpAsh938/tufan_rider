@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class RideHistoryScreen extends StatelessWidget {
   RideHistoryScreen({super.key});
@@ -81,7 +82,7 @@ class RideCard extends StatelessWidget {
             Row(
               children: [
                 Image.asset(
-                  'assets/icons/location_pin_source.png',
+                  Assets.icons.locationPinSource.path,
                 ),
                 SizedBox(width: 5),
                 Text(
@@ -91,15 +92,15 @@ class RideCard extends StatelessWidget {
                 Spacer(),
                 Image.asset(
                   ride.vehicleType == "bike"
-                      ? "assets/icons/bike.png"
-                      : "assets/icons/car.png",
+                      ? Assets.icons.bike.path
+                      : Assets.icons.car.path,
                   width: 50,
                   height: 50,
                   fit: BoxFit.contain,
                 ),
                 Spacer(),
                 Image.asset(
-                  'assets/icons/location_pin_destination.png',
+                  Assets.icons.locationPinDestination.path,
                 ),
                 SizedBox(width: 5),
                 Text(ride.to, style: TextStyle(fontSize: 14)),

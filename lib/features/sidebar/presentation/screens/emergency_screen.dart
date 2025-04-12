@@ -3,6 +3,7 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
@@ -22,11 +23,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildSelectableIcon(
-                  'assets/icons/contact.png', 'Emergency Contact Lists'),
+                  Assets.icons.contact.path, 'Emergency Contact Lists'),
               SizedBox(
                 width: 20,
               ),
-              _buildSelectableIcon('assets/icons/alert.png', 'Emergency Alert'),
+              _buildSelectableIcon(Assets.icons.alert.path, 'Emergency Alert'),
             ],
           ),
           SizedBox(
@@ -127,7 +128,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           CrossAxisAlignment.start, // Align the image and text properly
       children: [
         Image.asset(
-          'assets/icons/warning.png',
+          Assets.icons.warning.path,
           width: 20, // Set fixed width for the image
           height: 20, // Set fixed height for the image
         ),

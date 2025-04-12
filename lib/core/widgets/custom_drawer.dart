@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class CustomDrawer extends StatefulWidget {
   const CustomDrawer({super.key});
@@ -188,31 +189,31 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   spacing: 5,
                   children: [
                     Image.asset(
-                      'assets/icons/facebook.png',
+                      Assets.icons.facebook.path,
                       width: 25,
                       height: 25,
                       fit: BoxFit.contain,
                     ),
                     Image.asset(
-                      'assets/icons/instagram.png',
+                      Assets.icons.instagram.path,
                       width: 25,
                       height: 25,
                       fit: BoxFit.contain,
                     ),
                     Image.asset(
-                      'assets/icons/linkedin.png',
+                      Assets.icons.linkedin.path,
                       width: 25,
                       height: 25,
                       fit: BoxFit.contain,
                     ),
                     Image.asset(
-                      'assets/icons/youtube.png',
+                      Assets.icons.youtube.path,
                       width: 25,
                       height: 25,
                       fit: BoxFit.contain,
                     ),
                     Image.asset(
-                      'assets/icons/tiktok.png',
+                      Assets.icons.tiktok.path,
                       width: 25,
                       height: 25,
                       fit: BoxFit.contain,

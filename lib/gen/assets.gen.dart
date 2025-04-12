@@ -120,9 +120,10 @@ class Assets {
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
   static const AssetGenImage logo = AssetGenImage('assets/logo.png');
+  static const String mapStyles = 'assets/map_styles.json';
 
   /// List of all assets
-  static List<AssetGenImage> get values => [logo];
+  static List<dynamic> get values => [logo, mapStyles];
 }
 
 class AssetGenImage {
