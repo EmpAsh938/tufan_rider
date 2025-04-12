@@ -118,14 +118,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.pushNamed(context, '/signup');
                       })),
               const SizedBox(height: 8),
-              SizedBox(
-                  width: double.infinity,
-                  child: CustomButton(
-                    text: 'Payment',
-                    backgroundColor: AppColors.primaryRed,
-                    onPressed: () => _initiatePayment(context),
-                    // Navigator.pushNamed(context, '/signup');
-                  ))
+              // SizedBox(
+              //     width: double.infinity,
+              //     child: CustomButton(
+              //       text: 'Payment',
+              //       backgroundColor: AppColors.primaryRed,
+              //       onPressed: () => _initiatePayment(context),
+              //       // Navigator.pushNamed(context, '/signup');
+              //     ))
             ],
           ),
         ),

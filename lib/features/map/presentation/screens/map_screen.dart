@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/gen/assets.gen.dart';
 
 class MapBookingScreen extends StatefulWidget {
   const MapBookingScreen({super.key});
@@ -17,12 +19,18 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
 
+  late String _mapStyleString;
+
   static const CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
   );
 
-  bool isActive = true;
+  @override
+  void initState() {
+    // rootBundle.loadString('assets/')
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +256,7 @@ class SelectableIconsRow extends StatefulWidget {
 }
 
 class _SelectableIconsRowState extends State<SelectableIconsRow> {
-  String selectedIcon = ''; // Keep track of the selected icon
+  String selectedIcon = 'bike'; // Keep track of the selected icon
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +264,7 @@ class _SelectableIconsRowState extends State<SelectableIconsRow> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSelectableIcon(
-          imagePath: 'assets/icons/bike.png',
+          imagePath: Assets.icons.bike.path,
           isSelected: selectedIcon == 'bike',
           onTap: () => setState(() => selectedIcon = 'bike'),
         ),
@@ -271,7 +279,7 @@ class _SelectableIconsRowState extends State<SelectableIconsRow> {
         ),
         const SizedBox(width: 30),
         _buildSelectableIcon(
-          imagePath: 'assets/icons/car.png',
+          imagePath: Assets.icons.car.path,
           isSelected: selectedIcon == 'car',
           onTap: () => setState(() => selectedIcon = 'car'),
         ),
