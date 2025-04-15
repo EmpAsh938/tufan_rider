@@ -90,7 +90,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       });
 
       await _loadCurrentLocationMarker();
-      await _generateDummyMarkers();
 
       final GoogleMapController controller = await _controller.future;
       controller.animateCamera(
@@ -498,7 +497,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                       _checkAndFetchLocation();
                     },
                     iconSize: 34,
-                    icon: const Icon(Icons.location_on_outlined),
+                    icon: const Icon(Icons.location_searching_outlined),
                   ),
                 ),
               ),
@@ -520,8 +519,9 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
 
                           if (_currentLocation != null &&
                               _selectedDestination != null) {
-                            _getPolyline(
-                                _currentLocation!, _selectedDestination!);
+                            // _getPolyline(
+                            //     _currentLocation!, _selectedDestination!);
+                            await _generateDummyMarkers();
                           }
 
                           setState(() {

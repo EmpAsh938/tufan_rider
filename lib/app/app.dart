@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_state.dart';
+import 'package:tufan_rider/core/themes/app_theme.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -15,8 +16,8 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           return MaterialApp(
             title: 'Tufan Ride Share',
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
+            theme: AppThemes.lightTheme,
+            darkTheme: AppThemes.darkTheme,
             themeMode: state.themeMode,
             initialRoute: AppRoutes.splash,
             routes: AppRoutes.getRoutes(),
