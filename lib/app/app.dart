@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_state.dart';
+import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/themes/app_theme.dart';
 
 class MyApp extends StatelessWidget {
@@ -10,8 +11,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ThemeCubit(),
+    return BlocProvider<ThemeCubit>(
+      create: (context) => locator<ThemeCubit>(),
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, state) {
           return MaterialApp(
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
             darkTheme: AppThemes.darkTheme,
             themeMode: state.themeMode,
             initialRoute: AppRoutes.splash,
-            routes: AppRoutes.getRoutes(),
+            onGenerateRoute: AppRoutes.generateRoute,
           );
         },
       ),

@@ -20,17 +20,70 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String emergency = '/emergency';
 
-  static Map<String, WidgetBuilder> getRoutes() {
-    return {
-      splash: (context) => const SplashScreen(),
-      login: (context) => LoginScreen(),
-      signup: (context) => const RegistrationScreen(),
-      reset: (context) => const ResetPasswordScreen(),
-      map: (context) => const MapBookingScreen(),
-      profile: (context) => const ProfileScreen(),
-      rideHistory: (context) => RideHistoryScreen(),
-      settings: (context) => SettingsScreen(),
-      emergency: (context) => EmergencyScreen(),
-    };
+  static Route<dynamic>? generateRoute(RouteSettings routeSettings) {
+    switch (routeSettings.name) {
+      case splash:
+        return _fadeRoute(const SplashScreen(), routeSettings);
+      case login:
+        return _slideFromRight(LoginScreen(), routeSettings);
+      case signup:
+        return _slideFromRight(const RegistrationScreen(), routeSettings);
+      case reset:
+        return _slideFromRight(const ResetPasswordScreen(), routeSettings);
+      case map:
+        return _slideFromRight(const MapBookingScreen(), routeSettings);
+      case profile:
+        return _slideFromRight(const ProfileScreen(), routeSettings);
+      case rideHistory:
+        return _slideFromRight(RideHistoryScreen(), routeSettings);
+      case settings:
+        return _slideFromRight(SettingsScreen(), routeSettings);
+      case emergency:
+        return _slideFromRight(EmergencyScreen(), routeSettings);
+      default:
+        return null;
+    }
+  }
+
+  static PageRouteBuilder _slideFromRight(
+      Widget page, RouteSettings routeSettings) {
+    return PageRouteBuilder(
+      settings: routeSettings,
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
+  static PageRouteBuilder _slideFromBottom(
+      Widget page, RouteSettings routeSettings) {
+    return PageRouteBuilder(
+      settings: routeSettings,
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
+  static PageRouteBuilder _fadeRoute(Widget page, RouteSettings routeSettings) {
+    return PageRouteBuilder(
+      settings: routeSettings,
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
   }
 }

@@ -446,6 +446,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                 },
               ),
 
+// menu
             if (!_isDestinationSettingOn)
               Positioned(
                 top: 10,
@@ -480,6 +481,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                 ),
               ),
 
+// current location
             if (!_isDestinationSettingOn)
               Positioned(
                 bottom: MediaQuery.of(context).size.height * 0.35,
