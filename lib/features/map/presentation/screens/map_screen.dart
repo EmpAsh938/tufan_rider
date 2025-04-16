@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -14,6 +17,7 @@ import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/utils/marker_util.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/map/presentation/widgets/location_searchfield.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -366,7 +370,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                               children: [
                                 SelectableIconsRow(),
                                 SizedBox(height: 10),
-                                buildLocationField(
+                                LocationSearchField(
                                   label: "From",
                                   icon: Icons.location_on_outlined,
                                   imagePath:
@@ -374,7 +378,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                                   controller: sourceController,
                                 ),
                                 SizedBox(height: 10),
-                                buildLocationField(
+                                LocationSearchField(
                                   label: "To",
                                   icon: Icons.location_on_outlined,
                                   imagePath:
@@ -535,45 +539,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
         ),
       ),
       drawer: CustomDrawer(),
-    );
-  }
-
-  Widget buildLocationField({
-    required String label,
-    required IconData icon,
-    required String imagePath,
-    required TextEditingController controller,
-  }) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        prefixIcon: Image.asset(imagePath),
-        labelText: label,
-        labelStyle: TextStyle(
-          color: AppColors.gray,
-        ),
-        border: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: AppColors.gray,
-          ),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: AppColors.gray,
-          ),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: AppColors.gray,
-          ),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        suffixIcon: Image.asset(
-          Assets.icons.materialSymbolsSearch.path,
-        ),
-      ),
     );
   }
 }
