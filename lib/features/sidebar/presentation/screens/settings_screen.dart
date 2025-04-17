@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
+import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -10,12 +12,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool isDarkMode = false;
-
   String selectedLanguage = "English";
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode =
+        context.watch<ThemeCubit>().state.themeMode == ThemeMode.dark;
+
     return SidebarScaffold(
       title: 'Settings',
       child: Column(
@@ -73,9 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                     onChanged: (value) {
-                      setState(() {
-                        isDarkMode = value;
-                      });
+                      // context.read<ThemeCubit>().toggleTheme();
                     },
                   ),
                   Text("Dark"),

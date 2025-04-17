@@ -5,6 +5,7 @@ import 'package:tufan_rider/core/network/api_service.dart';
 import 'package:tufan_rider/features/auth/repository/auth_repository.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -19,6 +20,7 @@ void setupLocator() {
 
   // Register cubits
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
+  locator.registerLazySingleton<AddressCubit>(() => AddressCubit());
   locator
       .registerFactory<AuthCubit>(() => AuthCubit(locator<AuthRepository>()));
 }

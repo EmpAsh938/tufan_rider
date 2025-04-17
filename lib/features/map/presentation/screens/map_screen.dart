@@ -1,23 +1,23 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/utils/marker_util.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
-import 'package:tufan_rider/features/map/presentation/widgets/location_searchfield.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -39,8 +39,9 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
 
   double zoomLevel = 12;
 
-  LatLng? _currentLocation;
-  LatLng? _selectedDestination;
+  // LatLng? _currentLocation;
+  // LatLng? _selectedDestination;
+  LatLng? _lastCameraPosition;
 
   bool _locationEnabled = false;
   bool _isLoading = true;
@@ -84,10 +85,13 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
           desiredAccuracy: LocationAccuracy.high);
 
       final address = await getAddressFromCoordinates(27.7172, 85.3240);
+      locator
+          .get<AddressCubit>()
+          .setSource(RideLocation(lat: 27.7172, lng: 85.3240, name: address));
 
       setState(() {
         // _currentLocation = LatLng(position.latitude, position.longitude);
-        _currentLocation = LatLng(27.7172, 85.3240);
+        // _currentLocation = LatLng(27.7172, 85.3240);
         _locationEnabled = true;
         _isLoading = false;
         sourceController.text = address;
@@ -96,9 +100,12 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       await _loadCurrentLocationMarker();
 
       final GoogleMapController controller = await _controller.future;
+      final currentLocation = locator.get<AddressCubit>().fetchSource();
       controller.animateCamera(
         CameraUpdate.newCameraPosition(
-          CameraPosition(target: _currentLocation!, zoom: zoomLevel),
+          CameraPosition(
+              target: LatLng(currentLocation!.lat, currentLocation.lng),
+              zoom: zoomLevel),
         ),
       );
     } catch (e) {
@@ -110,10 +117,12 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   }
 
   Future<void> _loadCurrentLocationMarker() async {
-    if (_currentLocation != null) {
+    final currentLocation = locator.get<AddressCubit>().fetchSource();
+
+    if (currentLocation != null) {
       final marker = await MarkerUtil.createMarker(
         markerId: 'current_location',
-        position: _currentLocation!,
+        position: LatLng(currentLocation.lat, currentLocation.lng),
         assetPath: Assets.icons.locationPinSource.path,
         title: 'You are here',
       );
@@ -131,10 +140,8 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
 
     // Generate 5 dummy markers
     for (int i = 0; i < 5; i++) {
-      double offsetLat =
-          _currentLocation!.latitude + (random.nextDouble() - 0.5) * radius;
-      double offsetLng =
-          _currentLocation!.longitude + (random.nextDouble() - 0.5) * radius;
+      double offsetLat = 27.7172 + (random.nextDouble() - 0.5) * radius;
+      double offsetLng = 85.3240 + (random.nextDouble() - 0.5) * radius;
 
       final markerId = 'dummy_marker_$i';
       final markerPosition = LatLng(offsetLat, offsetLng);
@@ -150,6 +157,13 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       setState(() {
         _dummyMarkers.add(marker);
       });
+      final GoogleMapController controller = await _controller.future;
+
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: LatLng(27.7172, 85.3240), zoom: zoomLevel),
+        ),
+      );
     }
   }
 
@@ -173,24 +187,29 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   }
 
   void _getPolyline(LatLng currentLocation, LatLng destinationLocation) async {
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey: ApiConstants.mapAPI,
-      request: PolylineRequest(
-        origin:
-            PointLatLng(currentLocation.latitude, currentLocation.longitude),
-        destination: PointLatLng(
-            destinationLocation.latitude, destinationLocation.longitude),
-        mode: TravelMode.driving,
-        // wayPoints: [PolylineWayPoint(location: "Sabo, Yaba Lagos Nigeria")],
-      ),
-    );
-    if (result.points.isNotEmpty) {
-      polylineCoordinates.clear();
-      for (var point in result.points) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+    try {
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: ApiConstants.mapAPI,
+        request: PolylineRequest(
+          origin:
+              PointLatLng(currentLocation.latitude, currentLocation.longitude),
+          destination: PointLatLng(
+              destinationLocation.latitude, destinationLocation.longitude),
+          mode: TravelMode.driving,
+          // wayPoints: [PolylineWayPoint(location: "Sabo, Yaba Lagos Nigeria")],
+        ),
+      );
+      if (result.points.isNotEmpty) {
+        polylineCoordinates.clear();
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
       }
+      _drawPolyline(currentLocation, destinationLocation);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
-    _drawPolyline(currentLocation, destinationLocation);
   }
 
   Future<String> getAddressFromCoordinates(double lat, double lng) async {
@@ -232,11 +251,15 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final addressCubit = context.read<AddressCubit>();
+    final source = addressCubit.fetchSource();
+    // final destination = addressCubit.fetchDestination();
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Padding(
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top,
+          top: MediaQuery.of(context).padding.top - 10,
+          // top: 0,
         ),
         child: Stack(
           children: [
@@ -245,12 +268,13 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
               Center(
                 child: CircularProgressIndicator(),
               )
-            else if (_locationEnabled && _currentLocation != null)
+            else if (_locationEnabled && source != null)
               SizedBox(
                 height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
                 child: GoogleMap(
                   initialCameraPosition: CameraPosition(
-                    target: _currentLocation!,
+                    target: LatLng(source.lat, source.lng),
                     zoom: zoomLevel,
                   ),
                   myLocationEnabled: false,
@@ -270,24 +294,13 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                       controller.setMapStyle(_mapStyleString);
                     }
                   },
-                  onCameraMove: (CameraPosition position) async {
+                  onCameraMove: (CameraPosition position) {
                     if (_isDestinationSettingOn) {
-                      _selectedDestination = position.target;
-                      // _selectedDestination = LatLng(27.6945, 85.3088);
-                      final address = await getAddressFromCoordinates(
-                          _selectedDestination!.latitude,
-                          _selectedDestination!.longitude);
-
-                      setState(() {
-                        zoomLevel = 10;
-                        destinationController.text = address;
-                        // destinationController.text =
-                        //     "${position.target.latitude} ${position.target.longitude}";
-                      });
+                      _lastCameraPosition = position.target;
                     }
                   },
                   polylines: _polylines,
-                  minMaxZoomPreference: MinMaxZoomPreference(1, 20),
+                  // minMaxZoomPreference: MinMaxZoomPreference(1, 20),
                 ),
               )
             else
@@ -313,10 +326,11 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                   ],
                 ),
               ),
+            // set destination
             if (_isDestinationSettingOn)
               Positioned(
                 top: MediaQuery.of(context).size.height / 2 -
-                    96, // Center vertically
+                    110, // Center vertically
                 left: MediaQuery.of(context).size.width / 2 -
                     24, // Center horizontally
                 child: Image.asset(
@@ -326,6 +340,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                 ),
               ),
 
+// draggable scroll sheet
             if (!_isDestinationSettingOn)
               DraggableScrollableSheet(
                 initialChildSize: 0.35,
@@ -370,7 +385,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                               children: [
                                 SelectableIconsRow(),
                                 SizedBox(height: 10),
-                                LocationSearchField(
+                                buildLocationField(
                                   label: "From",
                                   icon: Icons.location_on_outlined,
                                   imagePath:
@@ -378,7 +393,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                                   controller: sourceController,
                                 ),
                                 SizedBox(height: 10),
-                                LocationSearchField(
+                                buildLocationField(
                                   label: "To",
                                   icon: Icons.location_on_outlined,
                                   imagePath:
@@ -508,6 +523,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                 ),
               ),
 
+// done button
             if (_isDestinationSettingOn)
               Positioned(
                   bottom: 0,
@@ -515,25 +531,36 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
                   right: 0,
                   child: CustomButton(
                       onPressed: () async {
-                        if (_selectedDestination != null) {
+                        if (_isDestinationSettingOn &&
+                            _lastCameraPosition != null) {
+                          final latLng = _lastCameraPosition!;
+                          final address = await getAddressFromCoordinates(
+                              latLng.latitude, latLng.longitude);
+
+                          addressCubit.setDestination(RideLocation(
+                            lat: latLng.latitude,
+                            lng: latLng.longitude,
+                            name: address,
+                          ));
+
                           final marker = await MarkerUtil.createMarker(
                             markerId: 'destination',
-                            position: _selectedDestination!,
+                            position: latLng,
                             assetPath: Assets.icons.locationPinDestination.path,
                             title: 'Your Destination',
                           );
 
-                          if (_currentLocation != null &&
-                              _selectedDestination != null) {
-                            // _getPolyline(
-                            //     _currentLocation!, _selectedDestination!);
-                            await _generateDummyMarkers();
-                          }
+                          await _generateDummyMarkers();
 
                           setState(() {
                             _destinationLocationMarker = marker;
                             _isDestinationSettingOn = false;
+                            destinationController.text = address;
                           });
+                          if (source != null) {
+                            _getPolyline(
+                                LatLng(source.lat, source.lng), latLng);
+                          }
                         }
                       },
                       text: 'Done'))
@@ -541,6 +568,53 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
         ),
       ),
       drawer: CustomDrawer(),
+    );
+  }
+
+  Widget buildLocationField({
+    required String label,
+    required IconData icon,
+    required String imagePath,
+    required TextEditingController controller,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, AppRoutes.mapAddressSearch);
+      },
+      child: AbsorbPointer(
+        child: TextField(
+          controller: controller,
+          readOnly: true,
+          decoration: InputDecoration(
+            prefixIcon: Image.asset(imagePath),
+            labelText: label,
+            labelStyle: TextStyle(
+              color: AppColors.gray,
+            ),
+            border: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: AppColors.gray,
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: AppColors.gray,
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: AppColors.gray,
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            suffixIcon: Image.asset(
+              Assets.icons.materialSymbolsSearch.path,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

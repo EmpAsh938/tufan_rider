@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/login_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dart';
+import 'package:tufan_rider/features/map/presentation/screens/address_search.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
@@ -15,6 +16,7 @@ class AppRoutes {
   static const String signup = '/signup';
   static const String reset = '/reset';
   static const String map = '/map';
+  static const String mapAddressSearch = '/map/address/search';
   static const String profile = '/profile';
   static const String rideHistory = '/ride_history';
   static const String settings = '/settings';
@@ -32,6 +34,8 @@ class AppRoutes {
         return _slideFromRight(const ResetPasswordScreen(), routeSettings);
       case map:
         return _slideFromRight(const MapBookingScreen(), routeSettings);
+      case mapAddressSearch:
+        return _slideFromRight(const AddressSearch(), routeSettings);
       case profile:
         return _slideFromRight(const ProfileScreen(), routeSettings);
       case rideHistory:

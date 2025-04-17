@@ -5,14 +5,22 @@ import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_state.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/themes/app_theme.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ThemeCubit>(
-      create: (context) => locator<ThemeCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ThemeCubit>(
+          create: (context) => locator<ThemeCubit>(),
+        ),
+        BlocProvider<AddressCubit>(
+          create: (context) => locator<AddressCubit>(),
+        ),
+      ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, state) {
           return MaterialApp(
