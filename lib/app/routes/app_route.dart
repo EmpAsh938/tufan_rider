@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/login_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dart';
-import 'package:tufan_rider/features/map/presentation/screens/address_search.dart';
+import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
+import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/ride_history_screen.dart';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const String reset = '/reset';
   static const String map = '/map';
   static const String mapAddressSearch = '/map/address/search';
+  static const String mapofferFare = '/map/offerFare';
   static const String profile = '/profile';
   static const String rideHistory = '/ride_history';
   static const String settings = '/settings';
@@ -35,7 +37,9 @@ class AppRoutes {
       case map:
         return _slideFromRight(const MapBookingScreen(), routeSettings);
       case mapAddressSearch:
-        return _slideFromRight(const AddressSearch(), routeSettings);
+        return _slideFromRight(const AddressSearchScreen(), routeSettings);
+      case mapofferFare:
+        return _slideFromBottom(const OfferFareScreen(), routeSettings);
       case profile:
         return _slideFromRight(const ProfileScreen(), routeSettings);
       case rideHistory:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -151,26 +152,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
               ),
             ),
             Center(
-              child: Switch(
-                  activeColor: AppColors.primaryColor,
-                  activeTrackColor: AppColors.gray,
-                  inactiveThumbColor: AppColors.primaryColor,
-                  inactiveTrackColor: AppColors.gray,
-                  trackOutlineColor: WidgetStateProperty.resolveWith<Color>(
-                    (states) {
-                      return AppColors
-                          .neutralColor; // Track color when inactive
-                    },
-                  ),
-                  value: isActive,
-                  // activeTrackColor: AppColors.gray,
-                  // activeColor: AppColors.neutralColor,
-                  // inactiveThumbColor: AppColors.neutralColor,
-                  onChanged: (bool value) {
-                    setState(() {
-                      isActive = value;
-                    });
-                  }),
+              child: CustomSwitch(
+                switchValue: isActive,
+                onChanged: (bool value) {
+                  setState(() {
+                    isActive = value;
+                  });
+                },
+              ),
             ),
             Spacer(),
             Column(

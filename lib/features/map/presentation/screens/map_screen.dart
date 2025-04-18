@@ -44,8 +44,9 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   LatLng? _lastCameraPosition;
 
   bool _locationEnabled = false;
-  bool _isLoading = true;
   bool _isDestinationSettingOn = false;
+  bool _isSourceSettingOn = false;
+  bool _isMapInteractionDisabled = false;
 
   Marker? _currentLocationMarker;
   Marker? _destinationLocationMarker;
@@ -62,7 +63,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       if (!serviceEnabled) {
         setState(() {
           _locationEnabled = false;
-          _isLoading = false; // Stop loading if location is disabled
         });
         return;
       }
@@ -75,7 +75,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
             permission != LocationPermission.whileInUse) {
           setState(() {
             _locationEnabled = false;
-            _isLoading = false; // Stop loading if permission is denied
           });
           return;
         }
@@ -93,7 +92,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
         // _currentLocation = LatLng(position.latitude, position.longitude);
         // _currentLocation = LatLng(27.7172, 85.3240);
         _locationEnabled = true;
-        _isLoading = false;
         sourceController.text = address;
       });
 
@@ -111,7 +109,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
     } catch (e) {
       setState(() {
         _locationEnabled = false;
-        _isLoading = false;
       });
     }
   }
@@ -134,14 +131,49 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   }
 
   // Generate some dummy markers around the current location
-  Future<void> _generateDummyMarkers() async {
+  Future<void> _generateDummyMarkers(LatLng source) async {
     final random = Random();
-    final radius = 0.01; // approx 1km radius
+    final radius = 0.01; // approx 1km
+    final basePosition = source;
 
-    // Generate 5 dummy markers
+    setState(() {
+      _isMapInteractionDisabled =
+          true; // Disable gestures (you'll use this in GoogleMap)
+    });
+
+    final controller = await _controller.future;
+
+    // Step 1: Move to center & zoom in smoothly
+    await controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: basePosition, zoom: 18),
+      ),
+    );
+    await Future.delayed(Duration(milliseconds: 1000));
+    await controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: basePosition, zoom: 16),
+      ),
+    );
+
+    // Step 2: Move camera upward slightly
+    final targetOffset = LatLng(
+      basePosition.latitude + 0.0025, // shift north
+      basePosition.longitude,
+    );
+    await Future.delayed(Duration(milliseconds: 1000));
+    await controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: targetOffset, zoom: 14),
+      ),
+    );
+
+    // Step 3: Add dummy markers
     for (int i = 0; i < 5; i++) {
-      double offsetLat = 27.7172 + (random.nextDouble() - 0.5) * radius;
-      double offsetLng = 85.3240 + (random.nextDouble() - 0.5) * radius;
+      double offsetLat =
+          basePosition.latitude + (random.nextDouble() - 0.5) * radius;
+      double offsetLng =
+          basePosition.longitude + (random.nextDouble() - 0.5) * radius;
 
       final markerId = 'dummy_marker_$i';
       final markerPosition = LatLng(offsetLat, offsetLng);
@@ -149,22 +181,19 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       final marker = await MarkerUtil.createMarker(
         markerId: markerId,
         position: markerPosition,
-        assetPath: Assets.icons.bike.path, // Custom marker icon
+        assetPath: Assets.icons.bike.path,
         title: 'Dummy Marker $i',
-        size: 100, // You can adjust the size
+        size: 100,
       );
 
       setState(() {
         _dummyMarkers.add(marker);
       });
-      final GoogleMapController controller = await _controller.future;
-
-      controller.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(target: LatLng(27.7172, 85.3240), zoom: zoomLevel),
-        ),
-      );
     }
+
+    setState(() {
+      _isMapInteractionDisabled = false; // Re-enable map gestures
+    });
   }
 
   Future<void> _loadMapStyle() async {
@@ -207,8 +236,10 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       }
       _drawPolyline(currentLocation, destinationLocation);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -251,9 +282,6 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final addressCubit = context.read<AddressCubit>();
-    final source = addressCubit.fetchSource();
-    // final destination = addressCubit.fetchDestination();
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Padding(
@@ -261,311 +289,404 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
           top: MediaQuery.of(context).padding.top - 10,
           // top: 0,
         ),
-        child: Stack(
-          children: [
-            // Placeholder for map section (Insert Map here)
-            if (_isLoading)
-              Center(
-                child: CircularProgressIndicator(),
-              )
-            else if (_locationEnabled && source != null)
-              SizedBox(
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(source.lat, source.lng),
-                    zoom: zoomLevel,
+        child:
+            BlocBuilder<AddressCubit, AddressState>(builder: (context, state) {
+          return Stack(
+            children: [
+              // Placeholder for map section (Insert Map here)
+              if (_locationEnabled && _currentLocationMarker != null) ...[
+                SizedBox(
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(_currentLocationMarker!.position.latitude,
+                          _currentLocationMarker!.position.longitude),
+                      zoom: zoomLevel,
+                    ),
+                    myLocationEnabled: false,
+                    myLocationButtonEnabled: false,
+                    compassEnabled: false,
+                    mapToolbarEnabled: false,
+                    zoomControlsEnabled: false,
+                    zoomGesturesEnabled: !_isMapInteractionDisabled,
+                    scrollGesturesEnabled: !_isMapInteractionDisabled,
+                    rotateGesturesEnabled: !_isMapInteractionDisabled,
+                    tiltGesturesEnabled: !_isMapInteractionDisabled,
+                    markers: {
+                      if (_currentLocationMarker != null)
+                        _currentLocationMarker!,
+                      if (_destinationLocationMarker != null)
+                        _destinationLocationMarker!,
+                      ..._dummyMarkers, // Add dummy markers here
+                    },
+                    onMapCreated: (GoogleMapController controller) {
+                      if (!_controller.isCompleted) {
+                        _controller.complete(controller);
+                        controller.setMapStyle(_mapStyleString);
+                      }
+                    },
+                    onCameraMove: (CameraPosition position) {
+                      if (_isDestinationSettingOn || _isSourceSettingOn) {
+                        _lastCameraPosition = position.target;
+                      }
+                    },
+                    polylines: _polylines,
+                    // minMaxZoomPreference: MinMaxZoomPreference(1, 20),
                   ),
-                  myLocationEnabled: false,
-                  myLocationButtonEnabled: false,
-                  compassEnabled: false,
-                  mapToolbarEnabled: false,
-                  zoomControlsEnabled: false,
-                  markers: {
-                    if (_currentLocationMarker != null) _currentLocationMarker!,
-                    if (_destinationLocationMarker != null)
-                      _destinationLocationMarker!,
-                    ..._dummyMarkers, // Add dummy markers here
-                  },
-                  onMapCreated: (GoogleMapController controller) {
-                    if (!_controller.isCompleted) {
-                      _controller.complete(controller);
-                      controller.setMapStyle(_mapStyleString);
-                    }
-                  },
-                  onCameraMove: (CameraPosition position) {
-                    if (_isDestinationSettingOn) {
-                      _lastCameraPosition = position.target;
-                    }
-                  },
-                  polylines: _polylines,
-                  // minMaxZoomPreference: MinMaxZoomPreference(1, 20),
                 ),
-              )
-            else
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.location_off, size: 48, color: Colors.red),
-                    SizedBox(height: 10),
-                    Text(
-                      "Location is disabled.\nPlease enable location services.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await Geolocator.openLocationSettings();
-                        _checkAndFetchLocation(); // Retry
-                      },
-                      child: Text("Enable Location"),
-                    ),
-                  ],
-                ),
-              ),
-            // set destination
-            if (_isDestinationSettingOn)
-              Positioned(
-                top: MediaQuery.of(context).size.height / 2 -
-                    110, // Center vertically
-                left: MediaQuery.of(context).size.width / 2 -
-                    24, // Center horizontally
-                child: Image.asset(
-                  Assets.icons.locationPinDestination.path,
-                  width: 48,
-                  height: 48,
-                ),
-              ),
-
-// draggable scroll sheet
-            if (!_isDestinationSettingOn)
-              DraggableScrollableSheet(
-                initialChildSize: 0.35,
-                minChildSize: 0.35,
-                maxChildSize: 0.75,
-                builder: (context, scrollController) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundColor,
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(32)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 8,
-                          offset: Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Notch Handle
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade400,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            controller: scrollController,
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SelectableIconsRow(),
-                                SizedBox(height: 10),
-                                buildLocationField(
-                                  label: "From",
-                                  icon: Icons.location_on_outlined,
-                                  imagePath:
-                                      Assets.icons.locationPinSource.path,
-                                  controller: sourceController,
-                                ),
-                                SizedBox(height: 10),
-                                buildLocationField(
-                                  label: "To",
-                                  icon: Icons.location_on_outlined,
-                                  imagePath:
-                                      Assets.icons.locationPinDestination.path,
-                                  controller: destinationController,
-                                ),
-                                SizedBox(height: 30),
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _isDestinationSettingOn = true;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryWhite,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: AppColors.gray),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Image.asset(
-                                          Assets.icons.carbonMap.path,
-                                          width: 24,
-                                          height: 24,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'Set on Map',
-                                          style: AppTypography.paragraph,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                Text(
-                                  "Previous History",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(height: 10),
-                                ...List.generate(
-                                  4,
-                                  (index) => ListTile(
-                                    leading: Icon(Icons.history,
-                                        color: Colors.orangeAccent),
-                                    title: Text("Sallaghari, Araniko Highway"),
-                                    trailing:
-                                        Icon(Icons.arrow_forward_ios, size: 16),
-                                  ),
+                // set destination
+                if (_isDestinationSettingOn || _isSourceSettingOn)
+                  Positioned(
+                      top: MediaQuery.of(context).size.height / 2 -
+                          (26 + 26 + 5),
+                      left: MediaQuery.of(context).size.width / 2 - 26 - 2,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Circle head
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: AppColors.primaryColor, width: 6),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
                                 ),
                               ],
                             ),
                           ),
+
+                          // Vertical line as pointer
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color: AppColors.primaryColor,
+                          ),
+                        ],
+                      )),
+
+                // draggable scroll sheet
+                if (!(_isDestinationSettingOn || _isSourceSettingOn))
+                  DraggableScrollableSheet(
+                    initialChildSize: 0.35,
+                    minChildSize: 0.35,
+                    maxChildSize: 0.75,
+                    builder: (context, scrollController) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundColor,
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(32)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, -2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-
-// menu
-            if (!_isDestinationSettingOn)
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: EdgeInsets.all(1), // Adds space around the icon
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryWhite, // Background color
-                    borderRadius:
-                        BorderRadius.circular(15), // Makes it circular
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryBlack
-                            .withOpacity(0.1), // Optional shadow
-                        blurRadius: 5,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Builder(builder: (context) {
-                    return IconButton(
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                      icon: Icon(
-                        Icons.menu,
-                        color: AppColors.primaryBlack,
-                        size: 30,
-                      ),
-                    );
-                  }),
-                ),
-              ),
-
-// current location
-            if (!_isDestinationSettingOn)
-              Positioned(
-                bottom: MediaQuery.of(context).size.height * 0.35,
-                right: 5,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9), // light background
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    onPressed: () {
-                      _checkAndFetchLocation();
+                        child: Column(
+                          children: [
+                            // Notch Handle
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade400,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                controller: scrollController,
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    SelectableIconsRow(),
+                                    SizedBox(height: 10),
+                                    buildLocationField(
+                                      label: "From",
+                                      icon: Icons.location_on_outlined,
+                                      imagePath:
+                                          Assets.icons.locationPinSource.path,
+                                      controller: sourceController,
+                                    ),
+                                    SizedBox(height: 10),
+                                    buildLocationField(
+                                      label: "To",
+                                      icon: Icons.location_on_outlined,
+                                      imagePath: Assets
+                                          .icons.locationPinDestination.path,
+                                      controller: destinationController,
+                                    ),
+                                    // SizedBox(height: 30),
+                                    // InkWell(
+                                    //   onTap: () {
+                                    //     setState(() {
+                                    //       _isDestinationSettingOn = true;
+                                    //     });
+                                    //   },
+                                    //   borderRadius: BorderRadius.circular(8),
+                                    //   child: Container(
+                                    //     padding: const EdgeInsets.symmetric(
+                                    //         vertical: 12, horizontal: 16),
+                                    //     decoration: BoxDecoration(
+                                    //       color: AppColors.primaryWhite,
+                                    //       borderRadius:
+                                    //           BorderRadius.circular(8),
+                                    //       border:
+                                    //           Border.all(color: AppColors.gray),
+                                    //     ),
+                                    //     child: Row(
+                                    //       mainAxisSize: MainAxisSize.min,
+                                    //       children: [
+                                    //         Image.asset(
+                                    //           Assets.icons.carbonMap.path,
+                                    //           width: 24,
+                                    //           height: 24,
+                                    //         ),
+                                    //         const SizedBox(width: 10),
+                                    //         Text(
+                                    //           'Set on Map',
+                                    //           style: AppTypography.paragraph,
+                                    //         ),
+                                    //       ],
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                    SizedBox(height: 20),
+                                    Text(
+                                      "Previous History",
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 10),
+                                    ...List.generate(
+                                      4,
+                                      (index) => ListTile(
+                                        leading: Icon(Icons.history,
+                                            color: Colors.orangeAccent),
+                                        title:
+                                            Text("Sallaghari, Araniko Highway"),
+                                        trailing: Icon(Icons.arrow_forward_ios,
+                                            size: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     },
-                    iconSize: 34,
-                    icon: const Icon(Icons.location_searching_outlined),
+                  ),
+
+                // menu
+                if (!(_isDestinationSettingOn || _isSourceSettingOn))
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: EdgeInsets.all(1), // Adds space around the icon
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryWhite, // Background color
+                        borderRadius:
+                            BorderRadius.circular(15), // Makes it circular
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryBlack
+                                .withOpacity(0.1), // Optional shadow
+                            blurRadius: 5,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Builder(builder: (context) {
+                        return IconButton(
+                          onPressed: () {
+                            Scaffold.of(context).openDrawer();
+                          },
+                          icon: Icon(
+                            Icons.menu,
+                            color: AppColors.primaryBlack,
+                            size: 30,
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+
+                // current location
+                if (!(_isDestinationSettingOn || _isSourceSettingOn))
+                  Positioned(
+                    bottom: MediaQuery.of(context).size.height * 0.35,
+                    right: 5,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.white.withOpacity(0.9), // light background
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          _checkAndFetchLocation();
+                        },
+                        iconSize: 34,
+                        icon: const Icon(Icons.location_searching_outlined),
+                      ),
+                    ),
+                  ),
+
+                // done button
+                if (_isDestinationSettingOn || _isSourceSettingOn)
+                  Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: CustomButton(
+                          onPressed: () async {
+                            if (_lastCameraPosition == null) return;
+
+                            final latLng = _lastCameraPosition!;
+                            final address = await getAddressFromCoordinates(
+                              latLng.latitude,
+                              latLng.longitude,
+                            );
+
+                            final addressCubit = context.read<AddressCubit>();
+
+                            if (_isDestinationSettingOn && context.mounted) {
+                              // Clear old destination marker
+                              setState(() {
+                                _destinationLocationMarker = null;
+                              });
+
+                              final destination = RideLocation(
+                                lat: latLng.latitude,
+                                lng: latLng.longitude,
+                                name: address,
+                              );
+
+                              addressCubit.setDestination(destination);
+
+                              final newDestMarker =
+                                  await MarkerUtil.createMarker(
+                                markerId: 'destination',
+                                position: latLng,
+                                assetPath:
+                                    Assets.icons.locationPinDestination.path,
+                                title: 'Your Destination',
+                              );
+
+                              setState(() {
+                                _destinationLocationMarker = newDestMarker;
+                                _isDestinationSettingOn = false;
+                                destinationController.text = address;
+                              });
+                            } else if (_isSourceSettingOn) {
+                              setState(() {
+                                _currentLocationMarker = null;
+                              });
+
+                              final source = RideLocation(
+                                lat: latLng.latitude,
+                                lng: latLng.longitude,
+                                name: address,
+                              );
+
+                              addressCubit.setSource(source);
+
+                              final newSourceMarker =
+                                  await MarkerUtil.createMarker(
+                                markerId: 'source',
+                                position: latLng,
+                                assetPath: Assets.icons.locationPinSource.path,
+                                title: 'Your Source',
+                              );
+
+                              setState(() {
+                                _currentLocationMarker = newSourceMarker;
+                                _isSourceSettingOn = false;
+                                sourceController.text = address;
+                              });
+                            }
+
+                            // Get the latest state from the Cubit after updates
+                            final updatedState = addressCubit.state;
+
+                            if (context.mounted &&
+                                updatedState.source != null &&
+                                updatedState.destination != null) {
+                              Navigator.pushNamed(
+                                      context, AppRoutes.mapofferFare)
+                                  .then((_) async {
+                                setState(() => _dummyMarkers.clear());
+
+                                await _generateDummyMarkers(
+                                  LatLng(updatedState.source!.lat,
+                                      updatedState.source!.lng),
+                                );
+
+                                _getPolyline(
+                                  LatLng(updatedState.source!.lat,
+                                      updatedState.source!.lng),
+                                  LatLng(updatedState.destination!.lat,
+                                      updatedState.destination!.lng),
+                                );
+                              });
+                            }
+                          },
+                          text: 'Done'))
+              ] else
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.location_off, size: 48, color: Colors.red),
+                      SizedBox(height: 10),
+                      Text(
+                        "Location is disabled.\nPlease enable location services.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await Geolocator.openLocationSettings();
+                          _checkAndFetchLocation(); // Retry
+                        },
+                        child: Text("Enable Location"),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-
-// done button
-            if (_isDestinationSettingOn)
-              Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: CustomButton(
-                      onPressed: () async {
-                        if (_isDestinationSettingOn &&
-                            _lastCameraPosition != null) {
-                          final latLng = _lastCameraPosition!;
-                          final address = await getAddressFromCoordinates(
-                              latLng.latitude, latLng.longitude);
-
-                          addressCubit.setDestination(RideLocation(
-                            lat: latLng.latitude,
-                            lng: latLng.longitude,
-                            name: address,
-                          ));
-
-                          final marker = await MarkerUtil.createMarker(
-                            markerId: 'destination',
-                            position: latLng,
-                            assetPath: Assets.icons.locationPinDestination.path,
-                            title: 'Your Destination',
-                          );
-
-                          await _generateDummyMarkers();
-
-                          setState(() {
-                            _destinationLocationMarker = marker;
-                            _isDestinationSettingOn = false;
-                            destinationController.text = address;
-                          });
-                          if (source != null) {
-                            _getPolyline(
-                                LatLng(source.lat, source.lng), latLng);
-                          }
-                        }
-                      },
-                      text: 'Done'))
-          ],
-        ),
+            ],
+          );
+        }),
       ),
       drawer: CustomDrawer(),
     );
@@ -579,7 +700,28 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   }) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, AppRoutes.mapAddressSearch);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.mapAddressSearch,
+          arguments: {
+            'isFromFocused': label == 'From',
+            'isToFocused': label == 'To',
+          },
+        ).then((addressSearchState) {
+          if (addressSearchState != null &&
+              addressSearchState is Map<String, dynamic>) {
+            if (addressSearchState['isFromFocused']) {
+              setState(() {
+                _isSourceSettingOn = true;
+              });
+            }
+            if (addressSearchState['isToFocused']) {
+              setState(() {
+                _isDestinationSettingOn = true;
+              });
+            }
+          }
+        });
       },
       child: AbsorbPointer(
         child: TextField(

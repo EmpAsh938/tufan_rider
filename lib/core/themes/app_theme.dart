@@ -18,6 +18,33 @@ class AppThemes {
       bodyLarge: TextStyle(color: AppColors.primaryBlack),
       bodyMedium: TextStyle(color: AppColors.neutralColor),
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 0),
+      isDense: true,
+      hintStyle: const TextStyle(
+        color: Colors.grey,
+        fontSize: 14,
+      ),
+      prefixStyle: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(
+            color: Colors.black), // Or use Theme.of(context).primaryColor
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black, width: 1.5),
+      ),
+      errorBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red),
+      ),
+    ),
     buttonTheme: const ButtonThemeData(
       buttonColor: AppColors.primaryColor,
       textTheme: ButtonTextTheme.primary,

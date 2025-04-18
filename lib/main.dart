@@ -7,7 +7,7 @@ import 'package:tufan_rider/core/di/locator.dart';
 void main() {
   setupLocator();
   runApp(DevicePreview(
-    enabled: !kReleaseMode,
+    enabled: false,
     builder: (context) => const MyApp(),
   ));
 }
