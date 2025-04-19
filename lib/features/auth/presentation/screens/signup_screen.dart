@@ -47,59 +47,61 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        margin: const EdgeInsets.only(
-          top: 80,
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                children: [
-                  buildProfileScreen(),
-                  buildPhoneEmailScreen(),
-                  buildVerificationCodeScreen(),
-                  buildPasswordBranchScreen(),
-                ],
+    return SafeArea(
+      child: Scaffold(
+        body: Container(
+          margin: const EdgeInsets.only(
+            top: 80,
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  children: [
+                    buildProfileScreen(),
+                    buildPhoneEmailScreen(),
+                    buildVerificationCodeScreen(),
+                    buildPasswordBranchScreen(),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min, // Prevent full vertical expansion
-                children: [
-                  CustomButton(
-                      text: _currentPage < 3 ? 'Next' : 'Save',
-                      onPressed: nextPage),
-                  SizedBox(height: 8),
-                  Text(
-                    'Page ${_currentPage + 1} of 4',
-                    style: AppTypography.paragraph,
-                  ),
-                  SizedBox(
-                      height:
-                          8), // Add spacing to separate the text and progress bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (_currentPage + 1) / 4,
-                      backgroundColor: AppColors.gray,
-                      color: AppColors.primaryColor,
-                      minHeight: 8,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min, // Prevent full vertical expansion
+                  children: [
+                    CustomButton(
+                        text: _currentPage < 3 ? 'Next' : 'Save',
+                        onPressed: nextPage),
+                    SizedBox(height: 8),
+                    Text(
+                      'Page ${_currentPage + 1} of 4',
+                      style: AppTypography.paragraph,
                     ),
-                  ),
-                ],
+                    SizedBox(
+                        height:
+                            8), // Add spacing to separate the text and progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (_currentPage + 1) / 4,
+                        backgroundColor: AppColors.gray,
+                        color: AppColors.primaryColor,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

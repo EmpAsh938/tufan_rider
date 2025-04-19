@@ -19,6 +19,10 @@ import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
+import 'package:tufan_rider/features/map/presentation/widgets/active_location_pin.dart';
+import 'package:tufan_rider/features/map/presentation/widgets/offer_price_bottom_sheet.dart';
+import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart';
+import 'package:tufan_rider/features/map/presentation/widgets/request_card_popup.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -355,6 +359,20 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
+  void resetMap() {
+    setState(() {
+      _isFindingDrivers = false;
+      _dummyMarkers.clear();
+      context.read<AddressCubit>().reset();
+      _destinationLocationMarker = null;
+      _polylines.clear();
+
+      polylineCoordinates.clear();
+      destinationController.clear();
+      _animatedCircle.clear();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -417,46 +435,16 @@ class _MapScreenState extends State<MapScreen>
                           // centered pin
                           if (!_isFindingDrivers) ...[
                             Center(
-                              child: IgnorePointer(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Circle head
-                                    Container(
-                                      width: 26,
-                                      height: 26,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: AppColors.primaryColor,
-                                            width: 6),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black26,
-                                            blurRadius: 6,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Vertical line as pointer
-                                    Container(
-                                      width: 2,
-                                      height: 10,
-                                      color: AppColors.primaryColor,
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              child: ActiveLocationPin(),
                             ),
 
-                            // pin setting done on map
+                            // pin setting done button on map
                             Positioned(
                                 bottom: 0,
                                 left: 0,
                                 right: 0,
                                 child: CustomButton(
+                                    isRounded: true,
                                     onPressed: () async {
                                       final latLng =
                                           await getPinPointedCoordinates();
@@ -557,11 +545,11 @@ class _MapScreenState extends State<MapScreen>
                                               LatLng(source.lat, source.lng),
                                             );
 
-                                            _getPolyline(
-                                              LatLng(source.lat, source.lng),
-                                              LatLng(destination.lat,
-                                                  destination!.lng),
-                                            );
+                                            // _getPolyline(
+                                            //   LatLng(source.lat, source.lng),
+                                            //   LatLng(destination.lat,
+                                            //       destination!.lng),
+                                            // );
                                           }
                                         });
                                       }
@@ -739,12 +727,12 @@ class _MapScreenState extends State<MapScreen>
                                                     state.source!.lng),
                                               );
 
-                                              _getPolyline(
-                                                LatLng(state.source!.lat,
-                                                    state.source!.lng),
-                                                LatLng(state.destination!.lat,
-                                                    state.destination!.lng),
-                                              );
+                                              // _getPolyline(
+                                              //   LatLng(state.source!.lat,
+                                              //       state.source!.lng),
+                                              //   LatLng(state.destination!.lat,
+                                              //       state.destination!.lng),
+                                              // );
                                             }
                                           });
                                         },
@@ -776,293 +764,15 @@ class _MapScreenState extends State<MapScreen>
                               ),
                           ]
                         ],
-                        if (_isFindingDrivers)
+                        if (_isFindingDrivers) ...[
                           CustomBottomsheet(
-                              maxHeight:
-                                  MediaQuery.of(context).size.height * 0.55,
-                              minHeight:
-                                  MediaQuery.of(context).size.height * 0.3,
-                              child: SingleChildScrollView(
-                                physics: const NeverScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Center(
-                                      child: Text(
-                                        'Offering Your Price',
-                                        style: AppTypography.labelText.copyWith(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        TextButton(
-                                          onPressed: () {},
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 32, vertical: 16),
-                                            backgroundColor: AppColors.gray,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '-10',
-                                            style: AppTypography.actionText
-                                                .copyWith(
-                                              fontSize: 20,
-                                              color: AppColors.primaryBlack,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          'NPR60',
-                                          style:
-                                              AppTypography.labelText.copyWith(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {},
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 32, vertical: 16),
-                                            backgroundColor:
-                                                AppColors.neutralColor,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '+10',
-                                            style: AppTypography.actionText
-                                                .copyWith(
-                                              fontSize: 20,
-                                              color: AppColors.primaryBlack,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: CustomButton(
-                                        onPressed: () {},
-                                        text: 'Raise Fare',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            "Automatically accept the nearest driver for your fare",
-                                            style: AppTypography.smallText
-                                                .copyWith(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                        CustomSwitch(
-                                          isActive: true,
-                                          switchValue: false,
-                                          onChanged: (bool value) {},
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Payment',
-                                          style: AppTypography.labelText,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.payment,
-                                              size: 20,
-                                              color: AppColors.primaryGreen,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            RichText(
-                                              text: TextSpan(
-                                                style: AppTypography.smallText
-                                                    .copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 16,
-                                                ),
-                                                children: [
-                                                  TextSpan(
-                                                    text: 'NPR60',
-                                                  ),
-                                                  TextSpan(
-                                                      text: '  Cash',
-                                                      style: AppTypography
-                                                          .smallText
-                                                          .copyWith(
-                                                        color: AppColors
-                                                            .primaryBlack
-                                                            .withOpacity(0.5),
-                                                      )),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Your current Ride',
-                                          style: AppTypography.labelText,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  Container(
-                                                    height: 20,
-                                                    width: 20,
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors
-                                                          .primaryGreen
-                                                          .withOpacity(0.6),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                  Container(
-                                                    height: 8,
-                                                    width: 8,
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                      color: Colors.black,
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                'Starting Location Name Goes Here',
-                                                style: AppTypography.smallText
-                                                    .copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 16,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  Container(
-                                                    height: 20,
-                                                    width: 20,
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors
-                                                          .primaryRed
-                                                          .withOpacity(0.6),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                  Container(
-                                                    height: 8,
-                                                    width: 8,
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                      color: Colors.black,
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                'Ending Location Name Goes Here',
-                                                style: AppTypography.smallText
-                                                    .copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 16,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: CustomButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _isFindingDrivers = false;
-                                            _dummyMarkers.clear();
-                                            context
-                                                .read<AddressCubit>()
-                                                .reset();
-                                            _destinationLocationMarker = null;
-                                            _polylines.clear();
-
-                                            polylineCoordinates.clear();
-                                            destinationController.clear();
-                                            _animatedCircle.clear();
-                                          });
-                                        },
-                                        backgroundColor: AppColors.gray,
-                                        textColor: AppColors.primaryRed,
-                                        text: 'Cancel Request',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )),
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.55,
+                            minHeight: MediaQuery.of(context).size.height * 0.3,
+                            child: OfferPriceBottomSheet(onPressed: resetMap),
+                          ),
+                          RequestCardPopup(),
+                        ]
                       ],
                     );
                   })

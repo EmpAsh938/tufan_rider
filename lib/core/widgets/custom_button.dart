@@ -10,6 +10,7 @@ class CustomButton extends StatelessWidget {
   final IconData? icon;
   final String? imagePath;
   final bool? isRounded;
+  final double? height;
 
   const CustomButton({
     super.key,
@@ -20,49 +21,54 @@ class CustomButton extends StatelessWidget {
     this.icon,
     this.imagePath,
     this.isRounded,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? AppColors.primaryColor,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: (isRounded == null || !isRounded!)
-              ? BorderRadius.circular(8.0)
-              : BorderRadius.zero,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              color: textColor ?? AppColors.primaryWhite,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (imagePath != null) ...[
-            Image.asset(
-              imagePath!,
-              width: 20,
-              height: 20,
-            ),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            text,
-            style: AppTypography.actionText.copyWith(
-              fontSize: 16,
-              color: textColor ?? AppColors.primaryWhite,
-            ),
+    return SizedBox(
+      height: height,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor ?? AppColors.primaryColor,
+          padding: EdgeInsets.symmetric(
+              vertical: (height == null) ? 16 : 8, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: (isRounded == null || !isRounded!)
+                ? BorderRadius.circular(8.0)
+                : BorderRadius.zero,
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                color: textColor ?? AppColors.primaryWhite,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+            ],
+            if (imagePath != null) ...[
+              Image.asset(
+                imagePath!,
+                width: 20,
+                height: 20,
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              text,
+              style: AppTypography.actionText.copyWith(
+                fontSize: 16,
+                color: textColor ?? AppColors.primaryWhite,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -44,58 +44,60 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        margin: const EdgeInsets.only(
-          top: 80,
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                children: [
-                  buildPhoneScreen(),
-                  buildVerificationCodeScreen(),
-                  buildPasswordScreen(),
-                ],
+    return SafeArea(
+      child: Scaffold(
+        body: Container(
+          margin: const EdgeInsets.only(
+            top: 80,
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  children: [
+                    buildPhoneScreen(),
+                    buildVerificationCodeScreen(),
+                    buildPasswordScreen(),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min, // Prevent full vertical expansion
-                children: [
-                  CustomButton(
-                      text: _currentPage < 2 ? 'Next' : 'Save',
-                      onPressed: nextPage),
-                  SizedBox(height: 8),
-                  Text(
-                    'Page ${_currentPage + 1} of 3',
-                    style: AppTypography.paragraph,
-                  ),
-                  SizedBox(
-                      height:
-                          8), // Add spacing to separate the text and progress bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (_currentPage + 1) / 3,
-                      backgroundColor: AppColors.gray,
-                      color: AppColors.primaryColor,
-                      minHeight: 8,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min, // Prevent full vertical expansion
+                  children: [
+                    CustomButton(
+                        text: _currentPage < 2 ? 'Next' : 'Save',
+                        onPressed: nextPage),
+                    SizedBox(height: 8),
+                    Text(
+                      'Page ${_currentPage + 1} of 3',
+                      style: AppTypography.paragraph,
                     ),
-                  ),
-                ],
+                    SizedBox(
+                        height:
+                            8), // Add spacing to separate the text and progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (_currentPage + 1) / 3,
+                        backgroundColor: AppColors.gray,
+                        color: AppColors.primaryColor,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

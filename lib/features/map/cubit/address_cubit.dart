@@ -12,6 +12,10 @@ class AddressCubit extends Cubit<AddressState> {
     emit(state.copyWith(destination: destination));
   }
 
+  AddressState fetchAddress() {
+    return state;
+  }
+
   RideLocation? fetchSource() {
     return state.source;
   }

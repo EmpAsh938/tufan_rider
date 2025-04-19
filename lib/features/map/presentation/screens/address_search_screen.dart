@@ -28,8 +28,8 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     final destination = addressCubit.fetchDestination();
 
     setState(() {
-      fromController.text = source!.name ?? '';
-      toController.text = destination!.name ?? '';
+      if (source != null) fromController.text = source!.name ?? '';
+      if (destination != null) toController.text = destination!.name ?? '';
     });
   }
 
