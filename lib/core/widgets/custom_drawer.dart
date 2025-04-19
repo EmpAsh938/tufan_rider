@@ -153,6 +153,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
             Center(
               child: CustomSwitch(
+                isActive: false,
                 switchValue: isActive,
                 onChanged: (bool value) {
                   setState(() {

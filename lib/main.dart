@@ -11,5 +11,3 @@ void main() {
     builder: (context) => const MyApp(),
   ));
 }
-// AIzaSyBsuDZ_HuchPAjnvZBUS48GVZTVW4_dIbw
-// AIzaSyBsvZQX_sNtO61EDa4DKy1lr-xFMUhY5t0

@@ -57,77 +57,79 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: AppColors.backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                height: 80,
-              ),
-              const LogoWidget(),
-              const SizedBox(height: 32),
-              CustomTextField(
-                controller: phoneController,
-                hintText: '98XXXXXXXX',
-                labelText: 'Enter your mobile number',
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                prefixIcon: Image.asset(Assets.icons.flagNepal.path),
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: passwordController,
-                hintText: 'Enter your password',
-                labelText: 'Enter your password',
-                obscureText: true,
-                suffixIcon: Image.asset(Assets.icons.hideEyeCrossbar.path),
-                suffixIconColor: AppColors.gray,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                  width: double.infinity,
-                  child: CustomButton(
-                      text: 'Login',
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/map');
-                      })),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/reset');
-                },
-                child: Text(
-                  'Forgotten Password?',
-                  style: AppTypography.paragraph,
+    return SafeArea(
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: AppColors.backgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const SizedBox(
+                  height: 80,
                 ),
-              ),
-              Divider(
-                color: AppColors.gray,
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                  width: double.infinity,
-                  child: CustomButton(
-                      text: 'Register here',
-                      backgroundColor: AppColors.neutralColor,
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/signup');
-                      })),
-              const SizedBox(height: 8),
-              // SizedBox(
-              //     width: double.infinity,
-              //     child: CustomButton(
-              //       text: 'Payment',
-              //       backgroundColor: AppColors.primaryRed,
-              //       onPressed: () => _initiatePayment(context),
-              //       // Navigator.pushNamed(context, '/signup');
-              //     ))
-            ],
+                const LogoWidget(),
+                const SizedBox(height: 32),
+                CustomTextField(
+                  controller: phoneController,
+                  hintText: '98XXXXXXXX',
+                  labelText: 'Enter your mobile number',
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  prefixIcon: Image.asset(Assets.icons.flagNepal.path),
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: passwordController,
+                  hintText: 'Enter your password',
+                  labelText: 'Enter your password',
+                  obscureText: true,
+                  suffixIcon: Image.asset(Assets.icons.hideEyeCrossbar.path),
+                  suffixIconColor: AppColors.gray,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                    width: double.infinity,
+                    child: CustomButton(
+                        text: 'Login',
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/map');
+                        })),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/reset');
+                  },
+                  child: Text(
+                    'Forgotten Password?',
+                    style: AppTypography.paragraph,
+                  ),
+                ),
+                Divider(
+                  color: AppColors.gray,
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                    width: double.infinity,
+                    child: CustomButton(
+                        text: 'Register here',
+                        backgroundColor: AppColors.neutralColor,
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/signup');
+                        })),
+                const SizedBox(height: 8),
+                // SizedBox(
+                //     width: double.infinity,
+                //     child: CustomButton(
+                //       text: 'Payment',
+                //       backgroundColor: AppColors.primaryRed,
+                //       onPressed: () => _initiatePayment(context),
+                //       // Navigator.pushNamed(context, '/signup');
+                //     ))
+              ],
+            ),
           ),
         ),
       ),

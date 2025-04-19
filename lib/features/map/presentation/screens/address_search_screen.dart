@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class AddressSearchScreen extends StatefulWidget {
@@ -20,9 +22,22 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
   final TextEditingController fromController = TextEditingController();
   final TextEditingController toController = TextEditingController();
 
+  void fetchAddress() {
+    final addressCubit = locator.get<AddressCubit>();
+    final source = addressCubit.fetchSource();
+    final destination = addressCubit.fetchDestination();
+
+    setState(() {
+      fromController.text = source!.name ?? '';
+      toController.text = destination!.name ?? '';
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+
+    fetchAddress();
 
     fromFocusNode.addListener(() {
       setState(() => isFromFocused = fromFocusNode.hasFocus);
@@ -87,93 +102,95 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       data: Theme.of(context).copyWith(
         inputDecorationTheme: customInputTheme,
       ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            "Choose your route",
-            style: AppTypography.headline.copyWith(fontSize: 18),
+      child: SafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(
+              "Choose your route",
+              style: AppTypography.headline.copyWith(fontSize: 18),
+            ),
+            centerTitle: true,
           ),
-          centerTitle: true,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // From Field
-              TextField(
-                focusNode: fromFocusNode,
-                controller: fromController,
-                decoration: const InputDecoration(
-                  labelText: "From",
-                  prefixIcon: Icon(Icons.my_location),
-                  hintText: "Enter starting location",
-                ),
-                onChanged: (value) {},
-              ),
-
-              const SizedBox(height: 16),
-
-              // To Field
-              TextField(
-                focusNode: toFocusNode,
-                controller: toController,
-                decoration: const InputDecoration(
-                  labelText: "To",
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                  hintText: "Enter destination",
-                ),
-                onChanged: (value) {},
-              ),
-
-              const SizedBox(height: 16),
-
-              // "Set on Map" button
-              GestureDetector(
-                onTap: () => Navigator.pop(context, {
-                  'isFromFocused': isFromFocused,
-                  'isToFocused': isToFocused
-                }),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryWhite,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.gray),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // From Field
+                TextField(
+                  focusNode: fromFocusNode,
+                  controller: fromController,
+                  decoration: const InputDecoration(
+                    labelText: "From",
+                    prefixIcon: Icon(Icons.my_location),
+                    hintText: "Enter starting location",
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        Assets.icons.carbonMap.path,
-                        width: 24,
-                        height: 24,
-                      ),
-                      const SizedBox(width: 10),
-                      Text('Set on Map', style: AppTypography.paragraph),
-                    ],
+                  onChanged: (value) {},
+                ),
+
+                const SizedBox(height: 16),
+
+                // To Field
+                TextField(
+                  focusNode: toFocusNode,
+                  controller: toController,
+                  decoration: const InputDecoration(
+                    labelText: "To",
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                    hintText: "Enter destination",
+                  ),
+                  onChanged: (value) {},
+                ),
+
+                const SizedBox(height: 16),
+
+                // "Set on Map" button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context, {
+                    'isFromFocused': isFromFocused,
+                    'isToFocused': isToFocused
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryWhite,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.gray),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          Assets.icons.carbonMap.path,
+                          width: 24,
+                          height: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Text('Set on Map', style: AppTypography.paragraph),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Autocomplete results
-              Expanded(
-                child: ListView.separated(
-                  itemCount: 5,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      leading: const Icon(Icons.place),
-                      title: Text("Suggested Place #${index + 1}"),
-                      subtitle: const Text("Place address here"),
-                      onTap: () {},
-                    );
-                  },
+                // Autocomplete results
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: 5,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        leading: const Icon(Icons.place),
+                        title: Text("Suggested Place #${index + 1}"),
+                        subtitle: const Text("Place address here"),
+                        onTap: () {},
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

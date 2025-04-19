@@ -18,6 +18,7 @@ class MarkerUtil {
       position: position,
       icon: icon,
       infoWindow: title != null ? InfoWindow(title: title) : InfoWindow.noText,
+      anchor: const Offset(0.5, 1.0),
     );
   }
 

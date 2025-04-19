@@ -15,31 +15,33 @@ class SidebarScaffold extends StatefulWidget {
 class _SidebarScaffoldState extends State<SidebarScaffold> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-      appBar: AppBar(
+    return SafeArea(
+      child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        leading: Builder(builder: (context) {
-          return IconButton(
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-            icon: Icon(Icons.menu),
-          );
-        }),
-        title: Text(
-          widget.title,
-          style: AppTypography.paragraph.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
+        appBar: AppBar(
+          backgroundColor: AppColors.backgroundColor,
+          leading: Builder(builder: (context) {
+            return IconButton(
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+              icon: Icon(Icons.menu),
+            );
+          }),
+          title: Text(
+            widget.title,
+            style: AppTypography.paragraph.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
           ),
         ),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: widget.child,
+        ),
+        drawer: CustomDrawer(),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: widget.child,
-      ),
-      drawer: CustomDrawer(),
     );
   }
 }

@@ -9,6 +9,7 @@ class CustomButton extends StatelessWidget {
   final Color? textColor;
   final IconData? icon;
   final String? imagePath;
+  final bool? isRounded;
 
   const CustomButton({
     super.key,
@@ -18,6 +19,7 @@ class CustomButton extends StatelessWidget {
     this.textColor,
     this.icon,
     this.imagePath,
+    this.isRounded,
   });
 
   @override
@@ -28,7 +30,9 @@ class CustomButton extends StatelessWidget {
         backgroundColor: backgroundColor ?? AppColors.primaryColor,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: (isRounded == null || !isRounded!)
+              ? BorderRadius.circular(8.0)
+              : BorderRadius.zero,
         ),
       ),
       child: Row(

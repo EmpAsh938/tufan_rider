@@ -23,32 +23,34 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryColor,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(
-            height: 20,
-          ),
-          Assets.logo.image(),
-          Column(
-            children: [
-              Text(
-                'Ride Smart || Travel Safe',
-                style: AppTypography.headline,
-              ),
-              Text(
-                'Your Travel Partner',
-                style: AppTypography.headline,
-              ),
-              const SizedBox(
-                height: 40,
-              ),
-            ],
-          ),
-        ],
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.primaryColor,
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(
+              height: 20,
+            ),
+            Assets.logo.image(),
+            Column(
+              children: [
+                Text(
+                  'Ride Smart || Travel Safe',
+                  style: AppTypography.headline,
+                ),
+                Text(
+                  'Your Travel Partner',
+                  style: AppTypography.headline,
+                ),
+                const SizedBox(
+                  height: 40,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

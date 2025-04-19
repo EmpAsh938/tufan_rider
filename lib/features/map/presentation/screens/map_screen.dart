@@ -1,61 +1,70 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
-import 'package:tufan_rider/core/utils/marker_util.dart';
+import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
-class MapBookingScreen extends StatefulWidget {
-  const MapBookingScreen({super.key});
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
+  static const CameraPosition _kDefaultLocation = CameraPosition(
+    target: LatLng(27.7172, 85.3240),
+    zoom: 10,
+  );
 
   @override
-  State<MapBookingScreen> createState() => _MapBookingScreenState();
+  State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapBookingScreenState extends State<MapBookingScreen> {
-  final Completer<GoogleMapController> _controller =
-      Completer<GoogleMapController>();
+class _MapScreenState extends State<MapScreen>
+    with SingleTickerProviderStateMixin {
+  final Completer<GoogleMapController> _controller = Completer();
 
   TextEditingController destinationController = TextEditingController();
   TextEditingController sourceController = TextEditingController();
 
   late String _mapStyleString;
 
+  LatLng _center = MapScreen._kDefaultLocation.target;
+
+  final Set<Marker> _dummyMarkers = {};
+
   double zoomLevel = 12;
-
-  // LatLng? _currentLocation;
-  // LatLng? _selectedDestination;
-  LatLng? _lastCameraPosition;
-
   bool _locationEnabled = false;
   bool _isDestinationSettingOn = false;
   bool _isSourceSettingOn = false;
   bool _isMapInteractionDisabled = false;
+  bool _isLoading = true;
+  bool _isFindingDrivers = false;
 
   Marker? _currentLocationMarker;
   Marker? _destinationLocationMarker;
 
-  final Set<Marker> _dummyMarkers = {};
-
   Set<Polyline> _polylines = {};
   List<LatLng> polylineCoordinates = [];
   PolylinePoints polylinePoints = PolylinePoints();
+
+  Set<Circle> _animatedCircle = {};
+  late AnimationController _circleAnimationController;
+  late Animation<double> _radiusAnimation;
 
   Future<void> _checkAndFetchLocation() async {
     try {
@@ -63,6 +72,8 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       if (!serviceEnabled) {
         setState(() {
           _locationEnabled = false;
+          _currentLocationMarker = null;
+          _isLoading = false;
         });
         return;
       }
@@ -75,6 +86,8 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
             permission != LocationPermission.whileInUse) {
           setState(() {
             _locationEnabled = false;
+            _currentLocationMarker = null;
+            _isLoading = false;
           });
           return;
         }
@@ -83,19 +96,25 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      final address = await getAddressFromCoordinates(27.7172, 85.3240);
-      locator
-          .get<AddressCubit>()
-          .setSource(RideLocation(lat: 27.7172, lng: 85.3240, name: address));
+      final address = await _getAddressFromLatLng(_center);
+
+      // put updated coordinates
+      locator.get<AddressCubit>().setSource(RideLocation(
+          lat: _center.latitude, lng: _center.longitude, name: address));
 
       setState(() {
-        // _currentLocation = LatLng(position.latitude, position.longitude);
-        // _currentLocation = LatLng(27.7172, 85.3240);
+        // _center = LatLng(position.latitude, position.longitude);
         _locationEnabled = true;
-        sourceController.text = address;
+        sourceController.text = address ?? '';
+        _isLoading = false;
+        _currentLocationMarker = Marker(
+          markerId: const MarkerId('current_location'),
+          position: _center,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: InfoWindow(title: "Your Location"),
+        );
       });
-
-      await _loadCurrentLocationMarker();
 
       final GoogleMapController controller = await _controller.future;
       final currentLocation = locator.get<AddressCubit>().fetchSource();
@@ -109,95 +128,46 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
     } catch (e) {
       setState(() {
         _locationEnabled = false;
+        _currentLocationMarker = null;
+        _isLoading = false;
       });
     }
   }
 
-  Future<void> _loadCurrentLocationMarker() async {
-    final currentLocation = locator.get<AddressCubit>().fetchSource();
+  // Reverse geocode
+  Future<String?> _getAddressFromLatLng(LatLng position) async {
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
 
-    if (currentLocation != null) {
-      final marker = await MarkerUtil.createMarker(
-        markerId: 'current_location',
-        position: LatLng(currentLocation.lat, currentLocation.lng),
-        assetPath: Assets.icons.locationPinSource.path,
-        title: 'You are here',
-      );
+        // Use null-aware operators and fallback values
+        String name = place.name ?? '';
+        String locality = place.locality ?? '';
+        String administrativeArea = place.administrativeArea ?? '';
+        String country = place.country ?? '';
 
-      setState(() {
-        _currentLocationMarker = marker;
-      });
+        String address = "$name, $locality, $administrativeArea, $country";
+
+        return address.trim().replaceAll(RegExp(r'^,+|,+$'), '');
+      } else {
+        return "Unknown Location";
+      }
+    } catch (e) {
+      print("Error getting address: $e");
+      return "";
     }
   }
 
-  // Generate some dummy markers around the current location
-  Future<void> _generateDummyMarkers(LatLng source) async {
-    final random = Random();
-    final radius = 0.01; // approx 1km
-    final basePosition = source;
-
+  void _onCameraMove(CameraPosition position) {
     setState(() {
-      _isMapInteractionDisabled =
-          true; // Disable gestures (you'll use this in GoogleMap)
-    });
-
-    final controller = await _controller.future;
-
-    // Step 1: Move to center & zoom in smoothly
-    await controller.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: basePosition, zoom: 18),
-      ),
-    );
-    await Future.delayed(Duration(milliseconds: 1000));
-    await controller.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: basePosition, zoom: 16),
-      ),
-    );
-
-    // Step 2: Move camera upward slightly
-    final targetOffset = LatLng(
-      basePosition.latitude + 0.0025, // shift north
-      basePosition.longitude,
-    );
-    await Future.delayed(Duration(milliseconds: 1000));
-    await controller.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: targetOffset, zoom: 14),
-      ),
-    );
-
-    // Step 3: Add dummy markers
-    for (int i = 0; i < 5; i++) {
-      double offsetLat =
-          basePosition.latitude + (random.nextDouble() - 0.5) * radius;
-      double offsetLng =
-          basePosition.longitude + (random.nextDouble() - 0.5) * radius;
-
-      final markerId = 'dummy_marker_$i';
-      final markerPosition = LatLng(offsetLat, offsetLng);
-
-      final marker = await MarkerUtil.createMarker(
-        markerId: markerId,
-        position: markerPosition,
-        assetPath: Assets.icons.bike.path,
-        title: 'Dummy Marker $i',
-        size: 100,
-      );
-
-      setState(() {
-        _dummyMarkers.add(marker);
-      });
-    }
-
-    setState(() {
-      _isMapInteractionDisabled = false; // Re-enable map gestures
+      _center = position.target;
     });
   }
 
-  Future<void> _loadMapStyle() async {
-    _mapStyleString = await rootBundle.loadString(Assets.mapStyles);
+  void _onCameraIdle() {
+    _getAddressFromLatLng(_center);
   }
 
   void _drawPolyline(LatLng start, LatLng end) {
@@ -243,27 +213,146 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
     }
   }
 
-  Future<String> getAddressFromCoordinates(double lat, double lng) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
+  Future<void> _generateDummyMarkers(LatLng source) async {
+    final random = Random();
+    final radius = 0.03; // approx 3km
+    final basePosition = source;
 
-        // Use null-aware operators and fallback values
-        String name = place.name ?? '';
-        String locality = place.locality ?? '';
-        String administrativeArea = place.administrativeArea ?? '';
-        String country = place.country ?? '';
+    setState(() => _isMapInteractionDisabled = true);
 
-        String address = "$name, $locality, $administrativeArea, $country";
-        return address.trim().replaceAll(RegExp(r'^,+|,+$'), '');
-      } else {
-        return "Unknown Location";
-      }
-    } catch (e) {
-      print("Error getting address: $e");
-      return "";
+    final controller = await _controller.future;
+    _circleAnimationController.reset();
+
+    // Configure animations
+    final radiusTween = Tween<double>(begin: 10.0, end: 1000.0);
+    final zoomTween = Tween<double>(begin: 18.0, end: 14.0);
+
+    // Use the same animation controller for both animations
+    final radiusAnimation = radiusTween.animate(
+      CurvedAnimation(
+        parent: _circleAnimationController,
+        curve: Curves.easeInOutCubic, // Smoother curve
+      ),
+    );
+
+    // Add a small delay to prevent initial stutter
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Animation listener
+    radiusAnimation.addListener(() {
+      final currentProgress = _circleAnimationController.value;
+      final currentZoom = zoomTween.transform(currentProgress);
+
+      setState(() {
+        _animatedCircle = {
+          Circle(
+            circleId: const CircleId('animatedCircle'),
+            center: _center,
+            radius: radiusAnimation.value,
+            fillColor: Colors.blue.withOpacity(0.2),
+            strokeColor: Colors.blue,
+            strokeWidth: 2,
+          ),
+        };
+      });
+
+      // Use newLatLngZoom for smoother camera transitions
+      controller.moveCamera(
+        CameraUpdate.newLatLngZoom(
+          basePosition,
+          currentZoom,
+        ),
+      );
+    });
+
+    // Start the animation
+    Future.microtask(() async {
+      await _circleAnimationController.forward();
+    });
+    // Add markers with staggered appearance
+    for (int i = 0; i < 5; i++) {
+      final offsetLat =
+          basePosition.latitude + (random.nextDouble() - 0.5) * radius;
+      final offsetLng =
+          basePosition.longitude + (random.nextDouble() - 0.5) * radius;
+
+      setState(() {
+        _dummyMarkers.add(
+          createMarker(
+            position: LatLng(offsetLat, offsetLng),
+            label: 'Vehicles Position',
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          ),
+        );
+      });
+      await Future.delayed(const Duration(milliseconds: 100));
     }
+
+    setState(() => _isMapInteractionDisabled = false);
+  }
+
+  Marker createMarker({
+    required LatLng position,
+    required String label,
+    BitmapDescriptor? icon,
+    String? snippet,
+    MarkerId? markerId,
+    VoidCallback? onTap,
+  }) {
+    return Marker(
+      markerId: markerId ?? MarkerId(position.toString()),
+      position: position,
+      icon: icon ?? BitmapDescriptor.defaultMarker, // fallback to default
+      infoWindow: InfoWindow(
+        title: label,
+        snippet: snippet ?? 'Unknown Location',
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Future<LatLng?> getPinPointedCoordinates() async {
+    try {
+      final controller = await _controller.future;
+
+      final screenCoordinate = await controller.getScreenCoordinate(_center);
+
+      const double circleHeight = 26;
+      const double lineHeight = 10;
+      final offsetY = ((circleHeight / 2) + lineHeight).round();
+
+      final adjustedScreenCoordinate = ScreenCoordinate(
+        x: screenCoordinate.x,
+        y: screenCoordinate.y + offsetY,
+      );
+
+      final LatLng pinTipPosition =
+          await controller.getLatLng(adjustedScreenCoordinate);
+
+      return pinTipPosition;
+    } catch (e) {
+      developer.log('Getting pin point coordinates failed $e');
+      return null;
+    }
+  }
+
+  Future<void> _loadMapStyle() async {
+    _mapStyleString = await rootBundle.loadString(Assets.mapStyles);
+  }
+
+  void animationInitialization() {
+    _circleAnimationController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 10),
+    );
+
+    _radiusAnimation = Tween<double>(begin: 0, end: 150).animate(
+      CurvedAnimation(
+        parent: _circleAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
   }
 
   @override
@@ -271,424 +360,736 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
     super.initState();
     _loadMapStyle();
     _checkAndFetchLocation();
+    _getAddressFromLatLng(_center);
+    animationInitialization();
   }
 
   @override
   void dispose() {
     super.dispose();
+    _circleAnimationController.dispose();
     sourceController.dispose();
     destinationController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Padding(
-        padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top - 10,
-          // top: 0,
-        ),
-        child:
-            BlocBuilder<AddressCubit, AddressState>(builder: (context, state) {
-          return Stack(
-            children: [
-              // Placeholder for map section (Insert Map here)
-              if (_locationEnabled && _currentLocationMarker != null) ...[
-                SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(_currentLocationMarker!.position.latitude,
-                          _currentLocationMarker!.position.longitude),
-                      zoom: zoomLevel,
-                    ),
-                    myLocationEnabled: false,
-                    myLocationButtonEnabled: false,
-                    compassEnabled: false,
-                    mapToolbarEnabled: false,
-                    zoomControlsEnabled: false,
-                    zoomGesturesEnabled: !_isMapInteractionDisabled,
-                    scrollGesturesEnabled: !_isMapInteractionDisabled,
-                    rotateGesturesEnabled: !_isMapInteractionDisabled,
-                    tiltGesturesEnabled: !_isMapInteractionDisabled,
-                    markers: {
-                      if (_currentLocationMarker != null)
-                        _currentLocationMarker!,
-                      if (_destinationLocationMarker != null)
-                        _destinationLocationMarker!,
-                      ..._dummyMarkers, // Add dummy markers here
-                    },
-                    onMapCreated: (GoogleMapController controller) {
-                      if (!_controller.isCompleted) {
-                        _controller.complete(controller);
-                        controller.setMapStyle(_mapStyleString);
-                      }
-                    },
-                    onCameraMove: (CameraPosition position) {
-                      if (_isDestinationSettingOn || _isSourceSettingOn) {
-                        _lastCameraPosition = position.target;
-                      }
-                    },
-                    polylines: _polylines,
-                    // minMaxZoomPreference: MinMaxZoomPreference(1, 20),
-                  ),
-                ),
-                // set destination
-                if (_isDestinationSettingOn || _isSourceSettingOn)
-                  Positioned(
-                      top: MediaQuery.of(context).size.height / 2 -
-                          (26 + 26 + 5),
-                      left: MediaQuery.of(context).size.width / 2 - 26 - 2,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Circle head
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: AppColors.primaryColor, width: 6),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Vertical line as pointer
-                          Container(
-                            width: 2,
-                            height: 10,
-                            color: AppColors.primaryColor,
-                          ),
-                        ],
-                      )),
-
-                // draggable scroll sheet
-                if (!(_isDestinationSettingOn || _isSourceSettingOn))
-                  DraggableScrollableSheet(
-                    initialChildSize: 0.35,
-                    minChildSize: 0.35,
-                    maxChildSize: 0.75,
-                    builder: (context, scrollController) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.backgroundColor,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(32)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 8,
-                              offset: Offset(0, -2),
-                            ),
-                          ],
+    return SafeArea(
+      child: Scaffold(
+        body: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(),
+              )
+            : _locationEnabled
+                ? BlocBuilder<AddressCubit, AddressState>(
+                    builder: (context, state) {
+                    return Stack(
+                      children: [
+                        GoogleMap(
+                          mapType: MapType.normal,
+                          initialCameraPosition: MapScreen._kDefaultLocation,
+                          myLocationEnabled: false,
+                          myLocationButtonEnabled: false,
+                          compassEnabled: false,
+                          mapToolbarEnabled: false,
+                          zoomControlsEnabled: false,
+                          zoomGesturesEnabled: !_isMapInteractionDisabled,
+                          scrollGesturesEnabled: !_isMapInteractionDisabled,
+                          rotateGesturesEnabled: !_isMapInteractionDisabled,
+                          tiltGesturesEnabled: !_isMapInteractionDisabled,
+                          markers: {
+                            ..._dummyMarkers,
+                            if (_currentLocationMarker != null)
+                              _currentLocationMarker!,
+                            if (_destinationLocationMarker != null)
+                              _destinationLocationMarker!,
+                          },
+                          circles: _animatedCircle,
+                          onMapCreated: (controller) {
+                            _controller.complete(controller);
+                            controller.setMapStyle(_mapStyleString);
+                          },
+                          onCameraMove: _onCameraMove,
+                          onCameraIdle: _onCameraIdle,
+                          polylines: _polylines,
                         ),
-                        child: Column(
-                          children: [
-                            // Notch Handle
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Center(
-                                child: Container(
-                                  width: 40,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade400,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: SingleChildScrollView(
-                                controller: scrollController,
-                                padding: const EdgeInsets.all(16.0),
+                        if (_isDestinationSettingOn || _isSourceSettingOn) ...[
+                          // centered pin
+                          if (!_isFindingDrivers) ...[
+                            Center(
+                              child: IgnorePointer(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    SelectableIconsRow(),
-                                    SizedBox(height: 10),
-                                    buildLocationField(
-                                      label: "From",
-                                      icon: Icons.location_on_outlined,
-                                      imagePath:
-                                          Assets.icons.locationPinSource.path,
-                                      controller: sourceController,
-                                    ),
-                                    SizedBox(height: 10),
-                                    buildLocationField(
-                                      label: "To",
-                                      icon: Icons.location_on_outlined,
-                                      imagePath: Assets
-                                          .icons.locationPinDestination.path,
-                                      controller: destinationController,
-                                    ),
-                                    // SizedBox(height: 30),
-                                    // InkWell(
-                                    //   onTap: () {
-                                    //     setState(() {
-                                    //       _isDestinationSettingOn = true;
-                                    //     });
-                                    //   },
-                                    //   borderRadius: BorderRadius.circular(8),
-                                    //   child: Container(
-                                    //     padding: const EdgeInsets.symmetric(
-                                    //         vertical: 12, horizontal: 16),
-                                    //     decoration: BoxDecoration(
-                                    //       color: AppColors.primaryWhite,
-                                    //       borderRadius:
-                                    //           BorderRadius.circular(8),
-                                    //       border:
-                                    //           Border.all(color: AppColors.gray),
-                                    //     ),
-                                    //     child: Row(
-                                    //       mainAxisSize: MainAxisSize.min,
-                                    //       children: [
-                                    //         Image.asset(
-                                    //           Assets.icons.carbonMap.path,
-                                    //           width: 24,
-                                    //           height: 24,
-                                    //         ),
-                                    //         const SizedBox(width: 10),
-                                    //         Text(
-                                    //           'Set on Map',
-                                    //           style: AppTypography.paragraph,
-                                    //         ),
-                                    //       ],
-                                    //     ),
-                                    //   ),
-                                    // ),
-                                    SizedBox(height: 20),
-                                    Text(
-                                      "Previous History",
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(height: 10),
-                                    ...List.generate(
-                                      4,
-                                      (index) => ListTile(
-                                        leading: Icon(Icons.history,
-                                            color: Colors.orangeAccent),
-                                        title:
-                                            Text("Sallaghari, Araniko Highway"),
-                                        trailing: Icon(Icons.arrow_forward_ios,
-                                            size: 16),
+                                    // Circle head
+                                    Container(
+                                      width: 26,
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color: AppColors.primaryColor,
+                                            width: 6),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 6,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
+                                    ),
+                                    // Vertical line as pointer
+                                    Container(
+                                      width: 2,
+                                      height: 10,
+                                      color: AppColors.primaryColor,
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ],
+
+                            // pin setting done on map
+                            Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: CustomButton(
+                                    onPressed: () async {
+                                      final latLng =
+                                          await getPinPointedCoordinates();
+                                      if (latLng == null) return;
+                                      final address =
+                                          await _getAddressFromLatLng(latLng);
+
+                                      final addressCubit =
+                                          context.read<AddressCubit>();
+
+                                      if (_isDestinationSettingOn &&
+                                          context.mounted) {
+                                        // Clear old destination marker
+                                        setState(() {
+                                          _destinationLocationMarker = null;
+                                        });
+
+                                        final destination = RideLocation(
+                                          lat: latLng.latitude,
+                                          lng: latLng.longitude,
+                                          name: address,
+                                        );
+
+                                        addressCubit
+                                            .setDestination(destination);
+
+                                        // create marker
+                                        final newDestMarker = createMarker(
+                                            position: latLng,
+                                            label: 'Destination Location',
+                                            icon: BitmapDescriptor
+                                                .defaultMarkerWithHue(
+                                                    BitmapDescriptor.hueRed));
+
+                                        setState(() {
+                                          _destinationLocationMarker =
+                                              newDestMarker;
+                                          _isDestinationSettingOn = false;
+                                          destinationController.text =
+                                              address ?? '';
+                                        });
+                                      } else if (_isSourceSettingOn) {
+                                        setState(() {
+                                          _currentLocationMarker = null;
+                                        });
+
+                                        final source = RideLocation(
+                                          lat: latLng.latitude,
+                                          lng: latLng.longitude,
+                                          name: address,
+                                        );
+
+                                        addressCubit.setSource(source);
+
+                                        final newSourceMarker = createMarker(
+                                          position: latLng,
+                                          label: 'Source Location',
+                                          icon: BitmapDescriptor
+                                              .defaultMarkerWithHue(
+                                                  BitmapDescriptor.hueGreen),
+                                        );
+
+                                        setState(() {
+                                          _currentLocationMarker =
+                                              newSourceMarker;
+                                          _isSourceSettingOn = false;
+                                          sourceController.text = address ?? '';
+                                        });
+                                      }
+                                      // Get the latest state from the Cubit after updates
+                                      final source = addressCubit.fetchSource();
+                                      final destination =
+                                          addressCubit.fetchDestination();
+
+                                      if (context.mounted &&
+                                          source != null &&
+                                          destination != null) {
+                                        Navigator.pushNamed(
+                                                context, AppRoutes.mapofferFare)
+                                            .then((offeredFare) async {
+                                          setState(() => _dummyMarkers.clear());
+
+                                          if (offeredFare == null) return;
+                                          if (offeredFare
+                                              is Map<String, bool>) {
+                                            final isFindDriversActive =
+                                                offeredFare[
+                                                        'isFindDriversActive'] ??
+                                                    false;
+
+                                            if (isFindDriversActive) {
+                                              setState(() {
+                                                _isFindingDrivers = true;
+                                              });
+                                            }
+
+                                            await _generateDummyMarkers(
+                                              LatLng(source.lat, source.lng),
+                                            );
+
+                                            _getPolyline(
+                                              LatLng(source.lat, source.lng),
+                                              LatLng(destination.lat,
+                                                  destination!.lng),
+                                            );
+                                          }
+                                        });
+                                      }
+                                    },
+                                    text: 'Done')),
+                          ]
+                        ] else ...[
+                          if (!_isFindingDrivers) ...[
+                            CustomBottomsheet(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.8,
+                              minHeight:
+                                  MediaQuery.of(context).size.height * 0.3,
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          SelectableIconsRow(),
+                                          SizedBox(height: 10),
+                                          buildLocationField(
+                                            label: "From",
+                                            icon: Icons.location_on_outlined,
+                                            imagePath: Assets
+                                                .icons.locationPinSource.path,
+                                            controller: sourceController,
+                                          ),
+                                          SizedBox(height: 10),
+                                          buildLocationField(
+                                            label: "To",
+                                            icon: Icons.location_on_outlined,
+                                            imagePath: Assets.icons
+                                                .locationPinDestination.path,
+                                            controller: destinationController,
+                                          ),
+                                          // SizedBox(height: 30),
+                                          // InkWell(
+                                          //   onTap: () {
+                                          //     setState(() {
+                                          //       _isDestinationSettingOn = true;
+                                          //     });
+                                          //   },
+                                          //   borderRadius: BorderRadius.circular(8),
+                                          //   child: Container(
+                                          //     padding: const EdgeInsets.symmetric(
+                                          //         vertical: 12, horizontal: 16),
+                                          //     decoration: BoxDecoration(
+                                          //       color: AppColors.primaryWhite,
+                                          //       borderRadius:
+                                          //           BorderRadius.circular(8),
+                                          //       border:
+                                          //           Border.all(color: AppColors.gray),
+                                          //     ),
+                                          //     child: Row(
+                                          //       mainAxisSize: MainAxisSize.min,
+                                          //       children: [
+                                          //         Image.asset(
+                                          //           Assets.icons.carbonMap.path,
+                                          //           width: 24,
+                                          //           height: 24,
+                                          //         ),
+                                          //         const SizedBox(width: 10),
+                                          //         Text(
+                                          //           'Set on Map',
+                                          //           style: AppTypography.paragraph,
+                                          //         ),
+                                          //       ],
+                                          //     ),
+                                          //   ),
+                                          // ),
+                                          SizedBox(height: 20),
+                                          Text(
+                                            "Previous History",
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          SizedBox(height: 10),
+                                          ...List.generate(
+                                            4,
+                                            (index) => ListTile(
+                                              leading: Icon(Icons.history,
+                                                  color: Colors.orangeAccent),
+                                              title: Text(
+                                                  "Sallaghari, Araniko Highway"),
+                                              trailing: Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Positioned(
+                              top: 10,
+                              left: 10,
+                              child: Container(
+                                padding: EdgeInsets.all(
+                                    1), // Adds space around the icon
+                                decoration: BoxDecoration(
+                                  color: AppColors
+                                      .primaryWhite, // Background color
+                                  borderRadius: BorderRadius.circular(
+                                      15), // Makes it circular
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryBlack
+                                          .withOpacity(0.1), // Optional shadow
+                                      blurRadius: 5,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Builder(builder: (context) {
+                                  return IconButton(
+                                    onPressed: () {
+                                      Scaffold.of(context).openDrawer();
+                                    },
+                                    icon: Icon(
+                                      Icons.menu,
+                                      color: AppColors.primaryBlack,
+                                      size: 30,
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                            if (state.source != null &&
+                                state.destination != null)
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: CustomButton(
+                                        isRounded: true,
+                                        text: 'Find Drivers',
+                                        onPressed: () {
+                                          Navigator.pushNamed(context,
+                                                  AppRoutes.mapofferFare)
+                                              .then((offeredFare) async {
+                                            setState(
+                                                () => _dummyMarkers.clear());
+
+                                            if (offeredFare == null) return;
+                                            if (offeredFare
+                                                is Map<String, bool>) {
+                                              final isFindDriversActive =
+                                                  offeredFare[
+                                                          'isFindDriversActive'] ??
+                                                      false;
+
+                                              if (isFindDriversActive) {
+                                                setState(() {
+                                                  _isFindingDrivers = true;
+                                                });
+                                              }
+
+                                              await _generateDummyMarkers(
+                                                LatLng(state.source!.lat,
+                                                    state.source!.lng),
+                                              );
+
+                                              _getPolyline(
+                                                LatLng(state.source!.lat,
+                                                    state.source!.lng),
+                                                LatLng(state.destination!.lat,
+                                                    state.destination!.lng),
+                                              );
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                    // SizedBox(
+                                    //   width: double.infinity,
+                                    //   child: CustomButton(
+                                    //     backgroundColor: AppColors.neutralColor,
+                                    //     text: 'Cancel',
+                                    //     onPressed: () {
+                                    //       setState(() {
+                                    //         _dummyMarkers.clear();
+                                    //         context.read<AddressCubit>().reset();
+                                    //         // _currentLocationMarker = null;
+                                    //         _destinationLocationMarker = null;
+                                    //         _polylines.clear();
+
+                                    //         polylineCoordinates.clear();
+                                    //         sourceController.clear();
+                                    //         destinationController.clear();
+                                    //         _checkAndFetchLocation();
+                                    //       });
+                                    //     },
+                                    //   ),
+                                    // ),
+                                  ],
+                                ),
+                              ),
+                          ]
+                        ],
+                        if (_isFindingDrivers)
+                          CustomBottomsheet(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.55,
+                              minHeight:
+                                  MediaQuery.of(context).size.height * 0.3,
+                              child: SingleChildScrollView(
+                                physics: const NeverScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Center(
+                                      child: Text(
+                                        'Offering Your Price',
+                                        style: AppTypography.labelText.copyWith(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        TextButton(
+                                          onPressed: () {},
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 32, vertical: 16),
+                                            backgroundColor: AppColors.gray,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '-10',
+                                            style: AppTypography.actionText
+                                                .copyWith(
+                                              fontSize: 20,
+                                              color: AppColors.primaryBlack,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          'NPR60',
+                                          style:
+                                              AppTypography.labelText.copyWith(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {},
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 32, vertical: 16),
+                                            backgroundColor:
+                                                AppColors.neutralColor,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '+10',
+                                            style: AppTypography.actionText
+                                                .copyWith(
+                                              fontSize: 20,
+                                              color: AppColors.primaryBlack,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: CustomButton(
+                                        onPressed: () {},
+                                        text: 'Raise Fare',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            "Automatically accept the nearest driver for your fare",
+                                            style: AppTypography.smallText
+                                                .copyWith(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        CustomSwitch(
+                                          isActive: true,
+                                          switchValue: false,
+                                          onChanged: (bool value) {},
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Payment',
+                                          style: AppTypography.labelText,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.payment,
+                                              size: 20,
+                                              color: AppColors.primaryGreen,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            RichText(
+                                              text: TextSpan(
+                                                style: AppTypography.smallText
+                                                    .copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 16,
+                                                ),
+                                                children: [
+                                                  TextSpan(
+                                                    text: 'NPR60',
+                                                  ),
+                                                  TextSpan(
+                                                      text: '  Cash',
+                                                      style: AppTypography
+                                                          .smallText
+                                                          .copyWith(
+                                                        color: AppColors
+                                                            .primaryBlack
+                                                            .withOpacity(0.5),
+                                                      )),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Your current Ride',
+                                          style: AppTypography.labelText,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Container(
+                                                    height: 20,
+                                                    width: 20,
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors
+                                                          .primaryGreen
+                                                          .withOpacity(0.6),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    height: 8,
+                                                    width: 8,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color: Colors.black,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Starting Location Name Goes Here',
+                                                style: AppTypography.smallText
+                                                    .copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 16,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Container(
+                                                    height: 20,
+                                                    width: 20,
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors
+                                                          .primaryRed
+                                                          .withOpacity(0.6),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    height: 8,
+                                                    width: 8,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color: Colors.black,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Ending Location Name Goes Here',
+                                                style: AppTypography.smallText
+                                                    .copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 16,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: CustomButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _isFindingDrivers = false;
+                                            _dummyMarkers.clear();
+                                            context
+                                                .read<AddressCubit>()
+                                                .reset();
+                                            _destinationLocationMarker = null;
+                                            _polylines.clear();
+
+                                            polylineCoordinates.clear();
+                                            destinationController.clear();
+                                            _animatedCircle.clear();
+                                          });
+                                        },
+                                        backgroundColor: AppColors.gray,
+                                        textColor: AppColors.primaryRed,
+                                        text: 'Cancel Request',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )),
+                      ],
+                    );
+                  })
+                : Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.location_off, size: 48, color: Colors.red),
+                        SizedBox(height: 10),
+                        Text(
+                          "Location is disabled.\nPlease enable location services.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16),
                         ),
-                      );
-                    },
-                  ),
-
-                // menu
-                if (!(_isDestinationSettingOn || _isSourceSettingOn))
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Container(
-                      padding: EdgeInsets.all(1), // Adds space around the icon
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryWhite, // Background color
-                        borderRadius:
-                            BorderRadius.circular(15), // Makes it circular
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryBlack
-                                .withOpacity(0.1), // Optional shadow
-                            blurRadius: 5,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Builder(builder: (context) {
-                        return IconButton(
-                          onPressed: () {
-                            Scaffold.of(context).openDrawer();
-                          },
-                          icon: Icon(
-                            Icons.menu,
-                            color: AppColors.primaryBlack,
-                            size: 30,
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-
-                // current location
-                if (!(_isDestinationSettingOn || _isSourceSettingOn))
-                  Positioned(
-                    bottom: MediaQuery.of(context).size.height * 0.35,
-                    right: 5,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color:
-                            Colors.white.withOpacity(0.9), // light background
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          _checkAndFetchLocation();
-                        },
-                        iconSize: 34,
-                        icon: const Icon(Icons.location_searching_outlined),
-                      ),
-                    ),
-                  ),
-
-                // done button
-                if (_isDestinationSettingOn || _isSourceSettingOn)
-                  Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: CustomButton(
+                        SizedBox(height: 20),
+                        ElevatedButton(
                           onPressed: () async {
-                            if (_lastCameraPosition == null) return;
-
-                            final latLng = _lastCameraPosition!;
-                            final address = await getAddressFromCoordinates(
-                              latLng.latitude,
-                              latLng.longitude,
-                            );
-
-                            final addressCubit = context.read<AddressCubit>();
-
-                            if (_isDestinationSettingOn && context.mounted) {
-                              // Clear old destination marker
-                              setState(() {
-                                _destinationLocationMarker = null;
-                              });
-
-                              final destination = RideLocation(
-                                lat: latLng.latitude,
-                                lng: latLng.longitude,
-                                name: address,
-                              );
-
-                              addressCubit.setDestination(destination);
-
-                              final newDestMarker =
-                                  await MarkerUtil.createMarker(
-                                markerId: 'destination',
-                                position: latLng,
-                                assetPath:
-                                    Assets.icons.locationPinDestination.path,
-                                title: 'Your Destination',
-                              );
-
-                              setState(() {
-                                _destinationLocationMarker = newDestMarker;
-                                _isDestinationSettingOn = false;
-                                destinationController.text = address;
-                              });
-                            } else if (_isSourceSettingOn) {
-                              setState(() {
-                                _currentLocationMarker = null;
-                              });
-
-                              final source = RideLocation(
-                                lat: latLng.latitude,
-                                lng: latLng.longitude,
-                                name: address,
-                              );
-
-                              addressCubit.setSource(source);
-
-                              final newSourceMarker =
-                                  await MarkerUtil.createMarker(
-                                markerId: 'source',
-                                position: latLng,
-                                assetPath: Assets.icons.locationPinSource.path,
-                                title: 'Your Source',
-                              );
-
-                              setState(() {
-                                _currentLocationMarker = newSourceMarker;
-                                _isSourceSettingOn = false;
-                                sourceController.text = address;
-                              });
-                            }
-
-                            // Get the latest state from the Cubit after updates
-                            final updatedState = addressCubit.state;
-
-                            if (context.mounted &&
-                                updatedState.source != null &&
-                                updatedState.destination != null) {
-                              Navigator.pushNamed(
-                                      context, AppRoutes.mapofferFare)
-                                  .then((_) async {
-                                setState(() => _dummyMarkers.clear());
-
-                                await _generateDummyMarkers(
-                                  LatLng(updatedState.source!.lat,
-                                      updatedState.source!.lng),
-                                );
-
-                                _getPolyline(
-                                  LatLng(updatedState.source!.lat,
-                                      updatedState.source!.lng),
-                                  LatLng(updatedState.destination!.lat,
-                                      updatedState.destination!.lng),
-                                );
-                              });
-                            }
+                            await Geolocator.openLocationSettings();
+                            _checkAndFetchLocation(); // Retry
                           },
-                          text: 'Done'))
-              ] else
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.location_off, size: 48, color: Colors.red),
-                      SizedBox(height: 10),
-                      Text(
-                        "Location is disabled.\nPlease enable location services.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () async {
-                          await Geolocator.openLocationSettings();
-                          _checkAndFetchLocation(); // Retry
-                        },
-                        child: Text("Enable Location"),
-                      ),
-                    ],
+                          child: Text("Enable Location"),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          );
-        }),
+        drawer: CustomDrawer(),
       ),
-      drawer: CustomDrawer(),
     );
   }
 
