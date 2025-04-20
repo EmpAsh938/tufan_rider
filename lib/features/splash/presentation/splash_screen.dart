@@ -1,8 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -13,12 +14,28 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  late final AuthCubit authCubit;
+
   @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/login');
-    });
+    authCubit = locator.get<AuthCubit>();
+    _initAndNavigate();
+  }
+
+  Future<void> _initAndNavigate() async {
+    await authCubit.initialize();
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    final loginResponse = authCubit.loginResponse;
+    if (!mounted) return;
+
+    if (loginResponse == null) {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.map);
+    }
   }
 
   @override
@@ -30,9 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(
-              height: 20,
-            ),
+            const SizedBox(height: 20),
             Assets.logo.image(),
             Column(
               children: [
@@ -44,9 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   'Your Travel Partner',
                   style: AppTypography.headline,
                 ),
-                const SizedBox(
-                  height: 40,
-                ),
+                const SizedBox(height: 40),
               ],
             ),
           ],

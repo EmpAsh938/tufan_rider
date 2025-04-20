@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:tufan_rider/features/auth/models/login_response.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
@@ -12,7 +13,7 @@ class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 
 class AuthSuccess extends AuthState {
-  final Map<String, dynamic> user;
+  final LoginResponse user;
 
   const AuthSuccess(this.user);
 

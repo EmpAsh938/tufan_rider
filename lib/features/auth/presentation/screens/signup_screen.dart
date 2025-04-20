@@ -1,4 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
@@ -24,6 +29,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       TextEditingController();
 
   int _currentPage = 0;
+
+  File? _imageFile;
+
+  Future<void> _pickImage() async {
+    // Request permissions
+    // final status = await Permission.photos.request();
+    // if (!status.isGranted) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Permission denied')),
+    //   );
+    //   return;
+    // }
+
+    // Pick image
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (pickedFile == null) return;
+
+    // Crop image
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: Colors.black,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+        ),
+        IOSUiSettings(
+          title: 'Crop Image',
+          aspectRatioLockEnabled: false,
+          resetButtonHidden: false,
+          rotateButtonsHidden: false,
+          rotateClockwiseButtonHidden: false,
+          doneButtonTitle: 'Done',
+          cancelButtonTitle: 'Cancel',
+        )
+      ],
+    );
+
+    if (croppedFile != null) {
+      setState(() => _imageFile = File(croppedFile.path));
+    }
+  }
 
   void nextPage() {
     if (_currentPage < 3) {
@@ -125,15 +177,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 30),
           GestureDetector(
-            onTap: () {},
+            onTap: _pickImage,
             child: CircleAvatar(
               radius: 50,
-              backgroundColor: AppColors.gray,
-              child: Icon(
-                Icons.camera_alt,
-                size: 40,
-                color: AppColors.primaryBlack,
-              ),
+              backgroundColor: Colors.grey[300],
+              backgroundImage:
+                  _imageFile != null ? FileImage(_imageFile!) : null,
+              child: _imageFile == null
+                  ? const Icon(
+                      Icons.camera_alt,
+                      size: 40,
+                      color: Colors.black54,
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 20),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
+import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -110,37 +113,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          backgroundColor: AppColors.backgroundColor,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                "Are you sure about logging out?",
+              const Icon(Icons.logout, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                "Are you sure you want to log out?",
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text("No", style: TextStyle(color: Colors.black)),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: AppColors.primaryBlack.withOpacity(0.5),
+                      ),
+                    ),
                   ),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                    ),
                     onPressed: () {
-                      Navigator.pop(context);
-                      // Handle logout logic here
+                      Navigator.pop(context); // Close dialog
+
+                      // ✅ Clear all routes and push login screen
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.login,
+                        (route) => false,
+                      );
+
+                      locator.get<AuthCubit>().logout();
                     },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    child: Text("Yes", style: TextStyle(color: Colors.white)),
+                    child: const Text("Logout",
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),

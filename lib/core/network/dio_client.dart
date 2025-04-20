@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:tufan_rider/core/constants/api_constants.dart';
+import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/network/dio_exceptions.dart';
 
 class DioClient {
@@ -10,7 +10,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
+        baseUrl: ApiEndpoints.baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {

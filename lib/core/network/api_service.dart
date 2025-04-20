@@ -9,7 +9,7 @@ class ApiService {
   Future<Response> login(String email, String password) async {
     try {
       final response = await _dio.post(ApiEndpoints.login, data: {
-        'email': email,
+        'username': email,
         'password': password,
       });
       return response;

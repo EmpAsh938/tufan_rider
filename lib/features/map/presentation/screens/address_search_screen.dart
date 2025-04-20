@@ -181,6 +181,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       ),
       child: SafeArea(
         child: Scaffold(
+          resizeToAvoidBottomInset: false,
           appBar: AppBar(
             title: Text(
               "Choose your route",
