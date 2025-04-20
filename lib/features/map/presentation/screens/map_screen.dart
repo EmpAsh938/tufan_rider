@@ -11,17 +11,14 @@ import 'package:geocoding/geocoding.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
-import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
-import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/active_location_pin.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/offer_price_bottom_sheet.dart';
-import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card_popup.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
@@ -170,10 +167,6 @@ class _MapScreenState extends State<MapScreen>
     });
   }
 
-  void _onCameraIdle() {
-    _getAddressFromLatLng(_center);
-  }
-
   void _drawPolyline(LatLng start, LatLng end) {
     final Polyline polyline = Polyline(
       polylineId: PolylineId("route"),
@@ -292,8 +285,6 @@ class _MapScreenState extends State<MapScreen>
       });
       await Future.delayed(const Duration(milliseconds: 100));
     }
-
-    setState(() => _isMapInteractionDisabled = false);
   }
 
   Marker createMarker({
@@ -360,16 +351,17 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void resetMap() {
+    locator.get<AddressCubit>().reset();
     setState(() {
       _isFindingDrivers = false;
       _dummyMarkers.clear();
-      context.read<AddressCubit>().reset();
       _destinationLocationMarker = null;
       _polylines.clear();
 
       polylineCoordinates.clear();
       destinationController.clear();
       _animatedCircle.clear();
+      _isMapInteractionDisabled = false;
     });
   }
 
@@ -428,7 +420,6 @@ class _MapScreenState extends State<MapScreen>
                             controller.setMapStyle(_mapStyleString);
                           },
                           onCameraMove: _onCameraMove,
-                          onCameraIdle: _onCameraIdle,
                           polylines: _polylines,
                         ),
                         if (_isDestinationSettingOn || _isSourceSettingOn) ...[
@@ -446,6 +437,8 @@ class _MapScreenState extends State<MapScreen>
                                 child: CustomButton(
                                     isRounded: true,
                                     onPressed: () async {
+                                      _getAddressFromLatLng(_center);
+
                                       final latLng =
                                           await getPinPointedCoordinates();
                                       if (latLng == null) return;
@@ -824,14 +817,25 @@ class _MapScreenState extends State<MapScreen>
             if (addressSearchState['isFromFocused']) {
               setState(() {
                 _isSourceSettingOn = true;
+                _isDestinationSettingOn = false;
               });
             }
             if (addressSearchState['isToFocused']) {
               setState(() {
+                _isSourceSettingOn = false;
                 _isDestinationSettingOn = true;
               });
             }
           }
+          final addressInfo = locator.get<AddressCubit>().fetchAddress();
+          final source = addressInfo.source;
+          final destination = addressInfo.destination;
+          setState(() {
+            if (source != null) sourceController.text = source.name ?? '';
+            if (destination != null) {
+              destinationController.text = destination.name ?? '';
+            }
+          });
         });
       },
       child: AbsorbPointer(

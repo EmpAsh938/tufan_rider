@@ -25,6 +25,6 @@ class AddressCubit extends Cubit<AddressState> {
   }
 
   void reset() {
-    emit(state.copyWith(destination: null));
+    emit(AddressState(source: state.source, destination: null));
   }
 }

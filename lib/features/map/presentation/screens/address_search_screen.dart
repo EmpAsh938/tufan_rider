@@ -1,9 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
+import 'package:http/http.dart' as http;
 
 class AddressSearchScreen extends StatefulWidget {
   const AddressSearchScreen({super.key});
@@ -19,6 +26,13 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
   bool isFromFocused = false;
   bool isToFocused = false;
 
+  List<Map<String, dynamic>> fromSuggestions = [];
+  List<Map<String, dynamic>> toSuggestions = [];
+
+  bool isSearchingFrom = false;
+
+  Timer? _debounce;
+
   final TextEditingController fromController = TextEditingController();
   final TextEditingController toController = TextEditingController();
 
@@ -30,6 +44,69 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     setState(() {
       if (source != null) fromController.text = source!.name ?? '';
       if (destination != null) toController.text = destination!.name ?? '';
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchGooglePlaces(String input) async {
+    if (input.isEmpty) return [];
+
+    final String baseUrl =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    final String url =
+        '$baseUrl?input=$input&key=${ApiConstants.mapAPI}&components=country:np';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final predictions = data['predictions'] as List<dynamic>;
+      return predictions.map((p) {
+        return {
+          'description': p['description'],
+          'place_id': p['place_id'],
+        };
+      }).toList();
+    } else {
+      debugPrint('Failed to fetch places: ${response.body}');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchPlaceDetails(String placeId) async {
+    final String baseUrl =
+        'https://maps.googleapis.com/maps/api/place/details/json';
+    final String url = '$baseUrl?place_id=$placeId&key=${ApiConstants.mapAPI}';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final result = data['result'];
+      final location = result['geometry']['location'];
+      return {
+        'lat': location['lat'],
+        'lng': location['lng'],
+        'address': result['formatted_address'],
+        'name': result['name'],
+      };
+    } else {
+      debugPrint('Failed to fetch place details: ${response.body}');
+      return null;
+    }
+  }
+
+  void _onSearchChanged({required bool isFrom, required String query}) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      final results = await fetchGooglePlaces(query);
+      setState(() {
+        if (isFrom) {
+          fromSuggestions = results;
+        } else {
+          toSuggestions = results;
+        }
+      });
     });
   }
 
@@ -138,7 +215,9 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                     prefixIcon: Icon(Icons.location_on_outlined),
                     hintText: "Enter destination",
                   ),
-                  onChanged: (value) {},
+                  onChanged: (value) {
+                    _onSearchChanged(isFrom: false, query: value);
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -177,18 +256,53 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                 // Autocomplete results
                 Expanded(
                   child: ListView.separated(
-                    itemCount: 5,
+                    itemCount: isFromFocused
+                        ? fromSuggestions.length
+                        : toSuggestions.length,
                     separatorBuilder: (context, index) => const Divider(),
                     itemBuilder: (context, index) {
+                      final suggestion = isFromFocused
+                          ? fromSuggestions[index]
+                          : toSuggestions[index];
                       return ListTile(
                         leading: const Icon(Icons.place),
-                        title: Text("Suggested Place #${index + 1}"),
-                        subtitle: const Text("Place address here"),
-                        onTap: () {},
+                        title: Text(suggestion['description'] ?? ''),
+                        onTap: () async {
+                          final details =
+                              await fetchPlaceDetails(suggestion['place_id']!);
+
+                          if (details != null) {
+                            final cubit = locator.get<AddressCubit>();
+
+                            if (isFromFocused) {
+                              fromController.text = details['address'] ?? '';
+                              cubit.setSource(RideLocation(
+                                  lat: details['lat'],
+                                  lng: details['lng'],
+                                  name: details[
+                                      'address'])); // Save source with lat, lng, address
+                              setState(() => fromSuggestions = []);
+                            } else {
+                              toController.text = details['address'] ?? '';
+                              cubit.setDestination(RideLocation(
+                                  lat: details['lat'],
+                                  lng: details['lng'],
+                                  name: details[
+                                      'address'])); // Save source with lat, lng, address
+                              setState(() => toSuggestions = []);
+                            }
+                          }
+                        },
                       );
                     },
                   ),
                 ),
+
+                CustomButton(
+                    text: 'Done',
+                    onPressed: () {
+                      Navigator.pop(context);
+                    })
               ],
             ),
           ),

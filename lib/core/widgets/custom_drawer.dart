@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
@@ -12,7 +13,7 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
-  bool isActive = true;
+  bool isActive = false; // passenger mode
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   onTap: () {
                     Scaffold.of(context).closeDrawer();
 
-                    Navigator.pushNamed(context, '/profile');
+                    Navigator.pushNamed(context, AppRoutes.profile);
                   },
                   child: CircleAvatar(
                     radius: 30,
@@ -60,7 +61,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 onPressed: () {
                   Scaffold.of(context).closeDrawer();
 
-                  Navigator.pushNamed(context, '/ride_history');
+                  Navigator.pushNamed(context, AppRoutes.rideHistory);
                 },
                 child: Text(
                   'Ride',
@@ -86,7 +87,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 onPressed: () {
                   Scaffold.of(context).closeDrawer();
 
-                  Navigator.pushNamed(context, '/settings');
+                  Navigator.pushNamed(context, AppRoutes.settings);
                 },
                 child: Text(
                   'Settings',
@@ -101,7 +102,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 onPressed: () {
                   Scaffold.of(context).closeDrawer();
 
-                  Navigator.pushNamed(context, '/emergency');
+                  Navigator.pushNamed(context, AppRoutes.emergency);
                 },
                 child: Text(
                   'Emergency',
