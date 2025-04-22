@@ -15,6 +15,7 @@ class CustomTextField extends StatefulWidget {
   final List<TextInputFormatter>? inputFormatters;
   final FormFieldValidator<String>? validator;
   final bool isPasswordField; // New parameter to identify password fields
+  final void Function(String)? onChanged; // 👈 Add this line
 
   const CustomTextField({
     super.key,
@@ -29,6 +30,7 @@ class CustomTextField extends StatefulWidget {
     this.inputFormatters,
     this.validator,
     this.isPasswordField = false, // Default to false
+    this.onChanged,
   });
 
   @override
@@ -60,6 +62,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           keyboardType: widget.keyboardType,
           inputFormatters: widget.inputFormatters,
           validator: widget.validator,
+          onChanged: widget.onChanged,
           decoration: InputDecoration(
             hintText: widget.hintText,
             hintStyle: AppTypography.placeholderText,

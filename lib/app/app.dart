@@ -6,6 +6,8 @@ import 'package:tufan_rider/core/cubit/theme/theme_state.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/themes/app_theme.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
+import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 
 class MyApp extends StatelessWidget {
@@ -20,6 +22,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AuthCubit>(
           create: (context) => locator<AuthCubit>(),
+        ),
+        BlocProvider<RegistrationCubit>(
+          create: (context) => locator<RegistrationCubit>(),
+        ),
+        BlocProvider<ForgotPasswordCubit>(
+          create: (context) => locator<ForgotPasswordCubit>(),
         ),
         BlocProvider<AddressCubit>(
           create: (context) => locator<AddressCubit>(),

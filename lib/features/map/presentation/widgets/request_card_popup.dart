@@ -3,7 +3,8 @@ import 'package:tufan_rider/features/map/models/request.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart';
 
 class RequestCardPopup extends StatefulWidget {
-  const RequestCardPopup({super.key});
+  final VoidCallback prepareDriverArriving;
+  const RequestCardPopup({super.key, required this.prepareDriverArriving});
 
   @override
   State<RequestCardPopup> createState() => _RequestCardPopupState();
@@ -59,6 +60,28 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     });
   }
 
+  void _removeAllRequests() async {
+    final controllers = Map<String, AnimationController>.from(_controllers);
+
+    for (var id in controllers.keys) {
+      final controller = controllers[id];
+      if (controller != null) {
+        await controller.reverse();
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _requests.clear();
+      controllers.forEach((id, controller) {
+        controller.dispose();
+      });
+      _controllers.clear();
+      _animations.clear();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -92,7 +115,11 @@ class _RequestCardPopupState extends State<RequestCardPopup>
             child: RequestCard(
               request: request,
               onDecline: () => _removeRequestById(request.id),
-              onAccept: () => _removeRequestById(request.id),
+              onAccept: () {
+                // _removeRequestById(request.id);
+                _removeAllRequests();
+                widget.prepareDriverArriving();
+              },
             ),
           );
         }).toList(),

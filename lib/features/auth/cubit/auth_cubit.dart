@@ -17,7 +17,6 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       final response = await getSavedLoginResponse();
       if (response != null) {
-        print(response);
         loginResponse = response;
       }
     } catch (e) {

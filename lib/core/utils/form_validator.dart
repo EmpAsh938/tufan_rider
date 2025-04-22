@@ -19,6 +19,17 @@ class FormValidator {
     return null;
   }
 
+  static String? validateConfirmPassword(
+      String? value, String originalPassword) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Confirm password is required';
+    }
+    if (value != originalPassword) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email is required';
@@ -32,6 +43,20 @@ class FormValidator {
   static String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Name is required';
+    }
+    return null;
+  }
+
+  static String? validateFirstName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Firstname is required';
+    }
+    return null;
+  }
+
+  static String? validateLastName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Lastname is required';
     }
     return null;
   }

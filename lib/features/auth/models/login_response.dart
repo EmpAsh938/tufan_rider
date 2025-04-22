@@ -31,7 +31,7 @@ class User {
   final dynamic balance; // Can be double or null
   final String branchName;
   final String modes;
-  final String dateOfBirth;
+  final String? dateOfBirth;
   final dynamic mode; // Can be String or null
   final List<Role> roles;
   final dynamic vehicles; // Can be List or null

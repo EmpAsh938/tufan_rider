@@ -12,8 +12,6 @@ import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_state.dart';
-import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
-import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -76,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child:
                 BlocConsumer<AuthCubit, AuthState>(listener: (context, state) {
-              if (state is AuthLoading) {}
               if (state is AuthSuccess) {
                 CustomToast.show(
                   'Login Success',

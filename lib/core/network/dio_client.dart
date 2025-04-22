@@ -32,8 +32,15 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          final error = DioExceptions.fromDioError(e);
-          print("❌ ERROR: ${error.message}");
+          try {
+            print("❌ RAW ERROR RESPONSE: ${e.response?.data}");
+
+            final parsed = DioExceptions.fromDioError(e);
+            print("❌ HANDLED ERROR: ${parsed.message}");
+          } catch (e) {
+            print("❌ ERROR HANDLING FAILURE: ${e.toString()}");
+          }
+
           return handler.next(e);
         },
       ),
