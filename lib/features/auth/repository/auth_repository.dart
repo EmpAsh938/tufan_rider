@@ -17,14 +17,19 @@ class AuthRepository {
     return LoginResponse.fromJson(response.data);
   }
 
-  Future<OtpResponse> requestOTP(String mobileNo) async {
+  Future<void> requestOTP(String mobileNo) async {
     final response = await _apiService.requestOTP(mobileNo);
-    return OtpResponse.fromJson(response.data);
+    // return OtpResponse.fromJson(response.data);
   }
 
-  Future<ForgotPasswordResponse> forgotPassword(String mobileNo) async {
+  Future<void> verifyOTP(String emailOrPhone, String otp) async {
+    final response = await _apiService.verifyOTP(emailOrPhone, otp);
+    // return OtpResponse.fromJson(response.data);
+  }
+
+  Future<void> forgotPassword(String mobileNo) async {
     final response = await _apiService.forgotPassword(mobileNo);
-    return ForgotPasswordResponse.fromJson(response.data);
+    // return ForgotPasswordResponse.fromJson(response.data);
   }
 
   Future<void> updatePassword(

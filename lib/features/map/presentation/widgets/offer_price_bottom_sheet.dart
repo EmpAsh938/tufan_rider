@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 
 class OfferPriceBottomSheet extends StatelessWidget {
   final VoidCallback onPressed;
@@ -10,6 +12,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.read<AddressCubit>();
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
@@ -49,7 +52,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
                 ),
               ),
               Text(
-                'NPR60',
+                'NPR${state.fareResponse!.generatedPrice.toStringAsFixed(0)}',
                 style: AppTypography.labelText.copyWith(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -128,7 +131,8 @@ class OfferPriceBottomSheet extends StatelessWidget {
                       ),
                       children: [
                         TextSpan(
-                          text: 'NPR60',
+                          text:
+                              'NPR${state.fareResponse!.generatedPrice.toStringAsFixed(0)}',
                         ),
                         TextSpan(
                             text: '  Cash',
@@ -182,12 +186,12 @@ class OfferPriceBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Starting Location Name Goes Here',
+                      state.source == null ? '' : state.source!.name ?? '',
                       style: AppTypography.smallText.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -225,12 +229,14 @@ class OfferPriceBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Ending Location Name Goes Here',
+                      state.destination == null
+                          ? ''
+                          : state.destination!.name ?? '',
                       style: AppTypography.smallText.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

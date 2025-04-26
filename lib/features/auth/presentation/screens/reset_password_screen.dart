@@ -10,7 +10,6 @@ import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_state.dart';
-import 'package:tufan_rider/features/auth/models/forgot_password_response.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -33,28 +32,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   int _currentPage = 0;
 
-  ForgotPasswordResponse? _forgotPasswordResponse;
-
   void nextPage() {
     if (_currentPage == 0) {
       context.read<ForgotPasswordCubit>().sendOtp(phoneController.text);
     } else if (_currentPage == 1) {
       String otp = _otpControllers.map((c) => c.text).join();
-      if (_forgotPasswordResponse != null &&
-          otp == _forgotPasswordResponse!.otp) {
-        CustomToast.show(
-          'OTP verified successfully',
-          context: context,
-          toastType: ToastType.success,
-        );
-        animatePageSlide(_currentPage + 1);
-      } else {
-        CustomToast.show(
-          'OTP did not match',
-          context: context,
-          toastType: ToastType.error,
-        );
-      }
+
+      context.read<ForgotPasswordCubit>().verifyOtp(phoneController.text, otp);
     } else if (_currentPage == 2) {
       String otp = _otpControllers.map((c) => c.text).join();
 
@@ -97,9 +81,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             }
 
             if (state is OtpSent) {
-              _forgotPasswordResponse = state.forgotPasswordResponse;
               CustomToast.show(
                 'OTP sent successfully',
+                context: context,
+                toastType: ToastType.success,
+              );
+              animatePageSlide(_currentPage + 1);
+            }
+            if (state is OtpVerified) {
+              CustomToast.show(
+                'OTP verified successfully',
                 context: context,
                 toastType: ToastType.success,
               );

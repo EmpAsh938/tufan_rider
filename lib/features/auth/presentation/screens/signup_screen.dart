@@ -45,8 +45,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   File? _imageFile;
 
-  OtpResponse? _otpResponse;
-
   String? selectedBranch;
 
   Future<void> _pickImage() async {
@@ -102,39 +100,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       context.read<RegistrationCubit>().sendOtp(phoneController.text);
       animatePageSlide(_currentPage + 1);
     } else if (_currentPage == 2) {
-      // Validate OTP
+      // verify OTP
       String otp = _otpControllers.map((c) => c.text).join();
 
-      if (_otpResponse == null) {
-        CustomToast.show(
-          'Retry sending OTP',
-          context: context,
-          toastType: ToastType.info,
-        );
-        animatePageSlide(_currentPage - 1); // Go back to phone input page
-      } else if (otp == _otpResponse!.otp) {
-        CustomToast.show(
-          'Verified Successfully',
-          context: context,
-          toastType: ToastType.success,
-        );
-        animatePageSlide(_currentPage + 1); // Go to next page
-      } else {
-        CustomToast.show(
-          'Invalid OTP',
-          context: context,
-          toastType: ToastType.error,
-        );
-      }
+      context.read<RegistrationCubit>().verifyOtp(phoneController.text, otp);
     } else if (_currentPage == 3) {
+      String otp = _otpControllers.map((c) => c.text).join();
+
       // handle final registration
       final registrationRequest = RegistrationRequest(
         name: "${firstNameController.text} ${lastNameController.text}",
         email: emailController.text,
         mobileNo: phoneController.text,
-        otp: _otpResponse!.otp,
+        otp: otp,
         password: passwordController.text,
-        branchName: selectedBranch!,
+        // branchName: selectedBranch!,
       );
       context
           .read<RegistrationCubit>()
@@ -145,9 +125,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   void prevPage() {
-    if (_currentPage == 1) {
-      animatePageSlide(_currentPage - 1);
-    }
+    // if (_currentPage == 3) {
+    animatePageSlide(_currentPage - 1);
+    // }
   }
 
   void animatePageSlide(int currentPage) {
@@ -176,6 +156,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 context: context,
                 toastType: ToastType.error,
               );
+            } else if (state is OtpVerificationFailure) {
+              CustomToast.show(
+                state.message,
+                context: context,
+                toastType: ToastType.error,
+              );
             } else if (state is ProfileUploadFailure) {
               CustomToast.show(
                 state.message,
@@ -191,13 +177,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             }
 
             if (state is OtpSent) {
-              _otpResponse = state.otpResponse;
               CustomToast.show(
                 'OTP sent successfully',
                 context: context,
                 toastType: ToastType.success,
               );
               animatePageSlide(_currentPage + 1);
+            }
+
+            if (state is OtpVerified) {
+              CustomToast.show(
+                'Verified Successfully',
+                context: context,
+                toastType: ToastType.success,
+              );
+              animatePageSlide(_currentPage + 1); // Go to next pagev
             }
 
             // Handle other state changes, like success or OTP sent
@@ -382,6 +376,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             hintText: 'Phone Number',
             labelText: 'Phone Number',
             validator: FormValidator.validatePhone,
+            onChanged: (_) => _formKey.currentState?.validate(),
           ),
           const SizedBox(height: 10),
           CustomTextField(
@@ -389,6 +384,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             hintText: 'Email Address',
             labelText: 'Email Address',
             validator: FormValidator.validateEmail,
+            onChanged: (_) => _formKey.currentState?.validate(),
           ),
           // const SizedBox(height: 20),
           // CustomButton(text: 'Next', onPressed: nextPage),
@@ -515,54 +511,54 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               passwordController.text,
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: Text(
-              "Select your nearest branch",
-              style: AppTypography.labelText,
-              textAlign: TextAlign.start,
-            ),
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            dropdownColor: AppColors.backgroundColor,
-            value: selectedBranch,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: AppColors.gray,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: AppColors.gray,
-                ),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: AppColors.gray,
-                ),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-            ),
-            items: ["Branch 1", "Branch 2", "Branch 3"].map((branch) {
-              return DropdownMenuItem(
-                value: branch,
-                child: Text(branch),
-              );
-            }).toList(),
-            onChanged: (value) {
-              selectedBranch = value;
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select a branch';
-              }
-              return null;
-            },
-          ),
+          // const SizedBox(height: 10),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: Text(
+          //     "Select your nearest branch",
+          //     style: AppTypography.labelText,
+          //     textAlign: TextAlign.start,
+          //   ),
+          // ),
+          // const SizedBox(height: 10),
+          // DropdownButtonFormField<String>(
+          //   dropdownColor: AppColors.backgroundColor,
+          //   value: selectedBranch,
+          //   decoration: InputDecoration(
+          //     border: OutlineInputBorder(
+          //       borderSide: BorderSide(
+          //         color: AppColors.gray,
+          //       ),
+          //     ),
+          //     enabledBorder: OutlineInputBorder(
+          //       borderSide: BorderSide(
+          //         color: AppColors.gray,
+          //       ),
+          //       borderRadius: BorderRadius.circular(8.0),
+          //     ),
+          //     focusedBorder: OutlineInputBorder(
+          //       borderSide: BorderSide(
+          //         color: AppColors.gray,
+          //       ),
+          //       borderRadius: BorderRadius.circular(8.0),
+          //     ),
+          //   ),
+          //   items: ["Branch 1", "Branch 2", "Branch 3"].map((branch) {
+          //     return DropdownMenuItem(
+          //       value: branch,
+          //       child: Text(branch),
+          //     );
+          //   }).toList(),
+          //   onChanged: (value) {
+          //     selectedBranch = value;
+          //   },
+          //   validator: (value) {
+          //     if (value == null || value.isEmpty) {
+          //       return 'Please select a branch';
+          //     }
+          //     return null;
+          //   },
+          // ),
         ],
       ),
     );

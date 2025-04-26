@@ -17,18 +17,21 @@ class RegistrationCubit extends Cubit<RegistrationState> {
     emit(RegistrationLoading());
     try {
       final data = await _repository.requestOTP(phoneNumber);
-      otpResponse = data;
-      if (otpResponse != null) {
-        emit(OtpSent(data));
-      } else {
-        emit(RegistrationInitial());
-      }
+      emit(OtpSent());
     } catch (e) {
       emit(OtpSendFailure(e.toString()));
     }
   }
 
-  Future<void> verifyOtp(String otp) async {}
+  Future<void> verifyOtp(String emailOrPhone, String otp) async {
+    emit(RegistrationLoading());
+    try {
+      await _repository.verifyOTP(emailOrPhone, otp);
+      emit(OtpVerified());
+    } catch (e) {
+      emit(OtpVerificationFailure(e.toString()));
+    }
+  }
 
   Future<void> uploadProfile(File profileImage, String userId) async {
     emit(RegistrationLoading());

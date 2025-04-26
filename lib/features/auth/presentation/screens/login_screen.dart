@@ -114,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                         prefixIcon: Image.asset(Assets.icons.flagNepal.path),
                         validator: FormValidator.validatePhone,
+                        onChanged: (_) => _formKey.currentState?.validate(),
                       ),
                       const SizedBox(height: 16),
                       CustomTextField(
@@ -124,6 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         suffixIconColor: AppColors.gray,
                         validator: FormValidator.validatePassword,
                         isPasswordField: true,
+                        onChanged: (_) => _formKey.currentState?.validate(),
                       ),
                       const SizedBox(height: 24),
                       SizedBox(

@@ -1,13 +1,18 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
+import 'package:tufan_rider/features/map/models/fare_response.dart';
 
 class OfferFareScreen extends StatefulWidget {
   const OfferFareScreen({super.key});
@@ -17,21 +22,35 @@ class OfferFareScreen extends StatefulWidget {
 }
 
 class _OfferFareScreenState extends State<OfferFareScreen> {
-  TextEditingController fareController = TextEditingController(text: '160340');
+  final _formKey = GlobalKey<FormState>();
+
+  TextEditingController fareController = TextEditingController(text: '');
 
   RideLocation? source;
   RideLocation? destination;
+  FareResponse? fareResponse;
+  LoginResponse? loginResponse;
 
   bool isCashSelected = true;
   bool autoAccept = false;
+  bool isLoading = true;
 
-  void fetchAddress() {
+  void fetchAddress() async {
     final addressCubit = locator.get<AddressCubit>();
-    final sourceInfo = addressCubit.fetchSource();
-    final destinationInfo = addressCubit.fetchDestination();
+    final authCubit = locator.get<AuthCubit>();
+    final sourceInfo = addressCubit.source;
+    final destinationInfo = addressCubit.destination;
+    final fareInfo =
+        await addressCubit.getFare(destinationInfo, authCubit.loginResponse);
+    if (fareInfo != null) addressCubit.setFare(fareInfo);
     setState(() {
+      loginResponse = authCubit.loginResponse;
       source = sourceInfo;
       destination = destinationInfo;
+      isLoading = false;
+      fareResponse = fareInfo;
+      fareController.text =
+          fareInfo == null ? '' : fareInfo.generatedPrice.toStringAsFixed(0);
     });
   }
 
@@ -63,166 +82,197 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
             horizontal: 16,
             vertical: 8,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: TextField(
-                  controller: fareController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.left,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: const InputDecoration(
-                    prefixText: ' NRs. ',
-                    border: UnderlineInputBorder(
-                      // borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: Colors.grey, width: 2),
-                    ),
-                    enabledBorder: UnderlineInputBorder(
-                      // borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: Colors.grey, width: 2),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      // borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: Colors.blue, width: 2),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(Icons.monetization_on, color: Colors.green[700]),
-                  SizedBox(width: 8),
-                  RichText(
-                    text: TextSpan(
-                      style: AppTypography.labelText.copyWith(
-                        fontSize: 16,
-                        decoration:
-                            TextDecoration.none, // Prevents underline globally
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'Recommended Fare: ',
-                          style: AppTypography.labelText.copyWith(
-                            color: AppColors.primaryColor,
-                            fontWeight: FontWeight.w500,
-                            decoration:
-                                TextDecoration.none, // Ensure no underline
+          child: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Form(
+                      key: _formKey,
+                      child: TextFormField(
+                        controller: fareController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.left,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        validator: (value) {
+                          final number = double.tryParse(value ?? '');
+                          final generated = fareResponse == null
+                              ? 0.0
+                              : fareResponse!.generatedPrice;
+
+                          if (number == null) {
+                            return 'Enter a valid number';
+                          }
+
+                          final diff = (number - generated).abs();
+
+                          if (diff != 10) {
+                            return 'Fare must be either +10 or -10 of the generated price';
+                          }
+
+                          return null;
+                        },
+                        onChanged: (_) => _formKey.currentState?.validate(),
+                        decoration: const InputDecoration(
+                          prefixText: ' NRs. ',
+                          border: UnderlineInputBorder(
+                            // borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide:
+                                BorderSide(color: AppColors.gray, width: 2),
+                          ),
+                          enabledBorder: UnderlineInputBorder(
+                            // borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide:
+                                BorderSide(color: AppColors.gray, width: 2),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            // borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(
+                                color: AppColors.neutralColor, width: 2),
                           ),
                         ),
-                        TextSpan(
-                          text: 'NRs. 500',
-                          style: AppTypography.labelText.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryBlack,
-                            decoration:
-                                TextDecoration.none, // Ensure no underline
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (fareResponse != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Icon(Icons.monetization_on, color: Colors.green[700]),
+                          SizedBox(width: 8),
+                          RichText(
+                            text: TextSpan(
+                              style: AppTypography.labelText.copyWith(
+                                fontSize: 16,
+                                decoration: TextDecoration
+                                    .none, // Prevents underline globally
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'Recommended Fare: ',
+                                  style: AppTypography.labelText.copyWith(
+                                    color: AppColors.primaryColor,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration
+                                        .none, // Ensure no underline
+                                  ),
+                                ),
+                                TextSpan(
+                                  text:
+                                      'NRs. ${fareResponse!.generatedPrice.toStringAsFixed(0)}',
+                                  style: AppTypography.labelText.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryBlack,
+                                    decoration: TextDecoration
+                                        .none, // Ensure no underline
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ],
+                      ),
+
+                    // const Center(
+                    //   child: Slider(
+                    //     value: 0.5,
+                    //     onChanged: null, // purely decorative
+                    //   ),
+                    // ),
+                    // const Padding(
+                    //   padding: EdgeInsets.symmetric(horizontal: 24),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //     children: [
+                    //       Text("Start", style: TextStyle(fontSize: 12)),
+                    //       Text("Goal", style: TextStyle(fontSize: 12)),
+                    //     ],
+                    //   ),
+                    // ),
+                    const SizedBox(height: 20),
+                    Text(
+                      "Select your route",
+                      style: AppTypography.labelText,
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          _routeRow(
+                              "From",
+                              source == null
+                                  ? "Starting location"
+                                  : source!.name ?? 'Starting location',
+                              Icons.radio_button_checked),
+                          const Divider(),
+                          _routeRow(
+                              "Where to",
+                              destination == null
+                                  ? "Destination location"
+                                  : destination!.name ?? "Destination location",
+                              Icons.location_on_outlined),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _paymentMethodSelector(),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Automatically accept the nearest driver for your fare",
+                            style: AppTypography.smallText.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        CustomSwitch(
+                          isActive: true,
+                          switchValue: autoAccept,
+                          onChanged: (bool value) {
+                            setState(() {
+                              autoAccept = value;
+                            });
+                          },
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-
-              // const Center(
-              //   child: Slider(
-              //     value: 0.5,
-              //     onChanged: null, // purely decorative
-              //   ),
-              // ),
-              // const Padding(
-              //   padding: EdgeInsets.symmetric(horizontal: 24),
-              //   child: Row(
-              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //     children: [
-              //       Text("Start", style: TextStyle(fontSize: 12)),
-              //       Text("Goal", style: TextStyle(fontSize: 12)),
-              //     ],
-              //   ),
-              // ),
-              const SizedBox(height: 20),
-              Text(
-                "Select your route",
-                style: AppTypography.labelText,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    _routeRow(
-                        "From",
-                        source == null
-                            ? "Starting location"
-                            : source!.name ?? 'Starting location',
-                        Icons.radio_button_checked),
-                    const Divider(),
-                    _routeRow(
-                        "Where to",
-                        destination == null
-                            ? "Destination location"
-                            : destination!.name ?? "Destination location",
-                        Icons.location_on_outlined),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              _paymentMethodSelector(),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Automatically accept the nearest driver for your fare",
-                      style: AppTypography.smallText.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                    Spacer(),
+                    Center(
+                      child: CustomButton(
+                        onPressed: () {
+                          final fare = int.tryParse(fareController.text);
+                          if (fare != null) {
+                            _confirmFare(fare);
+                          } else {
+                            CustomToast.show(
+                              'Enter a valid fare',
+                              context: context,
+                              toastType: ToastType.info,
+                            );
+                          }
+                        },
+                        text: 'Find Drivers',
                       ),
                     ),
-                  ),
-                  CustomSwitch(
-                    isActive: true,
-                    switchValue: autoAccept,
-                    onChanged: (bool value) {
-                      setState(() {
-                        autoAccept = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              Spacer(),
-              Center(
-                child: CustomButton(
-                  onPressed: () {
-                    final fare = int.tryParse(fareController.text);
-                    if (fare != null) {
-                      _confirmFare(fare);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Enter a valid fare")),
-                      );
-                    }
-                  },
-                  text: 'Find Drivers',
+                    SizedBox(
+                      height: 10,
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -311,11 +361,29 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
     );
   }
 
-  void _confirmFare(int fare) {
-    log("User offered fare: ₹$fare");
-    // handle submission here (API call or navigation)
-    Navigator.pop(context, {
-      'isFindDriversActive': true,
-    });
+  void _confirmFare(int fare) async {
+    if (destination == null || loginResponse == null) {
+      print('destination/login null');
+      return;
+    }
+
+    try {
+      await context.read<AddressCubit>().createRideRequest(
+            destination!,
+            fare.toString(),
+            loginResponse!.user.id.toString(),
+            loginResponse!.token,
+          );
+
+      Navigator.pop(context, {
+        'isFindDriversActive': true,
+      });
+    } catch (e) {
+      CustomToast.show(
+        e.toString(),
+        context: context,
+        toastType: ToastType.error,
+      );
+    }
   }
 }

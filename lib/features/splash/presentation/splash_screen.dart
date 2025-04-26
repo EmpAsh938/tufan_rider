@@ -20,15 +20,16 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     authCubit = locator.get<AuthCubit>();
+
     _initAndNavigate();
   }
 
   Future<void> _initAndNavigate() async {
-    await authCubit.initialize();
-
+    authCubit.initialize();
     await Future.delayed(const Duration(seconds: 2));
 
     final loginResponse = authCubit.loginResponse;
+
     if (!mounted) return;
 
     if (loginResponse == null) {

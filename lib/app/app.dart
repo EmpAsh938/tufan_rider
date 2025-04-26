@@ -10,6 +10,8 @@ import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -36,6 +38,7 @@ class MyApp extends StatelessWidget {
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, state) {
           return MaterialApp(
+            navigatorKey: navigatorKey,
             title: 'Tufan Ride Share',
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,

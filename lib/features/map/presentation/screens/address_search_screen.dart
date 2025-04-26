@@ -38,8 +38,8 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
 
   void fetchAddress() {
     final addressCubit = locator.get<AddressCubit>();
-    final source = addressCubit.fetchSource();
-    final destination = addressCubit.fetchDestination();
+    final source = addressCubit.source;
+    final destination = addressCubit.destination;
 
     setState(() {
       if (source != null) fromController.text = source!.name ?? '';

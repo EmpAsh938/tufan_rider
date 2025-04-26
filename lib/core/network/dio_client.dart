@@ -1,6 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:tufan_rider/app/app.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
+import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/network/dio_exceptions.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
@@ -32,15 +36,16 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          try {
-            print("❌ RAW ERROR RESPONSE: ${e.response?.data}");
+          final error = DioExceptions.fromDioError(e);
 
-            final parsed = DioExceptions.fromDioError(e);
-            print("❌ HANDLED ERROR: ${parsed.message}");
-          } catch (e) {
-            print("❌ ERROR HANDLING FAILURE: ${e.toString()}");
+          print("❌ ERROR: ${error.message}");
+
+          if (e.response?.statusCode == 401) {
+            locator.get<AuthCubit>().logout();
+
+            navigatorKey.currentState
+                ?.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
           }
-
           return handler.next(e);
         },
       ),

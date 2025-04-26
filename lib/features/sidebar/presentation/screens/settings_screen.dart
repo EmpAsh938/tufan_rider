@@ -29,6 +29,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // Phone Number
           ListTile(
+            onTap: () {
+              Navigator.pushNamed(context, AppRoutes.changePhone);
+            },
             title: Text("Phone number"),
             subtitle: Text("98XXXXXXXX", style: TextStyle(color: Colors.grey)),
             trailing: Icon(Icons.arrow_forward_ios, size: 18),

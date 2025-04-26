@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:tufan_rider/core/network/dio_exceptions.dart';
 import 'package:tufan_rider/features/auth/models/registration_request.dart';
+import 'package:tufan_rider/features/map/models/location_model.dart';
 import 'dio_client.dart';
 import 'api_endpoints.dart';
 
@@ -23,9 +24,7 @@ class ApiService {
 
   Future<Response> requestOTP(String mobileNo) async {
     try {
-      final response = await _dio.post(ApiEndpoints.requestOTP, data: {
-        'mobileNo': mobileNo,
-      });
+      final response = await _dio.get(ApiEndpoints.requestOTP(mobileNo));
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);
@@ -35,7 +34,7 @@ class ApiService {
   Future<Response> forgotPassword(String mobileNo) async {
     try {
       final response = await _dio.post(ApiEndpoints.forgotPassword, data: {
-        'phnum': mobileNo,
+        'emailOrMobile': mobileNo,
       });
       return response;
     } on DioException catch (e) {
@@ -47,13 +46,12 @@ class ApiService {
       String mobileNo, String otp, String newPassword) async {
     try {
       final response = await _dio.post(ApiEndpoints.updatePassword, data: {
-        'phnum': mobileNo,
+        'emailOrMobile': mobileNo,
         'otp': otp,
         'newPassword': newPassword,
       });
       return response;
     } on DioException catch (e) {
-      print(e);
       throw DioExceptions.fromDioError(e);
     }
   }
@@ -103,5 +101,76 @@ class ApiService {
     }
   }
 
-  // Add more methods here...
+  Future<Response> updateCurrentLocation(
+      LocationModel location, String userId, String token) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.currentLocation(userId),
+        data: {
+          'currentLocation': location.toJson(),
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getFare(LocationModel location, String userId,
+      String categoryId, String token) async {
+    try {
+      final response = await _dio.get(ApiEndpoints.getFare(userId, categoryId),
+          options: Options(
+            headers: {
+              'Authorization': 'Sandip $token',
+            },
+          ),
+          data: {
+            'd_latitude': location.latitude,
+            'd_longitude': location.longitude,
+          });
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> createRideRequest(LocationModel location, String price,
+      String userId, String categoryId, String token) async {
+    try {
+      final response =
+          await _dio.post(ApiEndpoints.createRideRequest(userId, categoryId),
+              options: Options(
+                headers: {
+                  'Authorization': 'Sandip $token',
+                },
+              ),
+              data: {
+            'actualPrice': price,
+            'd_latitude': location.latitude,
+            'd_longitude': location.longitude,
+          });
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> verifyOTP(String mobileNo, String otp) async {
+    try {
+      final response = await _dio.post(ApiEndpoints.verifyOTP, data: {
+        'emailOrMobile': mobileNo,
+        'otp': otp,
+      });
+      print(response.data);
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
 }

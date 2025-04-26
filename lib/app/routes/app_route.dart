@@ -5,6 +5,7 @@ import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dar
 import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
+import 'package:tufan_rider/features/sidebar/presentation/screens/change_phone_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/ride_history_screen.dart';
@@ -22,6 +23,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String rideHistory = '/ride_history';
   static const String settings = '/settings';
+  static const String changePhone = '/settings/changePhone';
   static const String emergency = '/emergency';
 
   static Route<dynamic>? generateRoute(RouteSettings routeSettings) {
@@ -46,6 +48,8 @@ class AppRoutes {
         return _slideFromRight(RideHistoryScreen(), routeSettings);
       case settings:
         return _slideFromRight(SettingsScreen(), routeSettings);
+      case changePhone:
+        return _slideFromRight(ChangePhoneScreen(), routeSettings);
       case emergency:
         return _slideFromRight(EmergencyScreen(), routeSettings);
       default:

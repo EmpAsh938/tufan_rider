@@ -21,15 +21,15 @@ class LoginResponse {
 
 class User {
   final int id;
-  final String? currentLocation;
+  final dynamic currentLocation;
   final String name;
   final String email;
   final String? managerAddress;
   final String mobileNo;
   final String imageName;
-  final String otp;
+  final String? otp;
   final dynamic balance; // Can be double or null
-  final String branchName;
+  final String? branchName;
   final String modes;
   final String? dateOfBirth;
   final dynamic mode; // Can be String or null

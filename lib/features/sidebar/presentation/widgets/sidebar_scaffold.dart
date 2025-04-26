@@ -25,7 +25,10 @@ class _SidebarScaffoldState extends State<SidebarScaffold> {
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
-              icon: Icon(Icons.menu),
+              icon: Icon(
+                Icons.menu,
+                color: AppColors.primaryBlack,
+              ),
             );
           }),
           title: Text(

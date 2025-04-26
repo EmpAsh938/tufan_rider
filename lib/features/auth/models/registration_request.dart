@@ -4,7 +4,7 @@ class RegistrationRequest {
   final String mobileNo;
   final String otp;
   final String password;
-  final String branchName;
+  // final String branchName;
   // final String dateOfBirth;
 
   RegistrationRequest({
@@ -13,7 +13,7 @@ class RegistrationRequest {
     required this.mobileNo,
     required this.otp,
     required this.password,
-    required this.branchName,
+    // required this.branchName,
     // required this.dateOfBirth,
   });
 
@@ -24,7 +24,7 @@ class RegistrationRequest {
       mobileNo: json['mobileNo'],
       otp: json['otp'],
       password: json['password'],
-      branchName: json['branch_Name'],
+      // branchName: json['branch_Name'],
       // dateOfBirth: json['date_of_Birth'],
     );
   }
@@ -36,7 +36,7 @@ class RegistrationRequest {
       'mobileNo': mobileNo,
       'otp': otp,
       'password': password,
-      'branch_Name': branchName,
+      // 'branch_Name': branchName,
       // 'date_of_Birth': dateOfBirth,
     };
   }

@@ -12,13 +12,7 @@ class ForgotPasswordInitial extends ForgotPasswordState {}
 
 class ForgotPasswordLoading extends ForgotPasswordState {}
 
-class OtpSent extends ForgotPasswordState {
-  final ForgotPasswordResponse forgotPasswordResponse;
-  const OtpSent(this.forgotPasswordResponse);
-
-  @override
-  List<Object?> get props => [forgotPasswordResponse];
-}
+class OtpSent extends ForgotPasswordState {}
 
 class OtpSendFailure extends ForgotPasswordState {
   final String message;

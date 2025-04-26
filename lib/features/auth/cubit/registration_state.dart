@@ -13,14 +13,7 @@ class RegistrationInitial extends RegistrationState {}
 
 class RegistrationLoading extends RegistrationState {}
 
-class OtpSent extends RegistrationState {
-  final OtpResponse otpResponse;
-
-  const OtpSent(this.otpResponse);
-
-  @override
-  List<Object?> get props => [otpResponse];
-}
+class OtpSent extends RegistrationState {}
 
 class OtpSendFailure extends RegistrationState {
   final String message;

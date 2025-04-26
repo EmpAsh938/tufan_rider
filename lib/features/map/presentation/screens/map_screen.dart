@@ -105,6 +105,8 @@ class _MapScreenState extends State<MapScreen>
       locator.get<AddressCubit>().setSource(RideLocation(
           lat: _center.latitude, lng: _center.longitude, name: address));
 
+      await locator.get<AddressCubit>().sendCurrentLocationToServer();
+
       setState(() {
         // _center = LatLng(position.latitude, position.longitude);
         _locationEnabled = true;
@@ -120,7 +122,7 @@ class _MapScreenState extends State<MapScreen>
       });
 
       final GoogleMapController controller = await _controller.future;
-      final currentLocation = locator.get<AddressCubit>().fetchSource();
+      final currentLocation = locator.get<AddressCubit>().source;
       controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
@@ -365,6 +367,8 @@ class _MapScreenState extends State<MapScreen>
       _animatedCircle.clear();
       _isMapInteractionDisabled = false;
     });
+    // _circleAnimationController.reset();
+    // _radiusAnimation = null;
   }
 
   void setLocationForUser(String label) {
@@ -444,7 +448,9 @@ class _MapScreenState extends State<MapScreen>
       child: Scaffold(
         body: _isLoading
             ? Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(
+                  color: AppColors.neutralColor,
+                ),
               )
             : _locationEnabled
                 ? BlocBuilder<AddressCubit, AddressState>(
@@ -564,9 +570,9 @@ class _MapScreenState extends State<MapScreen>
                                         });
                                       }
                                       // Get the latest state from the Cubit after updates
-                                      final source = addressCubit.fetchSource();
+                                      final source = addressCubit.source;
                                       final destination =
-                                          addressCubit.fetchDestination();
+                                          addressCubit.destination;
 
                                       if (context.mounted &&
                                           source != null &&

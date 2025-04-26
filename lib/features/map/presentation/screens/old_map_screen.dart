@@ -98,7 +98,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
       await _loadCurrentLocationMarker();
 
       final GoogleMapController controller = await _controller.future;
-      final currentLocation = locator.get<AddressCubit>().fetchSource();
+      final currentLocation = locator.get<AddressCubit>().source;
       controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
@@ -114,7 +114,7 @@ class _MapBookingScreenState extends State<MapBookingScreen> {
   }
 
   Future<void> _loadCurrentLocationMarker() async {
-    final currentLocation = locator.get<AddressCubit>().fetchSource();
+    final currentLocation = locator.get<AddressCubit>().source;
 
     if (currentLocation != null) {
       final marker = await MarkerUtil.createMarker(
