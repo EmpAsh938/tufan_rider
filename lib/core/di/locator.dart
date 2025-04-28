@@ -8,7 +8,9 @@ import 'package:tufan_rider/features/auth/repository/auth_repository.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/repository/map_repository.dart';
+import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -33,4 +35,7 @@ void setupLocator() {
       () => RegistrationCubit(locator<AuthRepository>()));
   locator.registerFactory<ForgotPasswordCubit>(
       () => ForgotPasswordCubit(locator<AuthRepository>()));
+  locator.registerFactory<StompSocketCubit>(() => StompSocketCubit());
+  locator.registerFactory<UpdateProfileCubit>(
+      () => UpdateProfileCubit(locator<AuthRepository>()));
 }

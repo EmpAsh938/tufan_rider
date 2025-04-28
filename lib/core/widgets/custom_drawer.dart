@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/network/api_endpoints.dart';
+import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -17,6 +21,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final authCubit = context.read<AuthCubit>();
+    final loginResponse = authCubit.loginResponse;
     return Drawer(
       backgroundColor: AppColors.backgroundColor,
       child: SafeArea(
@@ -36,18 +42,27 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   child: CircleAvatar(
                     radius: 30,
                     backgroundColor: AppColors.primaryColor,
-                    child: Icon(
-                      Icons.person,
-                      size: 40,
-                      color: AppColors.primaryBlack,
-                    ),
+                    backgroundImage: loginResponse?.user.imageName != null
+                        ? NetworkImage(ApiEndpoints.baseUrl +
+                            ApiEndpoints.getImage(loginResponse!
+                                .user.imageName!)) // Use NetworkImage
+                        : null,
+                    child: loginResponse?.user.imageName == null
+                        ? Icon(
+                            Icons.person,
+                            size: 40,
+                            color: AppColors.primaryBlack,
+                          )
+                        : null,
                   ),
                 ),
                 SizedBox(
                   width: 20,
                 ),
                 Text(
-                  'John Doe',
+                  loginResponse == null
+                      ? ''
+                      : TextUtils.capitalizeEachWord(loginResponse.user.name),
                   style: AppTypography.labelText.copyWith(
                     fontWeight: FontWeight.w400,
                   ),

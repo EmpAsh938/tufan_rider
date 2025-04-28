@@ -34,6 +34,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
   bool isCashSelected = true;
   bool autoAccept = false;
   bool isLoading = true;
+  bool isFindingRides = false;
 
   void fetchAddress() async {
     final addressCubit = locator.get<AddressCubit>();
@@ -252,21 +253,31 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                     ),
                     Spacer(),
                     Center(
-                      child: CustomButton(
-                        onPressed: () {
-                          final fare = int.tryParse(fareController.text);
-                          if (fare != null) {
-                            _confirmFare(fare);
-                          } else {
-                            CustomToast.show(
-                              'Enter a valid fare',
-                              context: context,
-                              toastType: ToastType.info,
-                            );
-                          }
-                        },
-                        text: 'Find Drivers',
-                      ),
+                      child: isFindingRides
+                          ? CircularProgressIndicator(
+                              color: AppColors.neutralColor,
+                            )
+                          : CustomButton(
+                              onPressed: () {
+                                setState(() {
+                                  isFindingRides = true;
+                                });
+                                final fare = int.tryParse(fareController.text);
+                                if (fare != null) {
+                                  _confirmFare(fare);
+                                } else {
+                                  CustomToast.show(
+                                    'Enter a valid fare',
+                                    context: context,
+                                    toastType: ToastType.info,
+                                  );
+                                  setState(() {
+                                    isFindingRides = false;
+                                  });
+                                }
+                              },
+                              text: 'Find Drivers',
+                            ),
                     ),
                     SizedBox(
                       height: 10,
@@ -368,13 +379,21 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
     }
 
     try {
-      await context.read<AddressCubit>().createRideRequest(
+      final rideRequest = await context.read<AddressCubit>().createRideRequest(
             destination!,
             fare.toString(),
             loginResponse!.user.id.toString(),
             loginResponse!.token,
           );
-
+      if (rideRequest == null) {
+        return CustomToast.show(
+          'Ride could not be created',
+          context: context,
+          toastType: ToastType.error,
+        );
+      }
+      // put id from ride request here
+      await context.read<AddressCubit>().showRiders("43");
       Navigator.pop(context, {
         'isFindDriversActive': true,
       });
@@ -384,6 +403,10 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
         context: context,
         toastType: ToastType.error,
       );
+    } finally {
+      setState(() {
+        isFindingRides = false;
+      });
     }
   }
 }

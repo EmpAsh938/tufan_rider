@@ -45,7 +45,27 @@ class AuthRepository {
     return User.fromJson(response.data);
   }
 
-  Future<void> uploadProfile(File profileImage, String userId) async {
-    await _apiService.uploadProfile(profileImage, userId);
+  Future<User> updateProfile(
+    String userId,
+    String token,
+    String email,
+    String phone,
+    String password,
+  ) async {
+    final response = await _apiService.updateProfile(
+      userId,
+      token,
+      email,
+      phone,
+      password,
+    );
+    return User.fromJson(response.data);
+  }
+
+  Future<User> uploadProfile(
+      File profileImage, String userId, String token) async {
+    final response =
+        await _apiService.uploadProfile(profileImage, userId, token);
+    return User.fromJson(response.data);
   }
 }

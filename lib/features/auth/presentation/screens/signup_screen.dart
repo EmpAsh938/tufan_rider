@@ -98,7 +98,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (_currentPage == 1) {
       // Send OTP
       context.read<RegistrationCubit>().sendOtp(phoneController.text);
-      animatePageSlide(_currentPage + 1);
     } else if (_currentPage == 2) {
       // verify OTP
       String otp = _otpControllers.map((c) => c.text).join();
@@ -198,7 +197,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             if (state is RegistrationCompleted) {
               context
                   .read<RegistrationCubit>()
-                  .uploadProfile(_imageFile!, state.user.id.toString());
+                  .uploadProfile(_imageFile!, state.user.id.toString(), '');
             }
 
             if (state is ProfileUploaded) {

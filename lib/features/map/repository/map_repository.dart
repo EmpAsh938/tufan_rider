@@ -2,6 +2,8 @@ import 'package:tufan_rider/core/network/api_service.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 import 'package:tufan_rider/features/map/models/location_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/riders_request.dart';
+import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
 
 class MapRepository {
   final ApiService _apiService;
@@ -37,5 +39,26 @@ class MapRepository {
     final response = await _apiService.createRideRequest(
         location, price, userId, categoryId, token);
     return RideRequestModel.fromJson(response.data);
+  }
+
+  Future<List<RideHistory>> showRideHistory() async {
+    final response = await _apiService.showRideHistory();
+    final List<dynamic> data = response.data;
+    return data.map((json) => RideHistory.fromJson(json)).toList();
+  }
+
+  Future<List<RiderRequest>> showRiders(String requestId) async {
+    final response = await _apiService.showRiders(requestId);
+    final List<dynamic> data = response.data;
+    return data.map((json) => RiderRequest.fromJson(json)).toList();
+  }
+
+  Future<void> approveRide(
+    String offerId,
+    String requestId,
+    String token,
+  ) async {
+    final response = await _apiService.approveRide(offerId, requestId, token);
+    print(response.data);
   }
 }

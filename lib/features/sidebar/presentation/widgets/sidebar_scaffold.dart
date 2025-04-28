@@ -39,7 +39,7 @@ class _SidebarScaffoldState extends State<SidebarScaffold> {
             ),
           ),
         ),
-        body: Padding(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: widget.child,
         ),

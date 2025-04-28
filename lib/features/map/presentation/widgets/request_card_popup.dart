@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/models/request.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart';
 
@@ -40,7 +43,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     });
 
     // Auto-remove after 10 seconds
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 30), () {
       _removeRequestById(request.id);
     });
   }
@@ -82,14 +85,24 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     });
   }
 
+  void fetchRiders() {
+    final data = context.read<AddressCubit>().riderRequest;
+    for (var item in data) {
+      _addRequest(Request(
+          id: item.id.toString(), vehicle: 'Toyota Prius', driver: 'John'));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
+    fetchRiders();
+
     // Dummy data
-    _addRequest(Request(id: '1', vehicle: 'Toyota Prius', driver: 'John'));
-    _addRequest(Request(id: '2', vehicle: 'Suzuki Swift', driver: 'David'));
-    _addRequest(Request(id: '3', vehicle: 'Hyundai i20', driver: 'Emma'));
+    // _addRequest(Request(id: '1', vehicle: 'Toyota Prius', driver: 'John'));
+    // _addRequest(Request(id: '2', vehicle: 'Suzuki Swift', driver: 'David'));
+    // _addRequest(Request(id: '3', vehicle: 'Hyundai i20', driver: 'Emma'));
   }
 
   @override
@@ -117,6 +130,11 @@ class _RequestCardPopupState extends State<RequestCardPopup>
               onDecline: () => _removeRequestById(request.id),
               onAccept: () {
                 // _removeRequestById(request.id);
+                final loginResponse = context.read<AuthCubit>().loginResponse;
+                if (loginResponse == null) return;
+                context
+                    .read<AddressCubit>()
+                    .approveRide('52', '43', loginResponse.token);
                 _removeAllRequests();
                 widget.prepareDriverArriving();
               },

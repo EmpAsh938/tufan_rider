@@ -9,6 +9,8 @@ import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -33,6 +35,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AddressCubit>(
           create: (context) => locator<AddressCubit>(),
+        ),
+        BlocProvider<StompSocketCubit>(
+          create: (context) => locator<StompSocketCubit>(),
+        ),
+        BlocProvider<UpdateProfileCubit>(
+          create: (context) => locator<UpdateProfileCubit>(),
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(

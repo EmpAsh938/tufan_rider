@@ -6,7 +6,9 @@ import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 import 'package:tufan_rider/features/map/models/location_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/riders_request.dart';
 import 'package:tufan_rider/features/map/repository/map_repository.dart';
+import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
 
 class AddressCubit extends Cubit<AddressState> {
   final MapRepository _repository;
@@ -16,6 +18,8 @@ class AddressCubit extends Cubit<AddressState> {
   FareResponse? get fareResponse => state.fareResponse;
   RideLocation? get source => state.source;
   RideLocation? get destination => state.destination;
+  List<RideHistory> get rideHistory => state.rideHistory;
+  List<RiderRequest> get riderRequest => state.riderRequest;
 
   void setSource(RideLocation source) {
     emit(state.copyWith(source: source));
@@ -90,7 +94,7 @@ class AddressCubit extends Cubit<AddressState> {
     return null;
   }
 
-  Future<void> createRideRequest(
+  Future<RideRequestModel?> createRideRequest(
     RideLocation destination,
     String price,
     String userId,
@@ -103,6 +107,35 @@ class AddressCubit extends Cubit<AddressState> {
       final data = await _repository.createRideRequest(
           location, price, userId, '1', token);
       emit(state.copyWith(rideRequestModel: data));
+      return data;
+    } catch (e) {
+      print(e);
+      return null;
+    }
+  }
+
+  Future<void> showRiders(String requestId) async {
+    try {
+      final data = await _repository.showRiders(requestId);
+      emit(state.copyWith(riderRequest: data));
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> showRideHistory() async {
+    try {
+      final data = await _repository.showRideHistory();
+      emit(state.copyWith(rideHistory: data));
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> approveRide(
+      String offerId, String requestId, String token) async {
+    try {
+      await _repository.approveRide(offerId, requestId, token);
     } catch (e) {
       print(e);
     }

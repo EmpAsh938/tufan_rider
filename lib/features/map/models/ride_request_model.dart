@@ -82,4 +82,10 @@ class Category {
       categoryTitle: json['categoryTitle'],
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'categoryId': categoryId,
+      'categoryTitle': categoryTitle,
+    };
+  }
 }

@@ -5,8 +5,10 @@ import 'package:tufan_rider/core/di/locator.dart';
 
 void main() {
   setupLocator();
-  runApp(DevicePreview(
-    enabled: false,
-    builder: (context) => const MyApp(),
-  ));
+  runApp(
+    DevicePreview(
+      enabled: false,
+      builder: (context) => const MyApp(),
+    ),
+  );
 }

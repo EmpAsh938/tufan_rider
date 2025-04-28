@@ -17,6 +17,8 @@ import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/active_location_pin.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/driver_arriving_bottomsheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/location_settting_bottomsheet.dart';
@@ -44,6 +46,7 @@ class _MapScreenState extends State<MapScreen>
   TextEditingController sourceController = TextEditingController();
 
   late String _mapStyleString;
+  late final StompSocketCubit _stompSocketCubit;
 
   LatLng _center = MapScreen._kDefaultLocation.target;
 
@@ -355,9 +358,11 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void resetMap() {
-    locator.get<AddressCubit>().reset();
+    context.read<AddressCubit>().reset();
+    context.read<StompSocketCubit>().disconnect();
     setState(() {
       _isFindingDrivers = false;
+      _hasAcceptedRequest = false;
       _dummyMarkers.clear();
       _destinationLocationMarker = null;
       _polylines.clear();
@@ -435,8 +440,15 @@ class _MapScreenState extends State<MapScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _stompSocketCubit = context.read<StompSocketCubit>();
+  }
+
+  @override
   void dispose() {
     super.dispose();
+    _stompSocketCubit.disconnect();
     _circleAnimationController.dispose();
     sourceController.dispose();
     destinationController.dispose();
@@ -453,226 +465,150 @@ class _MapScreenState extends State<MapScreen>
                 ),
               )
             : _locationEnabled
-                ? BlocBuilder<AddressCubit, AddressState>(
-                    builder: (context, state) {
-                    return Stack(
-                      children: [
-                        GoogleMap(
-                          mapType: MapType.normal,
-                          initialCameraPosition: MapScreen._kDefaultLocation,
-                          myLocationEnabled: false,
-                          myLocationButtonEnabled: false,
-                          compassEnabled: false,
-                          mapToolbarEnabled: false,
-                          zoomControlsEnabled: false,
-                          zoomGesturesEnabled: !_isMapInteractionDisabled,
-                          scrollGesturesEnabled: !_isMapInteractionDisabled,
-                          rotateGesturesEnabled: !_isMapInteractionDisabled,
-                          tiltGesturesEnabled: !_isMapInteractionDisabled,
-                          markers: {
-                            ..._dummyMarkers,
-                            if (_currentLocationMarker != null)
-                              _currentLocationMarker!,
-                            if (_destinationLocationMarker != null)
-                              _destinationLocationMarker!,
-                          },
-                          circles: _animatedCircle,
-                          onMapCreated: (controller) {
-                            _controller.complete(controller);
-                            controller.setMapStyle(_mapStyleString);
-                          },
-                          onCameraMove: _onCameraMove,
-                          polylines: _polylines,
-                        ),
-                        if (_isDestinationSettingOn || _isSourceSettingOn) ...[
-                          // centered pin
-                          if (!_isFindingDrivers) ...[
-                            Center(
-                              child: ActiveLocationPin(),
-                            ),
+                ? BlocListener<StompSocketCubit, StompSocketState>(
+                    listener: (context, state) {
+                      if (state is StompSocketInitial) {
+                        print('INITIAL');
+                      }
+                      if (state is StompSocketMessageReceived) {
+                        // Do something when message is received
+                        print('📩 Message from server: ${state.message}');
 
-                            // pin setting done button on map
-                            Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: CustomButton(
-                                    isRounded: true,
-                                    onPressed: () async {
-                                      _getAddressFromLatLng(_center);
+                        // For example: refresh ride request, update driver location, etc.
+                      }
+                      if (state is StompSocketConnected) {
+                        print('✅ Connected to socket!');
+                      }
+                      if (state is StompSocketError) {
+                        print('❌ Socket error: ${state.message}');
+                      }
+                    },
+                    child: BlocBuilder<AddressCubit, AddressState>(
+                        builder: (context, addressState) {
+                      return Stack(
+                        children: [
+                          GoogleMap(
+                            mapType: MapType.normal,
+                            initialCameraPosition: MapScreen._kDefaultLocation,
+                            myLocationEnabled: false,
+                            myLocationButtonEnabled: false,
+                            compassEnabled: false,
+                            mapToolbarEnabled: false,
+                            zoomControlsEnabled: false,
+                            zoomGesturesEnabled: !_isMapInteractionDisabled,
+                            scrollGesturesEnabled: !_isMapInteractionDisabled,
+                            rotateGesturesEnabled: !_isMapInteractionDisabled,
+                            tiltGesturesEnabled: !_isMapInteractionDisabled,
+                            markers: {
+                              ..._dummyMarkers,
+                              if (_currentLocationMarker != null)
+                                _currentLocationMarker!,
+                              if (_destinationLocationMarker != null)
+                                _destinationLocationMarker!,
+                            },
+                            circles: _animatedCircle,
+                            onMapCreated: (controller) {
+                              _controller.complete(controller);
+                              controller.setMapStyle(_mapStyleString);
+                            },
+                            onCameraMove: _onCameraMove,
+                            polylines: _polylines,
+                          ),
+                          if (_isDestinationSettingOn ||
+                              _isSourceSettingOn) ...[
+                            // centered pin
+                            if (!_isFindingDrivers) ...[
+                              Center(
+                                child: ActiveLocationPin(),
+                              ),
 
-                                      final latLng =
-                                          await getPinPointedCoordinates();
-                                      if (latLng == null) return;
-                                      final address =
-                                          await _getAddressFromLatLng(latLng);
+                              // pin setting done button on map
+                              Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: CustomButton(
+                                      isRounded: true,
+                                      onPressed: () async {
+                                        _getAddressFromLatLng(_center);
 
-                                      final addressCubit =
-                                          context.read<AddressCubit>();
+                                        final latLng =
+                                            await getPinPointedCoordinates();
+                                        if (latLng == null) return;
+                                        final address =
+                                            await _getAddressFromLatLng(latLng);
 
-                                      if (_isDestinationSettingOn &&
-                                          context.mounted) {
-                                        // Clear old destination marker
-                                        setState(() {
-                                          _destinationLocationMarker = null;
-                                        });
+                                        final addressCubit =
+                                            context.read<AddressCubit>();
 
-                                        final destination = RideLocation(
-                                          lat: latLng.latitude,
-                                          lng: latLng.longitude,
-                                          name: address,
-                                        );
+                                        if (_isDestinationSettingOn &&
+                                            context.mounted) {
+                                          // Clear old destination marker
+                                          setState(() {
+                                            _destinationLocationMarker = null;
+                                          });
 
-                                        addressCubit
-                                            .setDestination(destination);
+                                          final destination = RideLocation(
+                                            lat: latLng.latitude,
+                                            lng: latLng.longitude,
+                                            name: address,
+                                          );
 
-                                        // create marker
-                                        final newDestMarker = createMarker(
+                                          addressCubit
+                                              .setDestination(destination);
+
+                                          // create marker
+                                          final newDestMarker = createMarker(
+                                              position: latLng,
+                                              label: 'Destination Location',
+                                              icon: BitmapDescriptor
+                                                  .defaultMarkerWithHue(
+                                                      BitmapDescriptor.hueRed));
+
+                                          setState(() {
+                                            _destinationLocationMarker =
+                                                newDestMarker;
+                                            _isDestinationSettingOn = false;
+                                            destinationController.text =
+                                                address ?? '';
+                                          });
+                                        } else if (_isSourceSettingOn) {
+                                          setState(() {
+                                            _currentLocationMarker = null;
+                                          });
+
+                                          final source = RideLocation(
+                                            lat: latLng.latitude,
+                                            lng: latLng.longitude,
+                                            name: address,
+                                          );
+
+                                          addressCubit.setSource(source);
+
+                                          final newSourceMarker = createMarker(
                                             position: latLng,
-                                            label: 'Destination Location',
+                                            label: 'Source Location',
                                             icon: BitmapDescriptor
                                                 .defaultMarkerWithHue(
-                                                    BitmapDescriptor.hueRed));
+                                                    BitmapDescriptor.hueGreen),
+                                          );
 
-                                        setState(() {
-                                          _destinationLocationMarker =
-                                              newDestMarker;
-                                          _isDestinationSettingOn = false;
-                                          destinationController.text =
-                                              address ?? '';
-                                        });
-                                      } else if (_isSourceSettingOn) {
-                                        setState(() {
-                                          _currentLocationMarker = null;
-                                        });
+                                          setState(() {
+                                            _currentLocationMarker =
+                                                newSourceMarker;
+                                            _isSourceSettingOn = false;
+                                            sourceController.text =
+                                                address ?? '';
+                                          });
+                                        }
+                                        // Get the latest state from the Cubit after updates
+                                        final source = addressCubit.source;
+                                        final destination =
+                                            addressCubit.destination;
 
-                                        final source = RideLocation(
-                                          lat: latLng.latitude,
-                                          lng: latLng.longitude,
-                                          name: address,
-                                        );
-
-                                        addressCubit.setSource(source);
-
-                                        final newSourceMarker = createMarker(
-                                          position: latLng,
-                                          label: 'Source Location',
-                                          icon: BitmapDescriptor
-                                              .defaultMarkerWithHue(
-                                                  BitmapDescriptor.hueGreen),
-                                        );
-
-                                        setState(() {
-                                          _currentLocationMarker =
-                                              newSourceMarker;
-                                          _isSourceSettingOn = false;
-                                          sourceController.text = address ?? '';
-                                        });
-                                      }
-                                      // Get the latest state from the Cubit after updates
-                                      final source = addressCubit.source;
-                                      final destination =
-                                          addressCubit.destination;
-
-                                      if (context.mounted &&
-                                          source != null &&
-                                          destination != null) {
-                                        Navigator.pushNamed(
-                                                context, AppRoutes.mapofferFare)
-                                            .then((offeredFare) async {
-                                          setState(() => _dummyMarkers.clear());
-
-                                          if (offeredFare == null) return;
-                                          if (offeredFare
-                                              is Map<String, bool>) {
-                                            final isFindDriversActive =
-                                                offeredFare[
-                                                        'isFindDriversActive'] ??
-                                                    false;
-
-                                            if (isFindDriversActive) {
-                                              setState(() {
-                                                _isFindingDrivers = true;
-                                              });
-                                            }
-
-                                            await _generateDummyMarkers(
-                                              LatLng(source.lat, source.lng),
-                                            );
-
-                                            // _getPolyline(
-                                            //   LatLng(source.lat, source.lng),
-                                            //   LatLng(destination.lat,
-                                            //       destination!.lng),
-                                            // );
-                                          }
-                                        });
-                                      }
-                                    },
-                                    text: 'Done')),
-                          ]
-                        ] else ...[
-                          if (!_isFindingDrivers) ...[
-                            CustomBottomsheet(
-                              maxHeight:
-                                  MediaQuery.of(context).size.height * 0.6,
-                              minHeight:
-                                  MediaQuery.of(context).size.height * 0.3,
-                              child: LocationSetttingBottomsheet(
-                                sourceController: sourceController,
-                                destinationController: destinationController,
-                                onTapped: setLocationForUser,
-                              ),
-                            ),
-                            Positioned(
-                              top: 10,
-                              left: 10,
-                              child: Container(
-                                padding: EdgeInsets.all(
-                                    1), // Adds space around the icon
-                                decoration: BoxDecoration(
-                                  color: AppColors
-                                      .primaryWhite, // Background color
-                                  borderRadius: BorderRadius.circular(
-                                      15), // Makes it circular
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryBlack
-                                          .withOpacity(0.1), // Optional shadow
-                                      blurRadius: 5,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Builder(builder: (context) {
-                                  return IconButton(
-                                    onPressed: () {
-                                      Scaffold.of(context).openDrawer();
-                                    },
-                                    icon: Icon(
-                                      Icons.menu,
-                                      color: AppColors.primaryBlack,
-                                      size: 30,
-                                    ),
-                                  );
-                                }),
-                              ),
-                            ),
-                            if (state.source != null &&
-                                state.destination != null)
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: CustomButton(
-                                        isRounded: true,
-                                        text: 'Find Drivers',
-                                        onPressed: () {
+                                        if (context.mounted &&
+                                            source != null &&
+                                            destination != null) {
                                           Navigator.pushNamed(context,
                                                   AppRoutes.mapofferFare)
                                               .then((offeredFare) async {
@@ -694,70 +630,173 @@ class _MapScreenState extends State<MapScreen>
                                               }
 
                                               await _generateDummyMarkers(
-                                                LatLng(state.source!.lat,
-                                                    state.source!.lng),
+                                                LatLng(source.lat, source.lng),
                                               );
 
                                               // _getPolyline(
-                                              //   LatLng(state.source!.lat,
-                                              //       state.source!.lng),
-                                              //   LatLng(state.destination!.lat,
-                                              //       state.destination!.lng),
+                                              //   LatLng(source.lat, source.lng),
+                                              //   LatLng(destination.lat,
+                                              //       destination!.lng),
                                               // );
                                             }
                                           });
-                                        },
-                                      ),
-                                    ),
-                                    // SizedBox(
-                                    //   width: double.infinity,
-                                    //   child: CustomButton(
-                                    //     backgroundColor: AppColors.neutralColor,
-                                    //     text: 'Cancel',
-                                    //     onPressed: () {
-                                    //       setState(() {
-                                    //         _dummyMarkers.clear();
-                                    //         context.read<AddressCubit>().reset();
-                                    //         // _currentLocationMarker = null;
-                                    //         _destinationLocationMarker = null;
-                                    //         _polylines.clear();
-
-                                    //         polylineCoordinates.clear();
-                                    //         sourceController.clear();
-                                    //         destinationController.clear();
-                                    //         _checkAndFetchLocation();
-                                    //       });
-                                    //     },
-                                    //   ),
-                                    // ),
-                                  ],
-                                ),
-                              ),
-                            if (_hasAcceptedRequest) ...[
+                                        }
+                                      },
+                                      text: 'Done')),
+                            ]
+                          ] else ...[
+                            if (!_isFindingDrivers) ...[
                               CustomBottomsheet(
                                 maxHeight:
                                     MediaQuery.of(context).size.height * 0.6,
                                 minHeight:
                                     MediaQuery.of(context).size.height * 0.3,
-                                child: DriverArrivingBottomsheet(),
+                                child: LocationSetttingBottomsheet(
+                                  sourceController: sourceController,
+                                  destinationController: destinationController,
+                                  onTapped: setLocationForUser,
+                                ),
                               ),
+                              Positioned(
+                                top: 10,
+                                left: 10,
+                                child: Container(
+                                  padding: EdgeInsets.all(
+                                      1), // Adds space around the icon
+                                  decoration: BoxDecoration(
+                                    color: AppColors
+                                        .primaryWhite, // Background color
+                                    borderRadius: BorderRadius.circular(
+                                        15), // Makes it circular
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primaryBlack
+                                            .withOpacity(
+                                                0.1), // Optional shadow
+                                        blurRadius: 5,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Builder(builder: (context) {
+                                    return IconButton(
+                                      onPressed: () {
+                                        Scaffold.of(context).openDrawer();
+                                      },
+                                      icon: Icon(
+                                        Icons.menu,
+                                        color: AppColors.primaryBlack,
+                                        size: 30,
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                              if (addressState.source != null &&
+                                  addressState.destination != null)
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: CustomButton(
+                                          isRounded: true,
+                                          text: 'Find Drivers',
+                                          onPressed: () {
+                                            Navigator.pushNamed(context,
+                                                    AppRoutes.mapofferFare)
+                                                .then((offeredFare) async {
+                                              setState(
+                                                  () => _dummyMarkers.clear());
+
+                                              if (offeredFare == null) return;
+                                              if (offeredFare
+                                                  is Map<String, bool>) {
+                                                final isFindDriversActive =
+                                                    offeredFare[
+                                                            'isFindDriversActive'] ??
+                                                        false;
+
+                                                if (isFindDriversActive) {
+                                                  setState(() {
+                                                    _isFindingDrivers = true;
+                                                  });
+                                                }
+
+                                                await _generateDummyMarkers(
+                                                  LatLng(
+                                                      addressState.source!.lat,
+                                                      addressState.source!.lng),
+                                                );
+
+                                                // _getPolyline(
+                                                //   LatLng(state.source!.lat,
+                                                //       state.source!.lng),
+                                                //   LatLng(state.destination!.lat,
+                                                //       state.destination!.lng),
+                                                // );
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      // SizedBox(
+                                      //   width: double.infinity,
+                                      //   child: CustomButton(
+                                      //     backgroundColor: AppColors.neutralColor,
+                                      //     text: 'Cancel',
+                                      //     onPressed: () {
+                                      //       setState(() {
+                                      //         _dummyMarkers.clear();
+                                      //         context.read<AddressCubit>().reset();
+                                      //         // _currentLocationMarker = null;
+                                      //         _destinationLocationMarker = null;
+                                      //         _polylines.clear();
+
+                                      //         polylineCoordinates.clear();
+                                      //         sourceController.clear();
+                                      //         destinationController.clear();
+                                      //         _checkAndFetchLocation();
+                                      //       });
+                                      //     },
+                                      //   ),
+                                      // ),
+                                    ],
+                                  ),
+                                ),
+                              if (_hasAcceptedRequest) ...[
+                                CustomBottomsheet(
+                                  maxHeight:
+                                      MediaQuery.of(context).size.height * 0.6,
+                                  minHeight:
+                                      MediaQuery.of(context).size.height * 0.3,
+                                  child: DriverArrivingBottomsheet(
+                                    onPressed: resetMap,
+                                  ),
+                                ),
+                              ]
                             ]
+                          ],
+                          if (_isFindingDrivers) ...[
+                            CustomBottomsheet(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.55,
+                              minHeight:
+                                  MediaQuery.of(context).size.height * 0.3,
+                              child: OfferPriceBottomSheet(onPressed: resetMap),
+                            ),
+                            RequestCardPopup(
+                              prepareDriverArriving: prepareDriverArriving,
+                            ),
                           ]
                         ],
-                        if (_isFindingDrivers) ...[
-                          CustomBottomsheet(
-                            maxHeight:
-                                MediaQuery.of(context).size.height * 0.55,
-                            minHeight: MediaQuery.of(context).size.height * 0.3,
-                            child: OfferPriceBottomSheet(onPressed: resetMap),
-                          ),
-                          RequestCardPopup(
-                            prepareDriverArriving: prepareDriverArriving,
-                          ),
-                        ]
-                      ],
-                    );
-                  })
+                      );
+                    }),
+                  )
                 : Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

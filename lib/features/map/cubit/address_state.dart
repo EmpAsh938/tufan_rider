@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/riders_request.dart';
+import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
 
 class RideLocation {
   final double lat;
@@ -15,25 +17,32 @@ class AddressState extends Equatable {
   final RideLocation? destination;
   final FareResponse? fareResponse;
   final RideRequestModel? rideRequestModel;
+  final List<RideHistory> rideHistory;
+  final List<RiderRequest> riderRequest;
 
   const AddressState({
     this.source,
     this.destination,
     this.fareResponse,
     this.rideRequestModel,
+    this.rideHistory = const [],
+    this.riderRequest = const [],
   });
 
-  AddressState copyWith({
-    RideLocation? source,
-    RideLocation? destination,
-    FareResponse? fareResponse,
-    RideRequestModel? rideRequestModel,
-  }) {
+  AddressState copyWith(
+      {RideLocation? source,
+      RideLocation? destination,
+      FareResponse? fareResponse,
+      RideRequestModel? rideRequestModel,
+      List<RideHistory>? rideHistory,
+      List<RiderRequest>? riderRequest}) {
     return AddressState(
       source: source ?? this.source,
       destination: destination ?? this.destination,
       fareResponse: fareResponse ?? this.fareResponse,
       rideRequestModel: rideRequestModel ?? this.rideRequestModel,
+      rideHistory: rideHistory ?? this.rideHistory,
+      riderRequest: riderRequest ?? this.riderRequest,
     );
   }
 
@@ -43,5 +52,7 @@ class AddressState extends Equatable {
         destination,
         fareResponse,
         rideRequestModel,
+        rideHistory,
+        riderRequest,
       ];
 }

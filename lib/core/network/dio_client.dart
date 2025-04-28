@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:tufan_rider/app/app.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/di/locator.dart';
@@ -43,8 +44,10 @@ class DioClient {
           if (e.response?.statusCode == 401) {
             locator.get<AuthCubit>().logout();
 
-            navigatorKey.currentState
-                ?.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              navigatorKey.currentState
+                  ?.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+            });
           }
           return handler.next(e);
         },

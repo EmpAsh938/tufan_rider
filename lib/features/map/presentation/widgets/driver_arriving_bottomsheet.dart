@@ -5,7 +5,8 @@ import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class DriverArrivingBottomsheet extends StatelessWidget {
-  const DriverArrivingBottomsheet({super.key});
+  final VoidCallback onPressed;
+  const DriverArrivingBottomsheet({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +231,7 @@ class DriverArrivingBottomsheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: CustomButton(
-                onPressed: () {},
+                onPressed: onPressed,
                 backgroundColor: AppColors.gray,
                 textColor: AppColors.primaryRed,
                 text: 'Cancel Request',

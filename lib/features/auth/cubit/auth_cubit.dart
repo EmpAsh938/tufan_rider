@@ -58,6 +58,22 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthInitial()); // Reset to initial state
   }
 
+  // Update the user within the loginResponse
+  void updateUser(User updatedUser) {
+    if (_loginResponse != null) {
+      // Create a new LoginResponse with the updated user
+      final updatedLoginResponse = _loginResponse!.copyWith(user: updatedUser);
+
+      // Update the loginResponse locally
+      _loginResponse = updatedLoginResponse;
+
+      saveLoginResponse(_loginResponse!);
+
+      // Emit the new AuthSuccess state with the updated loginResponse
+      // emit(AuthSuccess(updatedLoginResponse));
+    }
+  }
+
   // Add this getter to easily access the response
   LoginResponse? get loginResponse => _loginResponse;
 }

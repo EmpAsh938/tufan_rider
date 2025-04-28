@@ -24,7 +24,20 @@ class ApiService {
 
   Future<Response> requestOTP(String mobileNo) async {
     try {
-      final response = await _dio.get(ApiEndpoints.requestOTP(mobileNo));
+      final response = await _dio.post(ApiEndpoints.requestOTP(mobileNo));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> verifyOTP(String mobileNo, String otp) async {
+    try {
+      final response = await _dio.post(ApiEndpoints.verifyOTP, data: {
+        'emailOrMobile': mobileNo,
+        'otp': otp,
+      });
+      print(response.data);
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);
@@ -56,16 +69,39 @@ class ApiService {
     }
   }
 
-  Future<Response> getUserProfile() async {
+  Future<Response> updateProfile(String userId, String token, String email,
+      String phone, String password) async {
     try {
-      final response = await _dio.get(ApiEndpoints.userProfile);
+      final response = await _dio.put(
+        ApiEndpoints.updateProfile(userId),
+        data: {
+          'email': '',
+          'mobileNo': phone,
+          'password': '',
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);
     }
   }
 
-  Future<Response> uploadProfile(File profileImage, String userId) async {
+  Future<Response> getUserProfile(String userId) async {
+    try {
+      final response = await _dio.get(ApiEndpoints.updateProfile(userId));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> uploadProfile(
+      File profileImage, String userId, String token) async {
     try {
       // Prepare the data to be sent as a multipart request
       FormData formData = FormData.fromMap({
@@ -74,9 +110,14 @@ class ApiService {
       });
 
       // Send the POST request with userId in the URL and the form data
-      final response = await Dio().post(
+      final response = await _dio.post(
         '${ApiEndpoints.uploadProfile}/$userId', // Append userId in the URL
         data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
       );
 
       return response;
@@ -124,7 +165,7 @@ class ApiService {
   Future<Response> getFare(LocationModel location, String userId,
       String categoryId, String token) async {
     try {
-      final response = await _dio.get(ApiEndpoints.getFare(userId, categoryId),
+      final response = await _dio.post(ApiEndpoints.getFare(userId, categoryId),
           options: Options(
             headers: {
               'Authorization': 'Sandip $token',
@@ -161,13 +202,35 @@ class ApiService {
     }
   }
 
-  Future<Response> verifyOTP(String mobileNo, String otp) async {
+  Future<Response> showRiders(String rideId) async {
     try {
-      final response = await _dio.post(ApiEndpoints.verifyOTP, data: {
-        'emailOrMobile': mobileNo,
-        'otp': otp,
-      });
-      print(response.data);
+      final response = _dio.get(ApiEndpoints.showRiders(rideId));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> showRideHistory() async {
+    try {
+      final response = _dio.get(ApiEndpoints.showRideHistory);
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> approveRide(
+      String offerId, String rideId, String token) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.approveRide(offerId, rideId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);

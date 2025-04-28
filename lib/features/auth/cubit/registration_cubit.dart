@@ -33,10 +33,18 @@ class RegistrationCubit extends Cubit<RegistrationState> {
     }
   }
 
-  Future<void> uploadProfile(File profileImage, String userId) async {
+  Future<void> uploadProfile(
+    File profileImage,
+    String userId,
+    String token,
+  ) async {
     emit(RegistrationLoading());
     try {
-      await _repository.uploadProfile(profileImage, userId);
+      await _repository.uploadProfile(
+        profileImage,
+        userId,
+        token,
+      );
       emit(ProfileUploaded());
     } catch (e) {
       emit(ProfileUploadFailure(e.toString()));

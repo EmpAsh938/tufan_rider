@@ -17,6 +17,17 @@ class LoginResponse {
       'user': user.toJson(),
     };
   }
+
+  // Add copyWith method to LoginResponse class
+  LoginResponse copyWith({
+    String? token,
+    User? user,
+  }) {
+    return LoginResponse(
+      token: token ?? this.token,
+      user: user ?? this.user,
+    );
+  }
 }
 
 class User {
@@ -26,7 +37,7 @@ class User {
   final String email;
   final String? managerAddress;
   final String mobileNo;
-  final String imageName;
+  final String? imageName;
   final String? otp;
   final dynamic balance; // Can be double or null
   final String? branchName;
@@ -92,6 +103,43 @@ class User {
       'roles': roles.map((e) => e.toJson()).toList(),
       'vehicles': vehicles,
     };
+  }
+
+  // Add copyWith method to User class
+  User copyWith({
+    int? id,
+    dynamic currentLocation,
+    String? name,
+    String? email,
+    String? managerAddress,
+    String? mobileNo,
+    String? imageName,
+    String? otp,
+    dynamic balance,
+    String? branchName,
+    String? modes,
+    String? dateOfBirth,
+    dynamic mode,
+    List<Role>? roles,
+    dynamic vehicles,
+  }) {
+    return User(
+      id: id ?? this.id,
+      currentLocation: currentLocation ?? this.currentLocation,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      managerAddress: managerAddress ?? this.managerAddress,
+      mobileNo: mobileNo ?? this.mobileNo,
+      imageName: imageName ?? this.imageName,
+      otp: otp ?? this.otp,
+      balance: balance ?? this.balance,
+      branchName: branchName ?? this.branchName,
+      modes: modes ?? this.modes,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      mode: mode ?? this.mode,
+      roles: roles ?? this.roles,
+      vehicles: vehicles ?? this.vehicles,
+    );
   }
 }
 
