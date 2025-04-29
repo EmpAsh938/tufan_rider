@@ -119,9 +119,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<UpdateProfileCubit>().updateProfile(
           userId.toString(),
           token,
+          fullName,
           email,
           loginResponse.user.mobileNo,
-          '123456',
+          '',
         );
 
     setState(() {
@@ -145,11 +146,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isEditing = false;
             });
           } else if (state is UpdateProfileUploadSuccess) {
-            context.read<AuthCubit>().updateUser(state.user);
             CustomToast.show(
               'Profile pic uploaded successfully',
               context: context,
               toastType: ToastType.success,
+            );
+          } else if (state is UpdateProfileUploadFailure) {
+            CustomToast.show(
+              state.message,
+              context: context,
+              toastType: ToastType.error,
             );
           } else if (state is UpdateProfileFailure) {
             CustomToast.show(
@@ -185,13 +191,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           backgroundColor: AppColors.gray.withOpacity(0.3),
                           backgroundImage: _imageFile != null
                               ? FileImage(_imageFile!)
-                              : _loginResponse?.user.imageName != null
+                              : (_loginResponse?.user.imageName != null &&
+                                      _loginResponse!
+                                          .user.imageName!.isNotEmpty)
                                   ? NetworkImage(ApiEndpoints.baseUrl +
                                       ApiEndpoints.getImage(
                                           _loginResponse!.user.imageName!))
-                                  : null, // Use image from _loginResponse if available
+                                  : null,
                           child: _imageFile == null &&
-                                  _loginResponse?.user.imageName == null
+                                  (_loginResponse?.user.imageName == null ||
+                                      _loginResponse!.user.imageName!.isEmpty)
                               ? const Icon(
                                   Icons.camera_alt,
                                   size: 40,
@@ -199,6 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 )
                               : null,
                         ),
+
                         // Edit icon button on top of the CircleAvatar
                         if (_imageFile != null ||
                             _loginResponse?.user.imageName != null)
@@ -233,15 +243,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   enabled: _isEditing,
                 ),
                 const SizedBox(height: 20),
-                CustomTextField(
-                  controller: emailController,
-                  hintText: '',
-                  labelText: 'Email',
-                  enabled: _isEditing,
-                ),
-                SizedBox(
-                  height: 50,
-                ),
+                // CustomTextField(
+                //   controller: emailController,
+                //   hintText: '',
+                //   labelText: 'Email',
+                //   enabled: _isEditing,
+                // ),
+                // SizedBox(
+                //   height: 50,
+                // ),
                 if (!_isEditing)
                   CustomButton(
                     text: 'Edit',

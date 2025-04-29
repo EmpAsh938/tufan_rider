@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/form_validator.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
 class ChangePhoneScreen extends StatefulWidget {
   const ChangePhoneScreen({super.key});
@@ -51,32 +54,35 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
   }
 
   Future<void> updateProfile() async {
-    // try {
-    //   final authCubit = context.read<AuthCubit>();
-    //   final loginResponse = authCubit.loginResponse;
-    //   if (loginResponse == null) return;
-    //   final isSaved = await authCubit.updateProfile(
-    //     loginResponse.user.id.toString(),
-    //     loginResponse.token,
-    //     loginResponse.user.email,
-    //     phoneController.text,
-    //     passwordController.text,
-    //   );
-    //   if (!isSaved) throw Exception('Error saving');
-    //   CustomToast.show(
-    //     'Phonenumber changed successfully',
-    //     context: context,
-    //     toastType: ToastType.success,
-    //   );
-    //   Navigator.pop(context);
-    // } catch (e) {
-    //   print(e);
-    //   CustomToast.show(
-    //     e.toString(),
-    //     context: context,
-    //     toastType: ToastType.error,
-    //   );
-    // }
+    try {
+      final authCubit = context.read<AuthCubit>();
+      final updateProfileCubit = context.read<UpdateProfileCubit>();
+      final loginResponse = authCubit.loginResponse;
+      if (loginResponse == null) return;
+      await updateProfileCubit.updateProfile(
+        loginResponse.user.id.toString(),
+        loginResponse.token,
+        loginResponse.user.name,
+        loginResponse.user.email,
+        phoneController.text,
+        passwordController.text,
+      );
+
+      CustomToast.show(
+        'Phonenumber changed successfully',
+        context: context,
+        toastType: ToastType.success,
+      );
+      locator.get<AuthCubit>().logout();
+      Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.login, (route) => false);
+    } catch (e) {
+      CustomToast.show(
+        e.toString(),
+        context: context,
+        toastType: ToastType.error,
+      );
+    }
   }
 
   @override

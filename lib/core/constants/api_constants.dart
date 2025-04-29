@@ -1,5 +1,5 @@
 class ApiConstants {
-  static final baseUrl = "https://tufan.up.railway.app";
-  static final socketUrl = "https://tufan.up.railway.app";
+  static final baseUrl = "http://91.99.68.96/server";
+  static final socketUrl = "http://91.99.68.96/server";
   static final mapAPI = "AIzaSyAXs9F40dZwRZVioQJiXw4S82ZQ5dWFaXw";
 }

@@ -8,6 +8,7 @@ import 'package:tufan_rider/core/themes/app_theme.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
+import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
@@ -23,6 +24,9 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider<ThemeCubit>(
           create: (context) => locator<ThemeCubit>(),
+        ),
+        BlocProvider<ModeCubit>(
+          create: (context) => locator<ModeCubit>(),
         ),
         BlocProvider<AuthCubit>(
           create: (context) => locator<AuthCubit>(),
@@ -44,15 +48,19 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
-        builder: (context, state) {
+        builder: (context, theme) {
           return MaterialApp(
             navigatorKey: navigatorKey,
             title: 'Tufan Ride Share',
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
-            themeMode: state.themeMode,
+            themeMode: theme.themeMode,
             initialRoute: AppRoutes.splash,
-            onGenerateRoute: AppRoutes.generateRoute,
+            onGenerateRoute: (settings) {
+              final mode = context.read<ModeCubit>().state;
+
+              return AppRoutes.generateRoute(settings, mode);
+            },
           );
         },
       ),

@@ -48,6 +48,7 @@ class AuthRepository {
   Future<User> updateProfile(
     String userId,
     String token,
+    String name,
     String email,
     String phone,
     String password,
@@ -55,6 +56,7 @@ class AuthRepository {
     final response = await _apiService.updateProfile(
       userId,
       token,
+      name,
       email,
       phone,
       password,

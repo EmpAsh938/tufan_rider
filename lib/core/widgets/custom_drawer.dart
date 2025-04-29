@@ -7,6 +7,7 @@ import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -17,11 +18,11 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
-  bool isActive = false; // passenger mode
-
   @override
   Widget build(BuildContext context) {
     final authCubit = context.read<AuthCubit>();
+    final currentMode = context.watch<ModeCubit>().state;
+
     final loginResponse = authCubit.loginResponse;
     return Drawer(
       backgroundColor: AppColors.backgroundColor,
@@ -42,12 +43,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   child: CircleAvatar(
                     radius: 30,
                     backgroundColor: AppColors.primaryColor,
-                    backgroundImage: loginResponse?.user.imageName != null
+                    backgroundImage: (loginResponse?.user.imageName != null &&
+                            loginResponse!.user.imageName!.isNotEmpty)
                         ? NetworkImage(ApiEndpoints.baseUrl +
-                            ApiEndpoints.getImage(loginResponse!
-                                .user.imageName!)) // Use NetworkImage
+                            ApiEndpoints.getImage(
+                                loginResponse.user.imageName!))
                         : null,
-                    child: loginResponse?.user.imageName == null
+                    child: (loginResponse?.user.imageName == null ||
+                            loginResponse!.user.imageName!.isEmpty)
                         ? Icon(
                             Icons.person,
                             size: 40,
@@ -79,7 +82,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   Navigator.pushNamed(context, AppRoutes.rideHistory);
                 },
                 child: Text(
-                  'Ride',
+                  'Ride History',
                   style: AppTypography.labelText.copyWith(
                     fontWeight: FontWeight.w400,
                   ),
@@ -87,17 +90,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
             SizedBox(
               height: 20,
             ),
-            TextButton(
-                onPressed: () {},
-                child: Text(
-                  'History',
-                  style: AppTypography.labelText.copyWith(
-                    fontWeight: FontWeight.w400,
-                  ),
-                )),
-            SizedBox(
-              height: 20,
-            ),
+            // TextButton(
+            //     onPressed: () {},
+            //     child: Text(
+            //       'History',
+            //       style: AppTypography.labelText.copyWith(
+            //         fontWeight: FontWeight.w400,
+            //       ),
+            //     )),
+            // SizedBox(
+            //   height: 20,
+            // ),
             TextButton(
                 onPressed: () {
                   Scaffold.of(context).closeDrawer();
@@ -150,7 +153,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     'Passenger',
                     style: AppTypography.labelText.copyWith(
                       fontWeight: FontWeight.w400,
-                      color: !isActive
+                      color: currentMode == AppMode.passenger
                           ? AppColors.primaryColor
                           : AppColors.primaryBlack,
                     ),
@@ -159,7 +162,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     'Driver',
                     style: AppTypography.labelText.copyWith(
                       fontWeight: FontWeight.w400,
-                      color: isActive
+                      color: currentMode == AppMode.rider
                           ? AppColors.primaryColor
                           : AppColors.primaryBlack,
                     ),
@@ -170,11 +173,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Center(
               child: CustomSwitch(
                 isActive: false,
-                switchValue: isActive,
-                onChanged: (bool value) {
-                  setState(() {
-                    isActive = value;
-                  });
+                switchValue: currentMode == AppMode.rider,
+                onChanged: (_) {
+                  context.read<ModeCubit>().toggleMode();
+
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, AppRoutes.map, (route) => false);
                 },
               ),
             ),

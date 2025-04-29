@@ -17,7 +17,6 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       final response = await getSavedLoginResponse();
       if (response != null) {
-        print('SAVING');
         _loginResponse = response;
         emit(AuthSuccess(response)); // Emit state instead of setting property
       }

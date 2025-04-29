@@ -69,15 +69,16 @@ class ApiService {
     }
   }
 
-  Future<Response> updateProfile(String userId, String token, String email,
-      String phone, String password) async {
+  Future<Response> updateProfile(String userId, String token, String name,
+      String email, String phone, String password) async {
     try {
       final response = await _dio.put(
         ApiEndpoints.updateProfile(userId),
         data: {
-          'email': '',
+          'name': name,
+          'email': email,
           'mobileNo': phone,
-          'password': '',
+          'password': password,
         },
         options: Options(
           headers: {

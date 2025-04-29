@@ -195,14 +195,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
             // Handle other state changes, like success or OTP sent
             if (state is RegistrationCompleted) {
-              context
-                  .read<RegistrationCubit>()
-                  .uploadProfile(_imageFile!, state.user.id.toString(), '');
+              Navigator.pushReplacementNamed(context, AppRoutes.login);
+              // context
+              //     .read<RegistrationCubit>()
+              //     .uploadProfile(_imageFile!, state.user.id.toString(), '');
             }
 
             if (state is ProfileUploaded) {
               // Navigate to the next screen or show a success dialog
-              Navigator.pushReplacementNamed(context, AppRoutes.login);
             }
           }, builder: (context, state) {
             final isLoading = state is RegistrationLoading;
@@ -307,23 +307,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
-          GestureDetector(
-            onTap: _pickImage,
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.grey[300],
-              backgroundImage:
-                  _imageFile != null ? FileImage(_imageFile!) : null,
-              child: _imageFile == null
-                  ? const Icon(
-                      Icons.camera_alt,
-                      size: 40,
-                      color: Colors.black54,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 20),
+          // GestureDetector(
+          //   onTap: _pickImage,
+          //   child: CircleAvatar(
+          //     radius: 50,
+          //     backgroundColor: Colors.grey[300],
+          //     backgroundImage:
+          //         _imageFile != null ? FileImage(_imageFile!) : null,
+          //     child: _imageFile == null
+          //         ? const Icon(
+          //             Icons.camera_alt,
+          //             size: 40,
+          //             color: Colors.black54,
+          //           )
+          //         : null,
+          //   ),
+          // ),
+          // const SizedBox(height: 20),
           CustomTextField(
             controller: firstNameController,
             hintText: 'First Name',

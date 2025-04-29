@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/login_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dart';
+import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/change_phone_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
@@ -26,7 +28,8 @@ class AppRoutes {
   static const String changePhone = '/settings/changePhone';
   static const String emergency = '/emergency';
 
-  static Route<dynamic>? generateRoute(RouteSettings routeSettings) {
+  static Route<dynamic>? generateRoute(
+      RouteSettings routeSettings, AppMode mode) {
     switch (routeSettings.name) {
       case splash:
         return _fadeRoute(const SplashScreen(), routeSettings);
@@ -37,6 +40,9 @@ class AppRoutes {
       case reset:
         return _slideFromRight(const ResetPasswordScreen(), routeSettings);
       case map:
+        if (mode == AppMode.rider) {
+          return _slideFromRight(const RiderMapScreen(), routeSettings);
+        }
         return _slideFromRight(const MapScreen(), routeSettings);
       case mapAddressSearch:
         return _slideFromRight(const AddressSearchScreen(), routeSettings);

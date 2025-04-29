@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/repository/auth_repository.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_state.dart';
 
@@ -20,6 +22,8 @@ class UpdateProfileCubit extends Cubit<UpdateProfileState> {
         userId,
         token,
       );
+      locator.get<AuthCubit>().updateUser(data);
+
       emit(UpdateProfileUploadSuccess(data));
     } catch (e) {
       emit(UpdateProfileUploadFailure(e.toString()));
@@ -29,6 +33,7 @@ class UpdateProfileCubit extends Cubit<UpdateProfileState> {
   Future<void> updateProfile(
     String userId,
     String token,
+    String name,
     String email,
     String phone,
     String password,
@@ -38,6 +43,7 @@ class UpdateProfileCubit extends Cubit<UpdateProfileState> {
       final data = await _repository.updateProfile(
         userId,
         token,
+        name,
         email,
         phone,
         password,
@@ -45,6 +51,7 @@ class UpdateProfileCubit extends Cubit<UpdateProfileState> {
       if (data == null) {
         emit(UpdateProfileFailure('Update profile failed'));
       }
+      locator.get<AuthCubit>().updateUser(data);
       //  update user
       emit(UpdateProfileSuccess(data));
     } catch (e) {
