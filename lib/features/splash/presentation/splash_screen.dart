@@ -4,6 +4,7 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,16 +16,19 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late final AuthCubit authCubit;
+  late final ModeCubit modeCubit;
 
   @override
   void initState() {
     super.initState();
     authCubit = locator.get<AuthCubit>();
+    modeCubit = locator.get<ModeCubit>();
 
     _initAndNavigate();
   }
 
   Future<void> _initAndNavigate() async {
+    modeCubit.initialize();
     authCubit.initialize();
     await Future.delayed(const Duration(seconds: 2));
 
