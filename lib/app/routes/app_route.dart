@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/login_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dart';
@@ -6,7 +7,11 @@ import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/credit_history.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_credit_screen.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_registration.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_signupflow.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/change_phone_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
@@ -27,9 +32,12 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String changePhone = '/settings/changePhone';
   static const String emergency = '/emergency';
+  static const String riderSignupFlow = '/riderSignup';
+  static const String riderCredit = '/riderCredit';
+  static const String riderCreditHistory = '/riderCreditHistory';
 
   static Route<dynamic>? generateRoute(
-      RouteSettings routeSettings, AppMode mode) {
+      RouteSettings routeSettings, AppMode mode, LoginResponse? loginResponse) {
     switch (routeSettings.name) {
       case splash:
         return _fadeRoute(const SplashScreen(), routeSettings);
@@ -39,8 +47,18 @@ class AppRoutes {
         return _slideFromRight(const RegistrationScreen(), routeSettings);
       case reset:
         return _slideFromRight(const ResetPasswordScreen(), routeSettings);
+      case riderSignupFlow:
+        return _slideFromRight(const RiderSignupflow(), routeSettings);
+      case riderCredit:
+        return _slideFromRight(const RiderCreditScreen(), routeSettings);
+      case riderCreditHistory:
+        return _slideFromRight(const CreditHistory(), routeSettings);
       case map:
         if (mode == AppMode.rider) {
+          if (loginResponse != null &&
+              loginResponse.user.modes.toLowerCase() == 'pessenger') {
+            return _slideFromRight(const RiderRegistration(), routeSettings);
+          }
           return _slideFromRight(const RiderMapScreen(), routeSettings);
         }
         return _slideFromRight(const MapScreen(), routeSettings);

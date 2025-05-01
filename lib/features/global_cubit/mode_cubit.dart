@@ -6,7 +6,7 @@ enum AppMode { passenger, rider }
 class ModeCubit extends Cubit<AppMode> {
   static const String _modeKey = 'app_mode';
 
-  ModeCubit() : super(AppMode.passenger) {}
+  ModeCubit() : super(AppMode.passenger);
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();

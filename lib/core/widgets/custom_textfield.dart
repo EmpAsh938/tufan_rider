@@ -16,7 +16,9 @@ class CustomTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final bool isPasswordField; // New parameter to identify password fields
   final void Function(String)? onChanged; // 👈 Add this line
+  final VoidCallback? onTap;
   final bool? enabled;
+  final bool readOnly;
 
   const CustomTextField({
     super.key,
@@ -33,6 +35,8 @@ class CustomTextField extends StatefulWidget {
     this.isPasswordField = false, // Default to false
     this.onChanged,
     this.enabled = true,
+    this.onTap,
+    this.readOnly = false,
   });
 
   @override
@@ -59,6 +63,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         ),
         const SizedBox(height: 8),
         TextFormField(
+          readOnly: widget.readOnly,
           enabled: widget.enabled,
           controller: widget.controller,
           obscureText: _obscureText,
@@ -66,6 +71,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           inputFormatters: widget.inputFormatters,
           validator: widget.validator,
           onChanged: widget.onChanged,
+          onTap: widget.onTap,
           decoration: InputDecoration(
             hintText: widget.hintText,
             hintStyle: AppTypography.placeholderText,

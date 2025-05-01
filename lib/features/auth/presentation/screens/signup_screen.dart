@@ -14,7 +14,6 @@ import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_state.dart';
-import 'package:tufan_rider/features/auth/models/otp_response.dart';
 import 'package:tufan_rider/features/auth/models/registration_request.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 

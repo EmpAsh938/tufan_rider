@@ -58,8 +58,9 @@ class MyApp extends StatelessWidget {
             initialRoute: AppRoutes.splash,
             onGenerateRoute: (settings) {
               final mode = context.read<ModeCubit>().state;
+              final loginResponse = context.read<AuthCubit>().loginResponse;
 
-              return AppRoutes.generateRoute(settings, mode);
+              return AppRoutes.generateRoute(settings, mode, loginResponse);
             },
           );
         },
