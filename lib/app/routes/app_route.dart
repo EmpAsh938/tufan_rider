@@ -17,6 +17,7 @@ import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_scre
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/ride_history_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/settings_screen.dart';
+import 'package:tufan_rider/features/sidebar/presentation/screens/support_screen.dart';
 import 'package:tufan_rider/features/splash/presentation/splash_screen.dart';
 
 class AppRoutes {
@@ -32,6 +33,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String changePhone = '/settings/changePhone';
   static const String emergency = '/emergency';
+  static const String support = '/support';
   static const String riderSignupFlow = '/riderSignup';
   static const String riderCredit = '/riderCredit';
   static const String riderCreditHistory = '/riderCreditHistory';
@@ -76,6 +78,8 @@ class AppRoutes {
         return _slideFromRight(ChangePhoneScreen(), routeSettings);
       case emergency:
         return _slideFromRight(EmergencyScreen(), routeSettings);
+      case support:
+        return _slideFromRight(SupportScreen(), routeSettings);
       default:
         return null;
     }

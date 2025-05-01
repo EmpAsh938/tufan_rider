@@ -150,16 +150,6 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
             // Top App Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                  // color: AppColors.primaryWhite,
-                  // boxShadow: [
-                  //   BoxShadow(
-                  //     color: AppColors.primaryBlack.withOpacity(0.1),
-                  //     blurRadius: 5,
-                  //     spreadRadius: 2,
-                  //   ),
-                  // ],
-                  ),
               child: Row(
                 children: [
                   Container(

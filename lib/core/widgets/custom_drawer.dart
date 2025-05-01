@@ -153,7 +153,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       Scaffold.of(context).closeDrawer();
                       Navigator.pushNamed(context, AppRoutes.emergency);
                     }),
-                    _buildDrawerButton('Support', () {}),
+                    _buildDrawerButton('Support', () {
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, AppRoutes.support, (route) => false);
+                    }),
                     const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
