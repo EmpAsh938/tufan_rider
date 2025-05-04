@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:tufan_rider/core/network/dio_exceptions.dart';
 import 'package:tufan_rider/features/auth/models/registration_request.dart';
 import 'package:tufan_rider/features/map/models/location_model.dart';
+import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
+import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
 import 'dio_client.dart';
 import 'api_endpoints.dart';
 
@@ -234,6 +236,167 @@ class ApiService {
       );
       return response;
     } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> createRider(String userId, String categoryId, String token,
+      CreateRiderModel riderModel) async {
+    try {
+      final response = _dio.post(
+        ApiEndpoints.createRider(userId, categoryId),
+        data: riderModel.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> createVehicle(String userId, String categoryId, String token,
+      CreateVehicleModel vehicleModel) async {
+    try {
+      final response = _dio.post(
+        ApiEndpoints.createVehicle(userId, categoryId),
+        data: vehicleModel.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> uploadRiderDocuments(
+    File uploadedFile,
+    String userId,
+    String token,
+    String fileType,
+  ) async {
+    try {
+      // Prepare the data to be sent as a multipart request
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadedFile.path,
+            filename: uploadedFile.uri.pathSegments.last),
+        'fileType': fileType,
+      });
+
+      // Send the POST request with userId in the URL and the form data
+      final response = await _dio.post(
+        ApiEndpoints.uploadRiderDocuments(userId), // Append userId in the URL
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Handle errors
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> uploadVehiclePhoto(
+    File uploadedFile,
+    String vehicleId,
+    String token,
+  ) async {
+    try {
+      // Prepare the data to be sent as a multipart request
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadedFile.path,
+            filename: uploadedFile.uri.pathSegments.last),
+      });
+
+      // Send the POST request with vehicleId in the URL and the form data
+      final response = await _dio.post(
+        ApiEndpoints.uploadVehiclePicture(
+            vehicleId), // Append vehicleId in the URL
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Handle errors
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> uploadBillbookFront(
+    File uploadedFile,
+    String vehicleId,
+    String token,
+  ) async {
+    try {
+      // Prepare the data to be sent as a multipart request
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadedFile.path,
+            filename: uploadedFile.uri.pathSegments.last),
+      });
+
+      // Send the POST request with vehicleId in the URL and the form data
+      final response = await _dio.post(
+        ApiEndpoints.uploadVehicleBillbookFront(
+            vehicleId), // Append vehicleId in the URL
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Handle errors
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> uploadBillbookBack(
+    File uploadedFile,
+    String vehicleId,
+    String token,
+  ) async {
+    try {
+      // Prepare the data to be sent as a multipart request
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadedFile.path,
+            filename: uploadedFile.uri.pathSegments.last),
+      });
+
+      // Send the POST request with vehicleId in the URL and the form data
+      final response = await _dio.post(
+        ApiEndpoints.uploadVehicleBillbookBack(
+            vehicleId), // Append vehicleId in the URL
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Handle errors
       throw DioExceptions.fromDioError(e);
     }
   }

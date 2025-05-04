@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,19 +8,39 @@ import 'package:intl/intl.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/form_validator.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_dropdown.dart';
 import 'package:tufan_rider/core/widgets/custom_fileupload.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/models/login_response.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_state.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_state.dart';
+import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
+import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
+import 'package:tufan_rider/features/sidebar/cubit/update_profile_state.dart';
 
 class RiderSignupflow extends StatefulWidget {
   const RiderSignupflow({super.key});
 
   @override
   State<RiderSignupflow> createState() => _RiderSignupflowState();
+}
+
+enum UploadType {
+  profileUpload,
+  licenseUpload,
+  nationalIdUpload,
+  citizenshipFrontUpload,
+  citizenshipBackUpload,
+  vehiclePictureUpload,
+  billbookFrontUpload,
+  billbookBackUpload,
 }
 
 class _RiderSignupflowState extends State<RiderSignupflow> {
@@ -33,32 +52,46 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController wardPermanentController = TextEditingController();
-  final TextEditingController wardTemporaryController = TextEditingController();
+  // final TextEditingController wardPermanentController = TextEditingController();
+  // final TextEditingController wardTemporaryController = TextEditingController();
+  final TextEditingController nationalIdController = TextEditingController();
+  final TextEditingController citizenshipController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
+  final TextEditingController vehicleDateController = TextEditingController();
+  final TextEditingController vehicleBrandController = TextEditingController();
   final TextEditingController idController = TextEditingController();
   final TextEditingController licenseController = TextEditingController();
   final TextEditingController expiryLicenseController = TextEditingController();
   final TextEditingController issueLicenseController = TextEditingController();
-  final TextEditingController vehicleBrandController = TextEditingController();
   final TextEditingController registrationPlateController =
       TextEditingController();
 
   File? _imageFile;
+  File? _licenseImageFile;
+  File? _nationaIdImageFile;
+  File? _citizenshipFrontImageFile;
+  File? _citizenshipBackImageFile;
+  File? _vehiclePhotoFile;
+  File? _billbookFrontFile;
+  File? _billbookBackFile;
   LoginResponse? _loginResponse;
   String? selectedBranch; // Changed from 'Choose branch'
   String? selectedPermanentProvince; // This is valid since it's in items
   String? selectedPermanentDistrict; // Changed from 'Choose permanent district'
   String? selectedTemporaryProvince; // Changed from 'Choose temporary province'
   String? selectedTemporaryDistrict; // Changed from 'Choose temporary district'
+  String? vehicleType;
   String? idType;
   bool agreed = false;
   bool sameAsPermanent = false;
 
-  Future<void> _pickImage() async {
-    return;
+  int pages = 6;
+  int maxUserDocUpload = 4;
+  int maxVehicleDocUpload = 3;
+  int currentUserUpload = 0;
+  int currentVehicleDocUpload = 0;
+
+  Future<void> _pickImage(UploadType uploadType) async {
     // Request permissions
     // final status = await Permission.photos.request();
     // if (!status.isGranted) {
@@ -99,40 +132,184 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
     );
 
     if (croppedFile != null) {
-      setState(() => _imageFile = File(croppedFile.path));
-      context.read<UpdateProfileCubit>().uploadProfile(
-            File(croppedFile.path),
-            _loginResponse!.user.id.toString(),
-            _loginResponse!.token,
-          );
+      switch (uploadType) {
+        case UploadType.profileUpload:
+          setState(() => _imageFile = File(croppedFile.path));
+          context.read<UpdateProfileCubit>().uploadProfile(
+                File(croppedFile.path),
+                _loginResponse!.user.id.toString(),
+                _loginResponse!.token,
+              );
+          break;
+        case UploadType.licenseUpload:
+          setState(() => _licenseImageFile = File(croppedFile.path));
+          final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+
+          if (riderResponse == null) {
+            CustomToast.show(
+              'Rider not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateRiderCubit>().uploadRiderDocuments(
+                File(croppedFile.path),
+                riderResponse.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+                'license',
+              );
+          break;
+        case UploadType.nationalIdUpload:
+          setState(() => _nationaIdImageFile = File(croppedFile.path));
+          final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+
+          if (riderResponse == null) {
+            CustomToast.show(
+              'Rider not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateRiderCubit>().uploadRiderDocuments(
+                File(croppedFile.path),
+                riderResponse.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+                'nid',
+              );
+          break;
+        case UploadType.citizenshipFrontUpload:
+          setState(() => _citizenshipFrontImageFile = File(croppedFile.path));
+          final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+
+          if (riderResponse == null) {
+            CustomToast.show(
+              'Rider not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateRiderCubit>().uploadRiderDocuments(
+                File(croppedFile.path),
+                riderResponse.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+                'citizen_back',
+              );
+          break;
+        case UploadType.citizenshipBackUpload:
+          setState(() => _citizenshipBackImageFile = File(croppedFile.path));
+          final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+
+          if (riderResponse == null) {
+            CustomToast.show(
+              'Rider not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateRiderCubit>().uploadRiderDocuments(
+                File(croppedFile.path),
+                riderResponse.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+                'citizen_front',
+              );
+          break;
+        case UploadType.vehiclePictureUpload:
+          setState(() => _vehiclePhotoFile = File(croppedFile.path));
+          final vehicleResponseModel =
+              context.read<CreateVehicleCubit>().vehicleResponseModel;
+
+          if (vehicleResponseModel == null) {
+            CustomToast.show(
+              'Vehicle not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateVehicleCubit>().uploadVehicleDocuments(
+                File(croppedFile.path),
+                vehicleResponseModel.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+              );
+          break;
+        case UploadType.billbookFrontUpload:
+          setState(() => _billbookFrontFile = File(croppedFile.path));
+          final vehicleResponseModel =
+              context.read<CreateVehicleCubit>().vehicleResponseModel;
+
+          if (vehicleResponseModel == null) {
+            CustomToast.show(
+              'Vehicle not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateVehicleCubit>().uploadBillbookFront(
+                File(croppedFile.path),
+                vehicleResponseModel.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+              );
+          break;
+        case UploadType.billbookBackUpload:
+          setState(() => _billbookBackFile = File(croppedFile.path));
+          final vehicleResponseModel =
+              context.read<CreateVehicleCubit>().vehicleResponseModel;
+
+          if (vehicleResponseModel == null) {
+            CustomToast.show(
+              'Vehicle not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateVehicleCubit>().uploadBillbookBack(
+                File(croppedFile.path),
+                vehicleResponseModel.id.toString(),
+                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+              );
+          break;
+      }
     }
   }
 
   void nextPage() {
-    animatePageSlide(_currentPage + 1); // For other pages (e.g., profile)
-
     if (!_formKey.currentState!.validate()) return;
-
-    if (_currentPage == 1) {
+    if (_currentPage == 0) {
+      _saveProfile();
+    } else if (_currentPage == 1) {
+      _createRider();
       // Send OTP
       // context.read<RegistrationCubit>().sendOtp(phoneController.text);
-    } else if (_currentPage == 2) {
-      // verify OTP
-
-      // context.read<RegistrationCubit>().verifyOtp(phoneController.text, otp);
     } else if (_currentPage == 3) {
-      // handle final registration
-      // final registrationRequest = RegistrationRequest(
-      //   name: "${firstNameController.text} ${lastNameController.text}",
-      //   email: emailController.text,
-      //   mobileNo: phoneController.text,
-      //   otp: otp,
-      //   password: passwordController.text,
-      //   // branchName: selectedBranch!,
-      // );
-      // context
-      //     .read<RegistrationCubit>()
-      //     .completeRegistration(registrationRequest);
+      _createVehicle();
+    } else if (_currentPage >= 5) {
+      if (agreed) {
+        CustomToast.show(
+          'Rider Registration completed successfully',
+          context: context,
+          toastType: ToastType.success,
+        );
+        Navigator.pop(context);
+      } else {
+        CustomToast.show(
+          'Please accept the terms & conditions to proceed',
+          context: context,
+          toastType: ToastType.error,
+        );
+      }
     } else {
       animatePageSlide(_currentPage + 1); // For other pages (e.g., profile)
     }
@@ -145,11 +322,112 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
   }
 
   void animatePageSlide(int currentPage) {
+    if (!_pageController.hasClients) {
+      return;
+    }
     _pageController.animateToPage(
       currentPage,
       duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+  }
+
+  void _saveProfile() {
+    if (_loginResponse == null) return;
+
+    final userId = _loginResponse!.user.id;
+    final token = _loginResponse!.token;
+
+    final fullName =
+        "${firstNameController.text} ${lastNameController.text}".trim();
+
+    context.read<UpdateProfileCubit>().updateProfile(
+          userId.toString(),
+          token,
+          fullName,
+          _loginResponse!.user.email,
+          _loginResponse!.user.mobileNo,
+          '',
+        );
+  }
+
+  void _createRider() {
+    if (_loginResponse == null) return;
+
+    final userId = _loginResponse!.user.id;
+    final token = _loginResponse!.token;
+
+    final riderModel = CreateRiderModel(
+      driverLicense: licenseController.text,
+      dateOfBirth: dobController.text,
+      nidNo: nationalIdController.text,
+      citizenNo: citizenshipController.text,
+    );
+
+    context.read<CreateRiderCubit>().createRider(
+          userId.toString(),
+          (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+          token,
+          riderModel,
+        );
+  }
+
+  void _createVehicle() {
+    if (_loginResponse == null) return;
+
+    final userId = _loginResponse!.user.id;
+    final token = _loginResponse!.token;
+
+    final vehicleModel = CreateVehicleModel(
+      vehicleType: vehicleType ?? '2 Wheeler',
+      vehicleBrand: vehicleBrandController.text,
+      vehicleNumber: registrationPlateController.text,
+      productionYear: vehicleDateController.text,
+    );
+
+    context.read<CreateVehicleCubit>().createVehicle(
+          userId.toString(),
+          (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+          token,
+          vehicleModel,
+        );
+  }
+
+  void fetchUser() {
+    final authCubit = context.read<AuthCubit>();
+    final loginResponse = authCubit.loginResponse;
+    setState(() {
+      _loginResponse = authCubit.loginResponse;
+
+      if (loginResponse != null) {
+        final name = loginResponse.user.name.split(' ');
+        firstNameController.text = name[0];
+        lastNameController.text = name[name.length - 1];
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _pageController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    addressController.dispose();
+    dobController.dispose();
+    vehicleDateController.dispose();
+    vehicleBrandController.dispose();
+    idController.dispose();
+    licenseController.dispose();
+    expiryLicenseController.dispose();
+    issueLicenseController.dispose();
+    registrationPlateController.dispose();
   }
 
   @override
@@ -161,79 +439,231 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: AbsorbPointer(
-            absorbing: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
-                    children: [
-                      profileUploadForm(),
-                      addressForm(),
-                      idVerificationForm(),
-                      licenseForm(),
-                      vehicleForm(),
-                      finalRegistrationForm(),
-                    ],
-                  ),
-                ),
-                Column(
-                  mainAxisSize:
-                      MainAxisSize.min, // Prevent full vertical expansion
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (false) ...[
-                          Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.neutralColor,
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<UpdateProfileCubit, UpdateProfileState>(
+              listener: (context, state) {
+                if (state is UpdateProfileSuccess) {
+                  CustomToast.show(
+                    'Profile updated successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  animatePageSlide(_currentPage + 1);
+                } else if (state is UpdateProfileUploadSuccess) {
+                  CustomToast.show(
+                    'Profile pic uploaded successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                } else if (state is UpdateProfileUploadFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                } else if (state is UpdateProfileFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                }
+              },
+            ),
+            BlocListener<CreateRiderCubit, CreateRiderState>(
+              listener: (context, state) {
+                if (state is CreateRiderStateSuccess) {
+                  CustomToast.show(
+                    'Rider created successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  animatePageSlide(_currentPage + 1);
+                } else if (state is CreateRiderStateFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                } else if (state is CreateRiderUploadedSuccess) {
+                  CustomToast.show(
+                    'Document Uploaded successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  currentUserUpload++;
+                  if (currentUserUpload == maxUserDocUpload) {
+                    animatePageSlide(_currentPage + 1);
+                  }
+                } else if (state is CreateRiderUploadedFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                }
+              },
+            ),
+            BlocListener<CreateVehicleCubit, CreateVehicleState>(
+              listener: (context, state) {
+                if (state is CreateVehicleSuccess) {
+                  CustomToast.show(
+                    'Vehicle created successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  animatePageSlide(_currentPage + 1);
+                } else if (state is CreateVehicleFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                } else if (state is CreateVehiclePhotoUploadSuccess) {
+                  CustomToast.show(
+                    'Vehicle Photo Uploaded successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  currentVehicleDocUpload++;
+                  if (currentVehicleDocUpload == maxVehicleDocUpload) {
+                    animatePageSlide(_currentPage + 1);
+                  }
+                } else if (state is CreateVehiclePhotoUploadFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                } else if (state is CreateVehicleBillbookFrontUploadSuccess) {
+                  CustomToast.show(
+                    'Billbook Front Uploaded successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  currentVehicleDocUpload++;
+                  if (currentVehicleDocUpload == maxVehicleDocUpload) {
+                    animatePageSlide(_currentPage + 1);
+                  }
+                } else if (state is CreateVehicleBillbookFrontUploadFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                } else if (state is CreateVehicleBillbookBackUploadSuccess) {
+                  CustomToast.show(
+                    'Billbook Back Uploaded successfully',
+                    context: context,
+                    toastType: ToastType.success,
+                  );
+                  currentVehicleDocUpload++;
+                  if (currentVehicleDocUpload == maxVehicleDocUpload) {
+                    animatePageSlide(_currentPage + 1);
+                  }
+                } else if (state is CreateVehicleBillbookBackUploadFailure) {
+                  CustomToast.show(
+                    state.message,
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                }
+              },
+            ),
+          ],
+          child: BlocBuilder<UpdateProfileCubit, UpdateProfileState>(
+              builder: (context, profileState) {
+            return BlocBuilder<CreateVehicleCubit, CreateVehicleState>(
+                builder: (context, vehicleState) {
+              return BlocBuilder<CreateRiderCubit, CreateRiderState>(
+                builder: (context, riderState) {
+                  final isLoading = profileState is UpdateProfileLoading ||
+                      profileState is UpdateProfileUploadLoading ||
+                      riderState is CreateRiderStateLoading ||
+                      vehicleState is CreateVehicleLoading;
+
+                  return Form(
+                    key: _formKey,
+                    child: AbsorbPointer(
+                      absorbing: isLoading,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: PageView(
+                              physics: const NeverScrollableScrollPhysics(),
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentPage = index;
+                                });
+                              },
+                              children: [
+                                profileUploadForm(),
+                                licenseForm(),
+                                userDocumentsUpload(),
+                                vehicleForm(),
+                                vehicleDocumentsUpload(),
+                                finalRegistrationForm(),
+                              ],
                             ),
-                          )
-                        ] else ...[
-                          if (_currentPage > 0) ...[
-                            CustomButton(text: 'Back', onPressed: prevPage),
-                            SizedBox(
-                              width: 10,
-                            ),
-                          ],
-                          CustomButton(
-                              text: _currentPage < 5 ? 'Next' : 'Register',
-                              onPressed: nextPage),
-                        ]
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Page ${_currentPage + 1} of 6',
-                      style: AppTypography.paragraph,
-                    ),
-                    SizedBox(
-                        height:
-                            8), // Add spacing to separate the text and progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: (_currentPage + 1) / 6,
-                        backgroundColor: AppColors.gray,
-                        color: AppColors.primaryColor,
-                        minHeight: 8,
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize
+                                .min, // Prevent full vertical expansion
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isLoading) ...[
+                                    Center(
+                                        child: CircularProgressIndicator(
+                                      color: AppColors.neutralColor,
+                                    ))
+                                  ] else ...[
+                                    // if (_currentPage > 0) ...[
+                                    //   CustomButton(
+                                    //       text: 'Back', onPressed: prevPage),
+                                    //   SizedBox(
+                                    //     width: 10,
+                                    //   ),
+                                    // ],
+                                    if (_currentPage != 2)
+                                      CustomButton(
+                                          text: _currentPage < pages - 1
+                                              ? 'Next'
+                                              : 'Register',
+                                          onPressed: nextPage),
+                                  ],
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Page ${_currentPage + 1} of $pages',
+                                style: AppTypography.paragraph,
+                              ),
+                              SizedBox(
+                                  height:
+                                      8), // Add spacing to separate the text and progress bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: (_currentPage + 1) / pages,
+                                  backgroundColor: AppColors.gray,
+                                  color: AppColors.primaryColor,
+                                  minHeight: 8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                  );
+                },
+              );
+            });
+          }),
         ),
       ),
     ));
@@ -244,7 +674,8 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: _pickImage, // The method to pick a new image
+          onTap: () => _pickImage(
+              UploadType.profileUpload), // The method to pick a new image
           child: Center(
             child: Stack(
               clipBehavior: Clip.none, // Allows the icon to overflow the circle
@@ -278,13 +709,14 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
                     bottom: 0,
                     right: 0,
                     child: IconButton(
-                      icon: const Icon(
-                        Icons.edit,
-                        color: Colors.black54,
-                      ),
-                      onPressed:
-                          _pickImage, // Trigger the image picker when clicked
-                    ),
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.black54,
+                        ),
+                        onPressed: () {
+                          _pickImage(UploadType
+                              .profileUpload); // The method to pick a new image
+                        }),
                   ),
               ],
             ),
@@ -293,22 +725,24 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
         const SizedBox(height: 20),
         CustomTextField(
           controller: firstNameController,
-          hintText: '',
+          hintText: 'First Name',
           labelText: 'First Name',
+          validator: FormValidator.validateFirstName,
         ),
         const SizedBox(height: 20),
         CustomTextField(
           controller: lastNameController,
-          hintText: '',
+          hintText: 'Last Name',
           labelText: 'Last Name',
+          validator: FormValidator.validateLastName,
         ),
         const SizedBox(height: 20),
-        CustomTextField(
-          controller: firstNameController,
-          hintText: '',
-          labelText: 'Phonenumber',
-        ),
-        const SizedBox(height: 20),
+        // CustomTextField(
+        //   controller: firstNameController,
+        //   hintText: '',
+        //   labelText: 'Phonenumber',
+        // ),
+        // const SizedBox(height: 20),
         CustomTextField(
           controller: dobController,
           hintText: '',
@@ -330,114 +764,115 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
               dobController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
             }
           },
+          validator: FormValidator.validateDob,
         ),
       ],
     );
   }
 
-  Widget addressForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Permanent Address",
-          style: AppTypography.labelText,
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomDropdownField(
-          value: selectedPermanentProvince,
-          items: ['Province Aa', 'Province Bb', 'Province Cc'],
-          labelText: 'Select permanent province',
-          hintText: 'Choose Permanent Province',
-          onChanged: (value) {
-            setState(() {
-              selectedPermanentProvince = value;
-            });
-          },
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomDropdownField(
-            value: selectedPermanentDistrict,
-            items: ['District Aa', 'District Bb', 'District Cc'],
-            labelText: 'Select District',
-            hintText: 'Choose Permanent District',
-            onChanged: (value) {
-              setState(() {
-                selectedPermanentDistrict = value;
-              });
-            }),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomTextField(
-          controller: wardPermanentController,
-          hintText: 'Ward No',
-          labelText: 'Ward No',
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        CheckboxListTile(
-          activeColor: AppColors.primaryColor,
-          title: Text(
-            "Set temporary address same as permanent address",
-            style: AppTypography.labelText,
-          ),
-          contentPadding: EdgeInsets.zero, // Remove default padding
-          controlAffinity: ListTileControlAffinity.leading, // Checkbox on left
-          value: sameAsPermanent,
-          onChanged: (value) {
-            setState(() {
-              sameAsPermanent = value ?? false;
-            });
-          },
-        ),
-        if (!sameAsPermanent) ...[
-          Text(
-            "Temporary Address",
-            style: AppTypography.labelText,
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          CustomDropdownField(
-              value: selectedTemporaryProvince,
-              items: ['Province A', 'Province B', 'Province C'],
-              labelText: 'Select province',
-              hintText: 'Choose Temporary Province',
-              onChanged: (value) {
-                setState(() {
-                  selectedTemporaryProvince = value;
-                });
-              }),
-          const SizedBox(
-            height: 10,
-          ),
-          CustomDropdownField(
-              value: selectedTemporaryDistrict,
-              items: ['District A', 'District B', 'District C'],
-              labelText: 'Select district',
-              hintText: 'Choose Temporary District',
-              onChanged: (value) {
-                setState(() {
-                  selectedTemporaryDistrict = value;
-                });
-              }),
-          const SizedBox(
-            height: 10,
-          ),
-          CustomTextField(
-              controller: wardPermanentController,
-              hintText: 'Ward No',
-              labelText: 'Ward No'),
-        ]
-      ],
-    );
-  }
+  // Widget addressForm() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Permanent Address",
+  //         style: AppTypography.labelText,
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       CustomDropdownField(
+  //         value: selectedPermanentProvince,
+  //         items: ['Province Aa', 'Province Bb', 'Province Cc'],
+  //         labelText: 'Select permanent province',
+  //         hintText: 'Choose Permanent Province',
+  //         onChanged: (value) {
+  //           setState(() {
+  //             selectedPermanentProvince = value;
+  //           });
+  //         },
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       CustomDropdownField(
+  //           value: selectedPermanentDistrict,
+  //           items: ['District Aa', 'District Bb', 'District Cc'],
+  //           labelText: 'Select District',
+  //           hintText: 'Choose Permanent District',
+  //           onChanged: (value) {
+  //             setState(() {
+  //               selectedPermanentDistrict = value;
+  //             });
+  //           }),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       CustomTextField(
+  //         controller: wardPermanentController,
+  //         hintText: 'Ward No',
+  //         labelText: 'Ward No',
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       CheckboxListTile(
+  //         activeColor: AppColors.primaryColor,
+  //         title: Text(
+  //           "Set temporary address same as permanent address",
+  //           style: AppTypography.labelText,
+  //         ),
+  //         contentPadding: EdgeInsets.zero, // Remove default padding
+  //         controlAffinity: ListTileControlAffinity.leading, // Checkbox on left
+  //         value: sameAsPermanent,
+  //         onChanged: (value) {
+  //           setState(() {
+  //             sameAsPermanent = value ?? false;
+  //           });
+  //         },
+  //       ),
+  //       if (!sameAsPermanent) ...[
+  //         Text(
+  //           "Temporary Address",
+  //           style: AppTypography.labelText,
+  //         ),
+  //         const SizedBox(
+  //           height: 10,
+  //         ),
+  //         CustomDropdownField(
+  //             value: selectedTemporaryProvince,
+  //             items: ['Province A', 'Province B', 'Province C'],
+  //             labelText: 'Select province',
+  //             hintText: 'Choose Temporary Province',
+  //             onChanged: (value) {
+  //               setState(() {
+  //                 selectedTemporaryProvince = value;
+  //               });
+  //             }),
+  //         const SizedBox(
+  //           height: 10,
+  //         ),
+  //         CustomDropdownField(
+  //             value: selectedTemporaryDistrict,
+  //             items: ['District A', 'District B', 'District C'],
+  //             labelText: 'Select district',
+  //             hintText: 'Choose Temporary District',
+  //             onChanged: (value) {
+  //               setState(() {
+  //                 selectedTemporaryDistrict = value;
+  //               });
+  //             }),
+  //         const SizedBox(
+  //           height: 10,
+  //         ),
+  //         CustomTextField(
+  //             controller: wardPermanentController,
+  //             hintText: 'Ward No',
+  //             labelText: 'Ward No'),
+  //       ]
+  //     ],
+  //   );
+  // }
 
   Widget idVerificationForm() {
     return Column(
@@ -470,78 +905,231 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
   }
 
   Widget licenseForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CustomTextField(
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Select Vehicle Type",
+            style: AppTypography.labelText,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomDropdownField(
+              value: vehicleType,
+              items: ['2 Wheeler', '4 Wheeler'],
+              labelText: 'Select Vehicle Type',
+              validator: FormValidator.validateDropdown,
+              onChanged: (value) {
+                setState(() {
+                  vehicleType = value;
+                });
+              }),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomTextField(
             controller: licenseController,
             hintText: 'License Number',
-            labelText: 'License Number'),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomTextField(
-            controller: issueLicenseController,
-            hintText: 'Issue Date',
-            labelText: 'Issue Date'),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomTextField(
-            controller: expiryLicenseController,
-            hintText: 'Expiry Date',
-            labelText: 'Expiry Date'),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Upload License Photo', onTap: () {})
-      ],
+            labelText: 'License Number',
+            validator: FormValidator.validateLicense,
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+          CustomTextField(
+            controller: nationalIdController,
+            hintText: 'National ID',
+            labelText: 'National ID',
+            validator: FormValidator.validateNationalId,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomTextField(
+            controller: citizenshipController,
+            hintText: 'Citizenship Number',
+            labelText: 'Citizenship Number',
+            validator: FormValidator.validateCitizenship,
+          ),
+          // const SizedBox(
+          //   height: 10,
+          // ),
+          // CustomTextField(
+          //     controller: issueLicenseController,
+          //     hintText: 'Issue Date',
+          //     labelText: 'Issue Date'),
+          // const SizedBox(
+          //   height: 10,
+          // ),
+          // CustomTextField(
+          //     controller: expiryLicenseController,
+          //     hintText: 'Expiry Date',
+          //     labelText: 'Expiry Date'),
+          const SizedBox(
+            height: 10,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget userDocumentsUpload() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Upload Documents",
+            style: AppTypography.labelText,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Upload License Photo',
+            pickedFile: _licenseImageFile,
+            onTap: () => _pickImage(UploadType.licenseUpload),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Upload National ID Photo',
+            pickedFile: _nationaIdImageFile,
+            onTap: () => _pickImage(UploadType.nationalIdUpload),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Upload Citizenship Front',
+            pickedFile: _citizenshipFrontImageFile,
+            onTap: () => _pickImage(UploadType.citizenshipFrontUpload),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Upload Citizenship Back',
+            pickedFile: _citizenshipBackImageFile,
+            onTap: () => _pickImage(UploadType.citizenshipBackUpload),
+          ),
+        ],
+      ),
     );
   }
 
   Widget vehicleForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CustomTextField(
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Text(
+          //   "Vehicle Type",
+          //   style: AppTypography.labelText,
+          // ),
+
+          // const SizedBox(
+          //   height: 10,
+          // ),
+          CustomTextField(
             controller: vehicleBrandController,
             hintText: 'Vehicle Brand',
-            labelText: 'Vehicle Brand'),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomTextField(
+            labelText: 'Vehicle Brand',
+            validator: FormValidator.validateName,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomTextField(
             controller: registrationPlateController,
-            hintText: 'Registration Plate',
-            labelText: 'Registration Plate'),
-        const SizedBox(
-          height: 10,
-        ),
-        Text(
-          "Upload Documents",
-          style: AppTypography.labelText,
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Vehicle Photo', onTap: () {}),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Bill Book', onTap: () {}),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Vehicle Details', onTap: () {}),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Tax Clearance', onTap: () {}),
-        const SizedBox(
-          height: 10,
-        ),
-        CustomFileupload(label: 'Insurance', onTap: () {}),
-      ],
+            hintText: 'Registration Plate/Vehicle Number',
+            labelText: 'Registration Plate/Vehicle Number',
+            validator: FormValidator.validateName,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomTextField(
+            controller: vehicleDateController,
+            hintText: '',
+            labelText: 'Vehicle Date',
+            readOnly: true,
+            suffixIcon: Icon(
+              Icons.date_range_outlined,
+              size: 30,
+              color: AppColors.primaryBlack.withOpacity(0.3),
+            ),
+            onTap: () async {
+              DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime(2000),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+              if (pickedDate != null) {
+                vehicleDateController.text =
+                    DateFormat('yyyy-MM-dd').format(pickedDate);
+              }
+            },
+            validator: FormValidator.validateDob,
+          ),
+          SizedBox(
+            height: 10,
+          ),
+
+          // const SizedBox(
+          //   height: 10,
+          // ),
+          // CustomFileupload(label: 'Tax Clearance', onTap: () {}),
+          // const SizedBox(
+          //   height: 10,
+          // ),
+          // CustomFileupload(label: 'Insurance', onTap: () {}),
+        ],
+      ),
+    );
+  }
+
+  Widget vehicleDocumentsUpload() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Upload Documents",
+            style: AppTypography.labelText,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Vehicle Photo',
+            pickedFile: _vehiclePhotoFile,
+            onTap: () => _pickImage(UploadType
+                .vehiclePictureUpload), // The method to pick a new image
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Bill Book Front',
+            pickedFile: _billbookFrontFile,
+            onTap: () => _pickImage(UploadType.billbookFrontUpload),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          CustomFileupload(
+            label: 'Bill Book Back',
+            pickedFile: _billbookBackFile,
+            onTap: () => _pickImage(UploadType.billbookBackUpload),
+          ),
+        ],
+      ),
     );
   }
 
@@ -549,15 +1137,15 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CustomDropdownField(
-            value: selectedBranch,
-            items: ['Branch A', 'Branch B', 'Branch C'],
-            labelText: 'Select Nearest Branch',
-            onChanged: (value) {
-              setState(() {
-                selectedBranch = value;
-              });
-            }),
+        // CustomDropdownField(
+        //     value: selectedBranch,
+        //     items: ['Branch A', 'Branch B', 'Branch C'],
+        //     labelText: 'Select Nearest Branch',
+        //     onChanged: (value) {
+        //       setState(() {
+        //         selectedBranch = value;
+        //       });
+        //     }),
         CheckboxListTile(
           activeColor: AppColors.primaryColor,
           title: Text(

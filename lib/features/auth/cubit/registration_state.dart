@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:tufan_rider/features/auth/models/login_response.dart';
-import 'package:tufan_rider/features/auth/models/otp_response.dart';
 
 abstract class RegistrationState extends Equatable {
   const RegistrationState();

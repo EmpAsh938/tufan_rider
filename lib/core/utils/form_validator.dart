@@ -67,4 +67,92 @@ class FormValidator {
     }
     return null;
   }
+
+  static String? validateDob(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Date of Birth is required';
+    }
+
+    try {
+      final dob = DateTime.parse(value);
+      final now = DateTime.now();
+
+      if (dob.isAfter(now)) {
+        return 'Date of Birth cannot be in the future';
+      }
+
+      if (dob.isBefore(DateTime(1900))) {
+        return 'Date of Birth cannot be before 1900';
+      }
+
+      return null;
+    } catch (e) {
+      return 'Invalid Date of Birth format';
+    }
+  }
+
+  static String? validateLicense(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'License number is required';
+    }
+
+    // Remove any dashes or spaces for validation
+    final cleanedValue = value.replaceAll(RegExp(r'[-\s]'), '');
+
+    // Accept either:
+    // 1. Traditional format: 000-00000-0000 (which becomes 11 digits when cleaned)
+    // 2. Plain 11-digit number
+    if (cleanedValue.length != 12 ||
+        !RegExp(r'^[0-9]{12}$').hasMatch(cleanedValue)) {
+      return 'Enter 12 digits or format: 00-00-00000000';
+    }
+
+    return null;
+  }
+
+  // 2. Plain 11-digit number
+
+  static String? validateNationalId(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'National ID number is required';
+    }
+
+    // Remove any dashes or spaces for validation
+    final cleanedValue = value.replaceAll(RegExp(r'[-\s]'), '');
+
+    // Accept either:
+    // 1. Traditional format: 000-000-000-0 (which becomes 10 digits when cleaned)
+    // 2. Plain 11-digit number
+    if (cleanedValue.length == 10 &&
+        RegExp(r'^[0-9]{10}$').hasMatch(cleanedValue)) {
+      return null; // Valid 10-digit format (with dashes)
+    }
+    return 'Enter 10 digits or format: 000-000-000-0';
+  }
+
+  static String? validateCitizenship(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Citizenship number is required';
+    }
+
+    // Remove any dashes or spaces for validation
+    final cleanedValue = value.replaceAll(RegExp(r'[-\s]'), '');
+
+    // Accept either:
+    // 1. Traditional format: 000-00000-0000 (which becomes 11 digits when cleaned)
+    // 2. Plain 11-digit number
+    if (cleanedValue.length != 11 ||
+        !RegExp(r'^[0-9]{11}$').hasMatch(cleanedValue)) {
+      return 'Enter 11 digits or format: 00-00-00-00000';
+    }
+
+    return null;
+  }
+
+  static String? validateDropdown(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please select an option';
+    }
+    return null;
+  }
 }

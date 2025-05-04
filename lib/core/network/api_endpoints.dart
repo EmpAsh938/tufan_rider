@@ -30,4 +30,21 @@ class ApiEndpoints {
   static String showRiders(String rideId) =>
       '/riderAppReq/$rideId/pending-riders';
   static String showRideHistory = '/ride-requests/';
+
+  // riders
+  static String createRider(String userId, String categoryId) =>
+      '/user/$userId/category/$categoryId/riders';
+  static String createVehicle(String userId, String categoryId) =>
+      '/vehicles/user/$userId/category/$categoryId';
+
+  // upload vehicle docs
+  static String uploadVehicleBillbookFront(String vehicleId) =>
+      '/vehicles/bluebook1/upload/$vehicleId';
+  static String uploadVehicleBillbookBack(String vehicleId) =>
+      '/vehicles/bluebook2/upload/$vehicleId';
+  static String uploadVehiclePicture(String vehicleId) =>
+      '/vehicles/image/upload/$vehicleId';
+  // upload riders docs
+  static String uploadRiderDocuments(String userId) =>
+      '/rider/file/upload/$userId';
 }

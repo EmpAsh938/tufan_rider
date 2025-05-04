@@ -4,6 +4,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
@@ -19,6 +20,144 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
+  void _showOptionsModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.primaryWhite,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading:
+                  Icon(Icons.person_outline, color: AppColors.primaryColor),
+              title: Text(
+                'View Profile',
+                style: AppTypography.labelText.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                // Close drawer if coming from drawer
+                // Scaffold.of(context).closeDrawer();
+
+                // Close modal if coming from modal
+                Navigator.pop(context);
+
+                // Navigate to profile
+                Navigator.pushNamed(context, AppRoutes.profile);
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: Icon(Icons.logout, color: AppColors.primaryRed),
+              title: Text(
+                'Logout',
+                style: AppTypography.labelText.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primaryRed,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close modal
+                showLogoutDialog(context);
+              },
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: AppTypography.labelText.copyWith(
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          backgroundColor: AppColors.backgroundColor,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.logout, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                "Are you sure you want to log out?",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: AppColors.primaryBlack.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                    ),
+                    onPressed: () {
+                      // Scaffold.of(context).closeDrawer();
+
+                      Navigator.pop(context); // Close dialog
+
+                      // ✅ Clear all routes and push login screen
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.login,
+                        (route) => false,
+                      );
+
+                      locator.get<AuthCubit>().logout();
+                    },
+                    child: const Text("Logout",
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authCubit = context.read<AuthCubit>();
@@ -34,7 +173,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               child: Padding(
                 padding: const EdgeInsets.only(
                   left: 24.0,
-                  right: 24.0,
+                  right: 14.0,
                   top: 10.0,
                   bottom: 50.0, // Add bottom padding to avoid overlap
                 ),
@@ -42,33 +181,27 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        InkWell(
-                          onTap: () {
-                            Scaffold.of(context).closeDrawer();
-                            Navigator.pushNamed(context, AppRoutes.profile);
-                          },
-                          child: CircleAvatar(
-                            radius: 30,
-                            backgroundColor: AppColors.primaryColor,
-                            backgroundImage: (loginResponse?.user.imageName !=
-                                        null &&
-                                    loginResponse!.user.imageName!.isNotEmpty)
-                                ? NetworkImage(ApiEndpoints.baseUrl +
-                                    ApiEndpoints.getImage(
-                                        loginResponse.user.imageName!))
-                                : null,
-                            child: (loginResponse?.user.imageName == null ||
-                                    loginResponse!.user.imageName!.isEmpty)
-                                ? Icon(
-                                    Icons.person,
-                                    size: 40,
-                                    color: AppColors.primaryBlack,
-                                  )
-                                : null,
-                          ),
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: AppColors.primaryColor,
+                          backgroundImage:
+                              (loginResponse?.user.imageName != null &&
+                                      loginResponse!.user.imageName!.isNotEmpty)
+                                  ? NetworkImage(ApiEndpoints.baseUrl +
+                                      ApiEndpoints.getImage(
+                                          loginResponse.user.imageName!))
+                                  : null,
+                          child: (loginResponse?.user.imageName == null ||
+                                  loginResponse!.user.imageName!.isEmpty)
+                              ? Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: AppColors.primaryBlack,
+                                )
+                              : null,
                         ),
-                        const SizedBox(width: 15),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -117,6 +250,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                                 ],
                               ),
                           ],
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            _showOptionsModal(context);
+                          },
+                          icon: Icon(Icons.more_vert_outlined),
                         ),
                       ],
                     ),
