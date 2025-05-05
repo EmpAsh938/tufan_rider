@@ -5,6 +5,7 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/sidebar/presentation/screens/webview_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -50,8 +51,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 selectedLanguage = newValue!;
               });
             },
-            items: ["English", "Nepali", "Hindi"]
-                .map<DropdownMenuItem<String>>((String value) {
+            // items: ["English", "Nepali", "Hindi"]
+            items: ["English"].map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(value),
@@ -61,40 +62,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(height: 20),
 
           // Theme Toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Theme",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  Text("Light"),
-                  Switch(
-                    value: isDarkMode,
-                    activeColor: AppColors.primaryColor,
-                    activeTrackColor: AppColors.gray,
-                    inactiveThumbColor: AppColors.primaryColor,
-                    inactiveTrackColor: AppColors.gray,
-                    trackOutlineColor: WidgetStateProperty.resolveWith<Color>(
-                      (states) {
-                        return AppColors
-                            .neutralColor; // Track color when inactive
-                      },
-                    ),
-                    onChanged: (value) {
-                      // context.read<ThemeCubit>().toggleTheme();
-                    },
-                  ),
-                  Text("Dark"),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     Text("Theme",
+          //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          //     Row(
+          //       children: [
+          //         Text("Light"),
+          //         Switch(
+          //           value: isDarkMode,
+          //           activeColor: AppColors.primaryColor,
+          //           activeTrackColor: AppColors.gray,
+          //           inactiveThumbColor: AppColors.primaryColor,
+          //           inactiveTrackColor: AppColors.gray,
+          //           trackOutlineColor: WidgetStateProperty.resolveWith<Color>(
+          //             (states) {
+          //               return AppColors
+          //                   .neutralColor; // Track color when inactive
+          //             },
+          //           ),
+          //           onChanged: (value) {
+          //             context.read<ThemeCubit>().toggleTheme();
+          //           },
+          //         ),
+          //         Text("Dark"),
+          //       ],
+          //     ),
+          //   ],
+          // ),
+          // SizedBox(height: 20),
 
           // Other Settings
-          buildClickableOption("Privacy policy"),
-          buildClickableOption("Terms and conditions"),
+          buildClickableOption("Privacy policy", () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WebViewScreen(
+                  url: 'https://tufan.netlify.app',
+                  title: 'Privacy Policy',
+                ),
+              ),
+            );
+          }),
+          buildClickableOption("Terms and conditions", () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WebViewScreen(
+                  url: 'https://tufan.netlify.app',
+                  title: 'Terms and conditions',
+                ),
+              ),
+            );
+          }),
           buildClickableOption("Log out", () => showLogoutDialog(context)),
 
           SizedBox(height: 30),
