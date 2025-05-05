@@ -6,10 +6,12 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -162,8 +164,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget build(BuildContext context) {
     final authCubit = context.read<AuthCubit>();
     final currentMode = context.watch<ModeCubit>().state;
+    final riderResponse = context.read<CreateRiderCubit>().riderResponse;
 
     final loginResponse = authCubit.loginResponse;
+    final isInActive = riderResponse?.status.toLowerCase() != 'active';
+
     return Drawer(
       backgroundColor: AppColors.backgroundColor,
       child: SafeArea(
@@ -263,6 +268,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     if (currentMode == AppMode.rider) ...[
                       _buildDrawerButton('Internal Rides', () {
                         Scaffold.of(context).closeDrawer();
+                        if (isInActive) {
+                          CustomToast.show(
+                            'You need to be registered and active to use the feature',
+                            context: context,
+                            toastType: ToastType.info,
+                          );
+                          return;
+                        }
                         Navigator.pushNamedAndRemoveUntil(
                             context, AppRoutes.map, (route) => false);
                       }),
@@ -272,6 +285,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       // }),
                       _buildDrawerButton('Tufan Credits', () {
                         Scaffold.of(context).closeDrawer();
+                        if (isInActive) {
+                          CustomToast.show(
+                            'You need to be registered and active to use the feature',
+                            context: context,
+                            toastType: ToastType.info,
+                          );
+                          return;
+                        }
                         Navigator.pushNamedAndRemoveUntil(
                             context, AppRoutes.riderCredit, (route) => false);
                       }),

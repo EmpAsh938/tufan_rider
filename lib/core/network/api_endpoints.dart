@@ -37,6 +37,8 @@ class ApiEndpoints {
   static String createVehicle(String userId, String categoryId) =>
       '/vehicles/user/$userId/category/$categoryId';
 
+  static String getRiderByUser(String userId) => '/user/$userId/riders';
+
   // upload vehicle docs
   static String uploadVehicleBillbookFront(String vehicleId) =>
       '/vehicles/bluebook1/upload/$vehicleId';

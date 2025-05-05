@@ -14,6 +14,17 @@ class CreateRiderCubit extends Cubit<CreateRiderState> {
 
   RiderResponse? get riderResponse => _riderResponse;
 
+  Future<void> getRiderByUser(String userId) async {
+    emit(CreateRiderStateLoading());
+    try {
+      final data = await _repository.getRiderbyUser(userId);
+      _riderResponse = data;
+      emit(CreateRiderStateSuccess(data));
+    } catch (e) {
+      emit(CreateRiderStateFailure(e.toString()));
+    }
+  }
+
   Future<void> createRider(
     String userId,
     String categoryId,

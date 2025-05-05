@@ -1,94 +1,204 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_state.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
-class RiderRegistration extends StatelessWidget {
+class RiderRegistration extends StatefulWidget {
   const RiderRegistration({super.key});
+
+  @override
+  State<RiderRegistration> createState() => _RiderRegistrationState();
+}
+
+class _RiderRegistrationState extends State<RiderRegistration> {
+  void getRiderByUser() {
+    final loginResponse = context.read<AuthCubit>().loginResponse;
+
+    if (loginResponse != null) {
+      context
+          .read<CreateRiderCubit>()
+          .getRiderByUser(loginResponse.user.id.toString());
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getRiderByUser();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Image or graphic
-                    Image.asset(
-                      Assets.images.tufan.path, // Make sure this asset exists
-                      height: 100,
-                      fit: BoxFit.contain,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Informative text
-                    Text(
-                      "Not registered yet?",
-                      style: AppTypography.labelText.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Register button
-                    CustomButton(
-                      text: "Register here",
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.riderSignupFlow);
-                      },
-                    ),
-                  ],
+          child: BlocListener<CreateRiderCubit, CreateRiderState>(
+        listener: (context, state) {
+          if (state is CreateRiderStateFailure) {
+            CustomToast.show(
+              state.message,
+              context: context,
+              toastType: ToastType.error,
+            );
+          }
+        },
+        child: BlocBuilder<CreateRiderCubit, CreateRiderState>(
+          builder: (context, state) {
+            if (state is CreateRiderStateLoading) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primaryColor,
                 ),
-              ),
-            ),
+              );
+            }
 
-            // Drawer
-            Positioned(
-              top: 10,
-              left: 10,
-              child: Container(
-                padding: EdgeInsets.all(1), // Adds space around the icon
-                decoration: BoxDecoration(
-                  color: AppColors.primaryWhite, // Background color
-                  borderRadius: BorderRadius.circular(15), // Makes it circular
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryBlack
-                          .withOpacity(0.1), // Optional shadow
-                      blurRadius: 5,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Builder(builder: (context) {
-                  return IconButton(
-                    onPressed: () {
-                      Scaffold.of(context).openDrawer();
-                    },
-                    icon: Icon(
-                      Icons.menu,
-                      color: AppColors.primaryBlack,
-                      size: 30,
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ],
+            final riderResponse =
+                context.read<CreateRiderCubit>().riderResponse;
+
+            // Case 1: Rider exists and is active
+            if (riderResponse != null &&
+                riderResponse.status.toLowerCase() == 'active') {
+              // Navigate to home/dashboard after small delay
+              Future.delayed(Duration.zero, () {
+                Navigator.pushReplacementNamed(context, AppRoutes.map);
+              });
+              return Center(
+                  child: CircularProgressIndicator()); // Temporary loading
+            }
+
+            // Case 2: Rider exists but pending approval
+            if (riderResponse != null &&
+                riderResponse.status.toLowerCase() == 'pending') {
+              return _buildPendingApprovalUI();
+            }
+
+            // Case 3: No rider exists (default case)
+            return _buildRegistrationPromptUI();
+          },
         ),
-      ),
+      )),
       drawer: CustomDrawer(),
     );
+  }
+
+  Widget _buildPendingApprovalUI() {
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.hourglass_top,
+                  size: 100,
+                  color: AppColors.neutralColor,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Your application is under review",
+                  style: AppTypography.labelText.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "Our team is verifying your details. "
+                  "You'll receive a notification once approved.",
+                  textAlign: TextAlign.center,
+                  style: AppTypography.labelText,
+                ),
+                const SizedBox(height: 32),
+                // TextButton(
+                //   onPressed: () {
+                //     // Optionally: Contact support or check status
+                //   },
+                //   child: Text("Contact Support"),
+                // ),
+              ],
+            ),
+          ),
+        ),
+        _buildDrawerButton(), // Your existing drawer button
+      ],
+    );
+  }
+
+  Widget _buildRegistrationPromptUI() {
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  Assets.images.tufan.path,
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Not registered yet?",
+                  style: AppTypography.labelText.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                CustomButton(
+                  text: "Register here",
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.riderSignupFlow);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        _buildDrawerButton(), // Your existing drawer button
+      ],
+    );
+  }
+
+  Widget _buildDrawerButton() {
+    return Positioned(
+        top: 10,
+        left: 10,
+        child: Container(
+          padding: EdgeInsets.all(1),
+          decoration: BoxDecoration(
+            color: AppColors.primaryWhite,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryBlack.withOpacity(0.1),
+                blurRadius: 5,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Builder(
+            builder: (context) {
+              return IconButton(
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: Icon(
+                  Icons.menu,
+                  color: AppColors.primaryBlack,
+                  size: 30,
+                ),
+              );
+            },
+          ),
+        ));
   }
 }

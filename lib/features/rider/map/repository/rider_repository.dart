@@ -26,6 +26,19 @@ class RiderRepository {
     return RiderResponse.fromJson(response.data);
   }
 
+  Future<RiderResponse> getRiderbyUser(String userId) async {
+    final response = await _apiService.getRiderByUser(userId);
+
+    if (response.data is List) {
+      final ridersList = response.data as List;
+      if (ridersList.isEmpty) throw Exception("No riders found");
+      return RiderResponse.fromJson(ridersList.first); // Parse the first item
+    } else {
+      // If it's not a list, assume it's a single rider
+      return RiderResponse.fromJson(response.data);
+    }
+  }
+
   Future<VehicleResponseModel> createVehicle(
     String userId,
     String categoryId,

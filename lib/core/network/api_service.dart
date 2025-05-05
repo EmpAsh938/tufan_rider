@@ -276,6 +276,15 @@ class ApiService {
     }
   }
 
+  Future<Response> getRiderByUser(String userId) async {
+    try {
+      final response = _dio.get(ApiEndpoints.getRiderByUser(userId));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> uploadRiderDocuments(
     File uploadedFile,
     String userId,
