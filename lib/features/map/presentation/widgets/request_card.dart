@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
-import 'package:tufan_rider/features/map/models/request.dart';
+import 'package:tufan_rider/features/map/models/riders_request.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class RequestCard extends StatelessWidget {
-  final Request request;
+  final RiderRequest request;
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final double acceptProgress;
@@ -54,9 +55,11 @@ class RequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Toyota Prius', style: AppTypography.labelText),
+                    Text(TextUtils.capitalizeEachWord(request.vehicleBrand),
+                        style: AppTypography.labelText),
                     const SizedBox(height: 4),
-                    Text('John', style: AppTypography.labelText),
+                    Text(TextUtils.capitalizeEachWord(request.name),
+                        style: AppTypography.labelText),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -84,14 +87,15 @@ class RequestCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'NPR 120',
+                    'NPR ${request.proposedPrice.toStringAsFixed(0)}',
                     style: AppTypography.labelText.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('5 min', style: AppTypography.labelText),
+                  Text('${request.minToReach.toStringAsFixed(0)} min',
+                      style: AppTypography.labelText),
                   Text('1 km', style: AppTypography.labelText),
                 ],
               ),

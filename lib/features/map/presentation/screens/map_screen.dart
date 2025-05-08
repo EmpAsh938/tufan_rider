@@ -12,9 +12,11 @@ import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
@@ -30,7 +32,7 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   static const CameraPosition _kDefaultLocation = CameraPosition(
-    target: LatLng(27.7172, 85.3240),
+    target: LatLng(27.7172, 85.32401),
     zoom: 10,
   );
 
@@ -199,14 +201,16 @@ class _MapScreenState extends State<MapScreen>
           destination: PointLatLng(
               destinationLocation.latitude, destinationLocation.longitude),
           mode: TravelMode.driving,
-          // wayPoints: [PolylineWayPoint(location: "Sabo, Yaba Lagos Nigeria")],
+          optimizeWaypoints: true,
         ),
       );
       if (result.points.isNotEmpty) {
         polylineCoordinates.clear();
+        polylineCoordinates.add(currentLocation);
         for (var point in result.points) {
           polylineCoordinates.add(LatLng(point.latitude, point.longitude));
         }
+        polylineCoordinates.add(destinationLocation);
       }
       _drawPolyline(currentLocation, destinationLocation);
     } catch (e) {
@@ -585,6 +589,10 @@ class _MapScreenState extends State<MapScreen>
 
                                           addressCubit.setSource(source);
 
+                                          await locator
+                                              .get<AddressCubit>()
+                                              .sendCurrentLocationToServer();
+
                                           final newSourceMarker = createMarker(
                                             position: latLng,
                                             label: 'Source Location',
@@ -787,7 +795,30 @@ class _MapScreenState extends State<MapScreen>
                                   MediaQuery.of(context).size.height * 0.55,
                               minHeight:
                                   MediaQuery.of(context).size.height * 0.3,
-                              child: OfferPriceBottomSheet(onPressed: resetMap),
+                              child: OfferPriceBottomSheet(onPressed: () async {
+                                final loginResponse =
+                                    context.read<AuthCubit>().loginResponse;
+                                final requestByPassenger =
+                                    context.read<AddressCubit>().rideRequest;
+                                if (loginResponse == null ||
+                                    requestByPassenger == null) return;
+                                final isRejected = await context
+                                    .read<AddressCubit>()
+                                    .rejectRideRequest(
+                                        requestByPassenger.rideRequestId
+                                            .toString(),
+                                        loginResponse.token);
+
+                                if (!isRejected) {
+                                  CustomToast.show(
+                                    'Request could not be cancelled',
+                                    context: context,
+                                    toastType: ToastType.error,
+                                  );
+                                  return;
+                                }
+                                resetMap();
+                              }),
                             ),
                             RequestCardPopup(
                               prepareDriverArriving: prepareDriverArriving,

@@ -223,22 +223,22 @@ class ApiService {
     }
   }
 
-  Future<Response> approveRide(
-      String offerId, String rideId, String token) async {
-    try {
-      final response = _dio.put(
-        ApiEndpoints.approveRide(offerId, rideId),
-        options: Options(
-          headers: {
-            'Authorization': 'Sandip $token',
-          },
-        ),
-      );
-      return response;
-    } on DioException catch (e) {
-      throw DioExceptions.fromDioError(e);
-    }
-  }
+  // Future<Response> approveRide(
+  //     String offerId, String rideId, String token) async {
+  //   try {
+  //     final response = _dio.put(
+  //       ApiEndpoints.approveRide(offerId, rideId),
+  //       options: Options(
+  //         headers: {
+  //           'Authorization': 'Sandip $token',
+  //         },
+  //       ),
+  //     );
+  //     return response;
+  //   } on DioException catch (e) {
+  //     throw DioExceptions.fromDioError(e);
+  //   }
+  // }
 
   Future<Response> createRider(String userId, String categoryId, String token,
       CreateRiderModel riderModel) async {
@@ -279,6 +279,81 @@ class ApiService {
   Future<Response> getRiderByUser(String userId) async {
     try {
       final response = _dio.get(ApiEndpoints.getRiderByUser(userId));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getAllRideRequests() async {
+    try {
+      final response = _dio.get(ApiEndpoints.getAllRideRequests);
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> proposePriceForRide(
+    String rideRequestId,
+    String userId,
+    String token,
+    String proposedPrice,
+  ) async {
+    try {
+      final response = _dio.post(
+        ApiEndpoints.proposePriceForRide(
+          rideRequestId,
+          userId,
+        ),
+        data: {
+          'proposed_price': proposedPrice,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> approveByPassenger(
+    String approveId,
+    String rideRequestId,
+    String token,
+  ) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.approveByPassenger(approveId, rideRequestId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> rejectRideRequest(
+    String rideRequestId,
+    String token,
+  ) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.rejectRideRequest(rideRequestId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);

@@ -53,12 +53,20 @@ class MapRepository {
     return data.map((json) => RiderRequest.fromJson(json)).toList();
   }
 
-  Future<void> approveRide(
-    String offerId,
+  Future<RideRequestModel> approveByPassenger(
+    String approveId,
     String requestId,
     String token,
   ) async {
-    final response = await _apiService.approveRide(offerId, requestId, token);
-    print(response.data);
+    final response =
+        await _apiService.approveByPassenger(approveId, requestId, token);
+    return RideRequestModel.fromJson(response.data);
+  }
+
+  Future<void> rejectRideRequest(
+    String rideRequestId,
+    String token,
+  ) async {
+    await _apiService.rejectRideRequest(rideRequestId, token);
   }
 }

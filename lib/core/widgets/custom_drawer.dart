@@ -268,14 +268,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     if (currentMode == AppMode.rider) ...[
                       _buildDrawerButton('Internal Rides', () {
                         Scaffold.of(context).closeDrawer();
-                        if (isInActive) {
-                          CustomToast.show(
-                            'You need to be registered and active to use the feature',
-                            context: context,
-                            toastType: ToastType.info,
-                          );
-                          return;
-                        }
+                        // if (isInActive) {
+                        //   CustomToast.show(
+                        //     'You need to be registered and active to use the feature',
+                        //     context: context,
+                        //     toastType: ToastType.info,
+                        //   );
+                        //   return;
+                        // }
                         Navigator.pushNamedAndRemoveUntil(
                             context, AppRoutes.map, (route) => false);
                       }),

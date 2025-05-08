@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
@@ -120,7 +118,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                         },
                         onChanged: (_) => _formKey.currentState?.validate(),
                         decoration: const InputDecoration(
-                          prefixText: ' NRs. ',
+                          prefixText: 'NRs. ',
                           border: UnderlineInputBorder(
                             // borderRadius: BorderRadius.all(Radius.circular(12)),
                             borderSide:
@@ -393,7 +391,10 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
         );
       }
       // put id from ride request here
-      await context.read<AddressCubit>().showRiders("43");
+      await context.read<AddressCubit>().showRiders(
+            // rideRequest.rideRequestId.toString(),
+            '18',
+          );
       Navigator.pop(context, {
         'isFindDriversActive': true,
       });

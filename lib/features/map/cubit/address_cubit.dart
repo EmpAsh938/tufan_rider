@@ -18,6 +18,8 @@ class AddressCubit extends Cubit<AddressState> {
   FareResponse? get fareResponse => state.fareResponse;
   RideLocation? get source => state.source;
   RideLocation? get destination => state.destination;
+  RideRequestModel? get rideRequest => state.rideRequestModel;
+  RideRequestModel? get acceptedRide => state.acceptedRide;
   List<RideHistory> get rideHistory => state.rideHistory;
   List<RiderRequest> get riderRequest => state.riderRequest;
 
@@ -106,6 +108,7 @@ class AddressCubit extends Cubit<AddressState> {
 
       final data = await _repository.createRideRequest(
           location, price, userId, '1', token);
+
       emit(state.copyWith(rideRequestModel: data));
       return data;
     } catch (e) {
@@ -132,16 +135,30 @@ class AddressCubit extends Cubit<AddressState> {
     }
   }
 
-  Future<void> approveRide(
+  Future<RideRequestModel?> approveByPassenger(
       String offerId, String requestId, String token) async {
     try {
-      await _repository.approveRide(offerId, requestId, token);
+      final response =
+          await _repository.approveByPassenger(offerId, requestId, token);
+      emit(state.copyWith(acceptedRide: response));
+      return response;
     } catch (e) {
       print(e);
+      return null;
+    }
+  }
+
+  Future<bool> rejectRideRequest(String rideRequestId, String token) async {
+    try {
+      await _repository.rejectRideRequest(rideRequestId, token);
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
     }
   }
 
   void reset() {
-    emit(AddressState(source: state.source, destination: null));
+    emit(AddressState());
   }
 }

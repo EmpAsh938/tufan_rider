@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class DriverArrivingBottomsheet extends StatelessWidget {
@@ -10,6 +13,9 @@ class DriverArrivingBottomsheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final acceptedRide = context.read<AddressCubit>().acceptedRide;
+    final proposedRide =
+        context.read<ProposePriceCubit>().proposedRideRequestModel;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SingleChildScrollView(
@@ -31,7 +37,8 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                           )),
                       const SizedBox(height: 4),
-                      Text('~4 min',
+                      Text(
+                          '~${proposedRide == null ? '' : proposedRide.minToReach} min',
                           style: AppTypography.headline.copyWith(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -193,7 +200,9 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                           fontSize: 16,
                         ),
                         children: [
-                          const TextSpan(text: 'NPR 60'),
+                          TextSpan(
+                              text:
+                                  'NPR ${acceptedRide == null ? '' : acceptedRide.actualPrice.toStringAsFixed(0)}'),
                           TextSpan(
                             text: '  Cash',
                             style: AppTypography.smallText.copyWith(
@@ -218,12 +227,12 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 _buildLocationRow(
                   color: AppColors.primaryGreen,
-                  label: 'Starting Location Name Goes Here',
+                  label: acceptedRide == null ? '' : acceptedRide.sName,
                 ),
                 const SizedBox(height: 8),
                 _buildLocationRow(
                   color: AppColors.primaryRed,
-                  label: 'Destination Location Name Goes Here',
+                  label: acceptedRide == null ? '' : acceptedRide.dName,
                 ),
               ],
             ),

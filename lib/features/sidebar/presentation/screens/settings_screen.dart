@@ -116,7 +116,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             );
           }),
-          buildClickableOption("Log out", () => showLogoutDialog(context)),
+          buildClickableOption(
+              "Log out",
+              () => showLogoutDialog(
+                    context,
+                    isDarkMode,
+                  )),
 
           SizedBox(height: 30),
         ],
@@ -129,32 +134,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
-        child: Text(title, style: TextStyle(fontSize: 16, color: Colors.black)),
+        child: Text(title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            )),
       ),
     );
   }
 
-  void showLogoutDialog(BuildContext context) {
+  void showLogoutDialog(BuildContext context, bool isDarkMode) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          shadowColor:
+              isDarkMode ? AppColors.backgroundColor : AppColors.primaryBlack,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-          backgroundColor: AppColors.backgroundColor,
+          backgroundColor:
+              isDarkMode ? AppColors.primaryBlack : AppColors.backgroundColor,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.logout, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 "Are you sure you want to log out?",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: isDarkMode
+                      ? AppColors.backgroundColor
+                      : AppColors.primaryBlack,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -167,7 +181,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Text(
                       "Cancel",
                       style: TextStyle(
-                        color: AppColors.primaryBlack.withOpacity(0.5),
+                        color: isDarkMode
+                            ? AppColors.backgroundColor
+                            : AppColors.primaryBlack.withOpacity(0.4),
                       ),
                     ),
                   ),

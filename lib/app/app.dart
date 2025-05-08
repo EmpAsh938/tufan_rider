@@ -13,6 +13,8 @@ import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/ride_request_cubit.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -53,6 +55,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<CreateVehicleCubit>(
           create: (context) => locator<CreateVehicleCubit>(),
+        ),
+        BlocProvider<RideRequestCubit>(
+          create: (context) => locator<RideRequestCubit>(),
+        ),
+        BlocProvider<ProposePriceCubit>(
+          create: (context) => locator<ProposePriceCubit>(),
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(

@@ -13,6 +13,8 @@ import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/repository/map_repository.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/ride_request_cubit.dart';
 import 'package:tufan_rider/features/rider/map/repository/rider_repository.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
@@ -49,4 +51,8 @@ void setupLocator() {
       () => CreateRiderCubit(locator<RiderRepository>()));
   locator.registerFactory<CreateVehicleCubit>(
       () => CreateVehicleCubit(locator<RiderRepository>()));
+  locator.registerFactory<RideRequestCubit>(
+      () => RideRequestCubit(locator<RiderRepository>()));
+  locator.registerFactory<ProposePriceCubit>(
+      () => ProposePriceCubit(locator<RiderRepository>()));
 }

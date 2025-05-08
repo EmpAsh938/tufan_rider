@@ -19,28 +19,33 @@ class AddressState extends Equatable {
   final RideRequestModel? rideRequestModel;
   final List<RideHistory> rideHistory;
   final List<RiderRequest> riderRequest;
+  final RideRequestModel? acceptedRide;
 
   const AddressState({
     this.source,
     this.destination,
     this.fareResponse,
     this.rideRequestModel,
+    this.acceptedRide,
     this.rideHistory = const [],
     this.riderRequest = const [],
   });
 
-  AddressState copyWith(
-      {RideLocation? source,
-      RideLocation? destination,
-      FareResponse? fareResponse,
-      RideRequestModel? rideRequestModel,
-      List<RideHistory>? rideHistory,
-      List<RiderRequest>? riderRequest}) {
+  AddressState copyWith({
+    RideLocation? source,
+    RideLocation? destination,
+    FareResponse? fareResponse,
+    RideRequestModel? rideRequestModel,
+    RideRequestModel? acceptedRide,
+    List<RideHistory>? rideHistory,
+    List<RiderRequest>? riderRequest,
+  }) {
     return AddressState(
       source: source ?? this.source,
       destination: destination ?? this.destination,
       fareResponse: fareResponse ?? this.fareResponse,
       rideRequestModel: rideRequestModel ?? this.rideRequestModel,
+      acceptedRide: acceptedRide ?? this.acceptedRide,
       rideHistory: rideHistory ?? this.rideHistory,
       riderRequest: riderRequest ?? this.riderRequest,
     );
@@ -52,6 +57,7 @@ class AddressState extends Equatable {
         destination,
         fareResponse,
         rideRequestModel,
+        acceptedRide,
         rideHistory,
         riderRequest,
       ];

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
-import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
-import 'package:tufan_rider/features/map/models/request.dart';
+import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/rider/map/cubit/ride_request_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/ride_request_state.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/rider_request_card.dart';
 
 class RiderRequestCardPopup extends StatefulWidget {
-  final VoidCallback prepareDriverArriving;
+  final void Function(RideRequestModel) prepareDriverArriving;
   const RiderRequestCardPopup({super.key, required this.prepareDriverArriving});
 
   @override
@@ -15,11 +15,11 @@ class RiderRequestCardPopup extends StatefulWidget {
 
 class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
     with TickerProviderStateMixin {
-  final List<Request> _requests = [];
+  final List<RideRequestModel> _requests = [];
   final Map<String, AnimationController> _controllers = {};
   final Map<String, Animation<Offset>> _animations = {};
 
-  void _addRequest(Request request) {
+  void _addRequest(RideRequestModel request) {
     final controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -32,13 +32,13 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
 
     setState(() {
       _requests.add(request);
-      _controllers[request.id] = controller;
-      _animations[request.id] = animation;
+      _controllers[request.rideRequestId.toString()] = controller;
+      _animations[request.rideRequestId.toString()] = animation;
     });
 
     Future.delayed(Duration(milliseconds: 150 * _requests.length), () {
-      if (mounted && _controllers[request.id] != null) {
-        _controllers[request.id]!.forward();
+      if (mounted && _controllers[request.rideRequestId.toString()] != null) {
+        _controllers[request.rideRequestId.toString()]!.forward();
       }
     });
 
@@ -57,39 +57,33 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
     if (!mounted) return;
 
     setState(() {
-      _requests.removeWhere((r) => r.id == id);
+      _requests.removeWhere((r) => r.rideRequestId.toString() == id);
       _controllers.remove(id)?.dispose();
       _animations.remove(id);
     });
   }
 
-  void _removeAllRequests() async {
-    final controllers = Map<String, AnimationController>.from(_controllers);
+  void fetchRiders() {
+    // final data = context.read<AddressCubit>().riderRequest;
+    // for (var item in data) {
+    //   _addRequest(Request(
+    //       id: item.id.toString(), vehicle: 'Toyota Prius', driver: 'John'));
+    // }
 
-    for (var id in controllers.keys) {
-      final controller = controllers[id];
-      if (controller != null) {
-        await controller.reverse();
-      }
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _requests.clear();
-      controllers.forEach((id, controller) {
-        controller.dispose();
-      });
-      _controllers.clear();
-      _animations.clear();
-    });
+    context.read<RideRequestCubit>().fetchRideRequests();
   }
 
-  void fetchRiders() {
-    final data = context.read<AddressCubit>().riderRequest;
-    for (var item in data) {
-      _addRequest(Request(
-          id: item.id.toString(), vehicle: 'Toyota Prius', driver: 'John'));
+  void _handleStateChanges(RideRequestState state) {
+    if (state is RideRequestSuccess) {
+      // Clear existing requests
+      for (var request in _requests) {
+        _removeRequestById(request.rideRequestId.toString());
+      }
+
+      // Add new requests with animation
+      for (var request in state.rideRequest) {
+        _addRequest(request);
+      }
     }
   }
 
@@ -97,12 +91,7 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
   void initState() {
     super.initState();
 
-    // fetchRiders();
-
-    // Dummy data
-    _addRequest(Request(id: '1', vehicle: 'Toyota Prius', driver: 'John'));
-    _addRequest(Request(id: '2', vehicle: 'Suzuki Swift', driver: 'David'));
-    _addRequest(Request(id: '3', vehicle: 'Hyundai i20', driver: 'Emma'));
+    fetchRiders();
   }
 
   @override
@@ -115,33 +104,38 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: _requests.map((request) {
-          final animation = _animations[request.id]!;
-          return SlideTransition(
-            position: animation,
-            child: RiderRequestCard(
-              request: request,
-              onDecline: () => _removeRequestById(request.id),
-              onAccept: () {
-                // _removeRequestById(request.id);
-                // final loginResponse = context.read<AuthCubit>().loginResponse;
-                // if (loginResponse == null) return;
-                // context
-                //     .read<AddressCubit>()
-                //     .approveRide('52', '43', loginResponse.token);
-                // _removeAllRequests();
-                widget.prepareDriverArriving();
-              },
-            ),
-          );
-        }).toList(),
-      ),
-    );
+    return BlocListener<RideRequestCubit, RideRequestState>(
+        listener: (context, state) {
+          _handleStateChanges(state);
+        },
+        child: Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _requests.map((request) {
+              final animation = _animations[request.rideRequestId.toString()]!;
+              return SlideTransition(
+                position: animation,
+                child: RiderRequestCard(
+                  request: request,
+                  onDecline: () =>
+                      _removeRequestById(request.rideRequestId.toString()),
+                  onAccept: () {
+                    // _removeRequestById(request.id);
+                    // final loginResponse = context.read<AuthCubit>().loginResponse;
+                    // if (loginResponse == null) return;
+                    // context
+                    //     .read<AddressCubit>()
+                    //     .approveRide('52', '43', loginResponse.token);
+                    // _removeAllRequests();
+                    widget.prepareDriverArriving(request);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ));
   }
 }

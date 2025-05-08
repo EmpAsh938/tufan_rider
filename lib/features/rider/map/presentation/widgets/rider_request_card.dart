@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
-import 'package:tufan_rider/features/map/models/request.dart';
-import 'package:tufan_rider/gen/assets.gen.dart';
+import 'package:tufan_rider/core/network/api_endpoints.dart';
+import 'package:tufan_rider/core/utils/text_utils.dart';
+import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 
 class RiderRequestCard extends StatelessWidget {
-  final Request request;
+  final RideRequestModel request;
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final double acceptProgress;
@@ -40,11 +41,20 @@ class RiderRequestCard extends StatelessWidget {
               // Left: Photo
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.white,
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundImage: AssetImage(Assets.images.tufan.path),
-                ),
+                backgroundColor: AppColors.primaryColor,
+                backgroundImage: (request.user.imageName != null &&
+                        request.user.imageName!.isNotEmpty)
+                    ? NetworkImage(ApiEndpoints.baseUrl +
+                        ApiEndpoints.getImage(request.user.imageName!))
+                    : null,
+                child: (request.user.imageName == null ||
+                        request.user.imageName!.isEmpty)
+                    ? Icon(
+                        Icons.person,
+                        size: 40,
+                        color: AppColors.primaryBlack,
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
 
@@ -53,7 +63,8 @@ class RiderRequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('John', style: AppTypography.labelText),
+                    Text(TextUtils.capitalizeEachWord(request.user.name),
+                        style: AppTypography.labelText),
                     SizedBox(
                       height: 8,
                     ),
@@ -68,7 +79,7 @@ class RiderRequestCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  'Source Location',
+                                  request.sName,
                                   style: AppTypography.labelText,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -88,7 +99,7 @@ class RiderRequestCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  'Destination',
+                                  request.dName,
                                   style: AppTypography.labelText,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -112,7 +123,7 @@ class RiderRequestCard extends StatelessWidget {
                         color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
-                  Text('NPR${request.fare ?? '120'}',
+                  Text('NPR${request.actualPrice}',
                       style: AppTypography.labelText),
                 ],
               ),

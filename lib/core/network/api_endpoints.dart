@@ -25,11 +25,16 @@ class ApiEndpoints {
   static String createRideRequest(String userId, String categoryId) =>
       '/ride-requests/user/$userId/category/$categoryId';
 
-  static String approveRide(String offerId, String rideId) =>
-      '/ride-requests/approve/$offerId/riderequest/$rideId';
+  // static String approveRide(String offerId, String rideId) =>
+  //     '/ride-requests/approve/$offerId/riderequest/$rideId';
   static String showRiders(String rideId) =>
       '/riderAppReq/$rideId/pending-riders';
   static String showRideHistory = '/ride-requests/';
+
+  static String approveByPassenger(String approveId, String rideRequestId) =>
+      '/ride-requests/approve/$approveId/riderequest/$rideRequestId';
+  static String rejectRideRequest(String rideRequestId) =>
+      '/ride-requests/$rideRequestId/reject';
 
   // riders
   static String createRider(String userId, String categoryId) =>
@@ -38,6 +43,10 @@ class ApiEndpoints {
       '/vehicles/user/$userId/category/$categoryId';
 
   static String getRiderByUser(String userId) => '/user/$userId/riders';
+  static String proposePriceForRide(String rideRequestId, String userId) =>
+      '/riderAppReq/$rideRequestId/user/$userId';
+
+  static const String getAllRideRequests = '/ride-requests/';
 
   // upload vehicle docs
   static String uploadVehicleBillbookFront(String vehicleId) =>

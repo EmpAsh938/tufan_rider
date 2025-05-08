@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
-import 'package:tufan_rider/features/map/models/request.dart';
+import 'package:tufan_rider/features/map/models/riders_request.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart';
 
 class RequestCardPopup extends StatefulWidget {
@@ -15,11 +16,11 @@ class RequestCardPopup extends StatefulWidget {
 
 class _RequestCardPopupState extends State<RequestCardPopup>
     with TickerProviderStateMixin {
-  final List<Request> _requests = [];
+  final List<RiderRequest> _requests = [];
   final Map<String, AnimationController> _controllers = {};
   final Map<String, Animation<Offset>> _animations = {};
 
-  void _addRequest(Request request) {
+  void _addRequest(RiderRequest request) {
     final controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -32,19 +33,19 @@ class _RequestCardPopupState extends State<RequestCardPopup>
 
     setState(() {
       _requests.add(request);
-      _controllers[request.id] = controller;
-      _animations[request.id] = animation;
+      _controllers[request.id.toString()] = controller;
+      _animations[request.id.toString()] = animation;
     });
 
     Future.delayed(Duration(milliseconds: 150 * _requests.length), () {
-      if (mounted && _controllers[request.id] != null) {
-        _controllers[request.id]!.forward();
+      if (mounted && _controllers[request.id.toString()] != null) {
+        _controllers[request.id.toString()]!.forward();
       }
     });
 
     // Auto-remove after 10 seconds
     Future.delayed(const Duration(seconds: 30), () {
-      _removeRequestById(request.id);
+      // _removeRequestById(request.id);
     });
   }
 
@@ -57,7 +58,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     if (!mounted) return;
 
     setState(() {
-      _requests.removeWhere((r) => r.id == id);
+      _requests.removeWhere((r) => r.id.toString() == id);
       _controllers.remove(id)?.dispose();
       _animations.remove(id);
     });
@@ -88,8 +89,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
   void fetchRiders() {
     final data = context.read<AddressCubit>().riderRequest;
     for (var item in data) {
-      _addRequest(Request(
-          id: item.id.toString(), vehicle: 'Toyota Prius', driver: 'John'));
+      _addRequest(item);
     }
   }
 
@@ -98,11 +98,6 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     super.initState();
 
     fetchRiders();
-
-    // Dummy data
-    // _addRequest(Request(id: '1', vehicle: 'Toyota Prius', driver: 'John'));
-    // _addRequest(Request(id: '2', vehicle: 'Suzuki Swift', driver: 'David'));
-    // _addRequest(Request(id: '3', vehicle: 'Hyundai i20', driver: 'Emma'));
   }
 
   @override
@@ -122,19 +117,46 @@ class _RequestCardPopupState extends State<RequestCardPopup>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: _requests.map((request) {
-          final animation = _animations[request.id]!;
+          final animation = _animations[request.id.toString()]!;
           return SlideTransition(
             position: animation,
             child: RequestCard(
               request: request,
-              onDecline: () => _removeRequestById(request.id),
-              onAccept: () {
-                // _removeRequestById(request.id);
+              onDecline: () async {
+                // final loginResponse = context.read<AuthCubit>().loginResponse;
+                // if (loginResponse == null) return;
+                // final isRejected = await context
+                //     .read<AddressCubit>()
+                //     .rejectRideRequest(
+                //         request.rideRequestId.toString(), loginResponse.token);
+
+                // if (!isRejected) {
+                //   CustomToast.show(
+                //     'Ride could not be rejected',
+                //     context: context,
+                //     toastType: ToastType.error,
+                //   );
+                //   return;
+                // }
+                // _removeRequestById(request.id.toString());
+              }, // need to cancel the accepted request
+              onAccept: () async {
+                // need to accept the ride and show in rider also in passenger
+
                 final loginResponse = context.read<AuthCubit>().loginResponse;
                 if (loginResponse == null) return;
-                context
+                final acceptedRide = await context
                     .read<AddressCubit>()
-                    .approveRide('52', '43', loginResponse.token);
+                    .approveByPassenger(request.id.toString(),
+                        request.rideRequestId.toString(), loginResponse.token);
+                if (acceptedRide == null) {
+                  CustomToast.show(
+                    'Ride could not be accepted',
+                    context: context,
+                    toastType: ToastType.error,
+                  );
+                  return;
+                }
                 _removeAllRequests();
                 widget.prepareDriverArriving();
               },

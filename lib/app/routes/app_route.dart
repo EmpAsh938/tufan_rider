@@ -59,6 +59,7 @@ class AppRoutes {
         if (mode == AppMode.rider) {
           if (loginResponse != null &&
               loginResponse.user.modes.toLowerCase() == 'pessenger') {
+            return _slideFromRight(const RiderMapScreen(), routeSettings);
             return _slideFromRight(const RiderRegistration(), routeSettings);
           }
           return _slideFromRight(const RiderMapScreen(), routeSettings);

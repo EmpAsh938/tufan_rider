@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:tufan_rider/core/network/api_service.dart';
+import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
+import 'package:tufan_rider/features/rider/map/models/proposed_ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
 import 'package:tufan_rider/features/rider/map/models/vehicle_response.dart';
 
@@ -37,6 +39,37 @@ class RiderRepository {
       // If it's not a list, assume it's a single rider
       return RiderResponse.fromJson(response.data);
     }
+  }
+
+  Future<List<RideRequestModel>> getAllRideRequests() async {
+    final response = await _apiService.getAllRideRequests();
+
+    if (response.data is List) {
+      final rideRequestsList = response.data as List;
+      if (rideRequestsList.isEmpty) throw Exception("No ride requests found");
+      return rideRequestsList
+          .map((item) => RideRequestModel.fromJson(item))
+          .toList(); // Parse the list of items
+    } else {
+      // If it's not a list, wrap the single ride request in a list
+      return [RideRequestModel.fromJson(response.data)];
+    }
+  }
+
+  Future<ProposedRideRequestModel> proposePriceForRide(
+    String rideRequestId,
+    String userId,
+    String token,
+    String price,
+  ) async {
+    final response = await _apiService.proposePriceForRide(
+      rideRequestId,
+      userId,
+      token,
+      price,
+    );
+
+    return ProposedRideRequestModel.fromJson(response.data);
   }
 
   Future<VehicleResponseModel> createVehicle(

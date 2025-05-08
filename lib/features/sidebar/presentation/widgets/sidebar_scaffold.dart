@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 
 class SidebarScaffold extends StatefulWidget {
@@ -15,11 +17,16 @@ class SidebarScaffold extends StatefulWidget {
 class _SidebarScaffoldState extends State<SidebarScaffold> {
   @override
   Widget build(BuildContext context) {
+    final isDarkMode =
+        context.watch<ThemeCubit>().state.themeMode == ThemeMode.dark;
+
     return SafeArea(
       child: Scaffold(
-        backgroundColor: AppColors.backgroundColor,
+        backgroundColor:
+            isDarkMode ? AppColors.primaryBlack : AppColors.backgroundColor,
         appBar: AppBar(
-          backgroundColor: AppColors.backgroundColor,
+          backgroundColor:
+              isDarkMode ? AppColors.primaryBlack : AppColors.backgroundColor,
           leading: Builder(builder: (context) {
             return IconButton(
               onPressed: () {
@@ -27,7 +34,9 @@ class _SidebarScaffoldState extends State<SidebarScaffold> {
               },
               icon: Icon(
                 Icons.menu,
-                color: AppColors.primaryBlack,
+                color: isDarkMode
+                    ? AppColors.backgroundColor
+                    : AppColors.primaryBlack,
               ),
             );
           }),
