@@ -3,7 +3,6 @@ import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/login_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dart';
-import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
@@ -39,7 +38,7 @@ class AppRoutes {
   static const String riderCreditHistory = '/riderCreditHistory';
 
   static Route<dynamic>? generateRoute(
-      RouteSettings routeSettings, AppMode mode, LoginResponse? loginResponse) {
+      RouteSettings routeSettings, LoginResponse? loginResponse) {
     switch (routeSettings.name) {
       case splash:
         return _fadeRoute(const SplashScreen(), routeSettings);
@@ -56,15 +55,17 @@ class AppRoutes {
       case riderCreditHistory:
         return _slideFromRight(const CreditHistory(), routeSettings);
       case map:
-        if (mode == AppMode.rider) {
-          if (loginResponse != null &&
-              loginResponse.user.modes.toLowerCase() == 'pessenger') {
+        final modes = loginResponse!.user.modes.toLowerCase();
+        final roleId = loginResponse.user.roles.first.id.toString();
+
+        if (modes == 'rider') {
+          if (roleId == '504') {
             return _slideFromRight(const RiderMapScreen(), routeSettings);
-            return _slideFromRight(const RiderRegistration(), routeSettings);
           }
-          return _slideFromRight(const RiderMapScreen(), routeSettings);
+          return _slideFromRight(const RiderRegistration(), routeSettings);
+        } else {
+          return _slideFromRight(const MapScreen(), routeSettings);
         }
-        return _slideFromRight(const MapScreen(), routeSettings);
       case mapAddressSearch:
         return _slideFromRight(const AddressSearchScreen(), routeSettings);
       case mapofferFare:

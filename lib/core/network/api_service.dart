@@ -103,6 +103,22 @@ class ApiService {
     }
   }
 
+  Future<Response> changeMode(String userId, String token) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.modeChanger(userId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> uploadProfile(
       File profileImage, String userId, String token) async {
     try {

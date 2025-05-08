@@ -10,6 +10,8 @@ class ApiEndpoints {
   static const String updatePassword = '/auth/update-password';
   static const String uploadProfile = '/users/file/upload';
 
+  static String modeChanger(String userId) => '/users/usermodechanger/$userId';
+
   static String getImage(String imagePath) => '/users/image/$imagePath';
   static String updateProfile(String userId) => '/users/$userId';
 

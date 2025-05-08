@@ -57,6 +57,18 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthInitial()); // Reset to initial state
   }
 
+  Future<bool> changeMode(String userId, String token) async {
+    try {
+      final response = await _repository.changeMode(userId, token);
+
+      updateUser(response);
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
   // Update the user within the loginResponse
   void updateUser(User updatedUser) {
     if (_loginResponse != null) {

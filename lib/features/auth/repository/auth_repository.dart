@@ -1,9 +1,7 @@
 import 'dart:io';
 
 import 'package:tufan_rider/core/network/api_service.dart';
-import 'package:tufan_rider/features/auth/models/forgot_password_response.dart';
 import 'package:tufan_rider/features/auth/models/login_response.dart';
-import 'package:tufan_rider/features/auth/models/otp_response.dart';
 import 'package:tufan_rider/features/auth/models/registration_request.dart';
 
 class AuthRepository {
@@ -68,6 +66,11 @@ class AuthRepository {
       File profileImage, String userId, String token) async {
     final response =
         await _apiService.uploadProfile(profileImage, userId, token);
+    return User.fromJson(response.data);
+  }
+
+  Future<User> changeMode(String userId, String token) async {
+    final response = await _apiService.changeMode(userId, token);
     return User.fromJson(response.data);
   }
 }

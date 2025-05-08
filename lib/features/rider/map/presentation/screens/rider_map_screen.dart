@@ -195,41 +195,6 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                       },
                     ),
 
-                    // Drawer
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Container(
-                        padding:
-                            EdgeInsets.all(1), // Adds space around the icon
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryWhite, // Background color
-                          borderRadius:
-                              BorderRadius.circular(15), // Makes it circular
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryBlack
-                                  .withOpacity(0.1), // Optional shadow
-                              blurRadius: 5,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Builder(builder: (context) {
-                          return IconButton(
-                            onPressed: () {
-                              Scaffold.of(context).openDrawer();
-                            },
-                            icon: Icon(
-                              Icons.menu,
-                              color: AppColors.primaryBlack,
-                              size: 30,
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-
                     // popups
                     if (!isAccepted && !isBargain)
                       RiderRequestCardPopup(
@@ -297,6 +262,41 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                             },
                             request: request!,
                           )),
+
+                    // Drawer
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding:
+                            EdgeInsets.all(1), // Adds space around the icon
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryWhite, // Background color
+                          borderRadius:
+                              BorderRadius.circular(15), // Makes it circular
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryBlack
+                                  .withOpacity(0.1), // Optional shadow
+                              blurRadius: 5,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Builder(builder: (context) {
+                          return IconButton(
+                            onPressed: () {
+                              Scaffold.of(context).openDrawer();
+                            },
+                            icon: Icon(
+                              Icons.menu,
+                              color: AppColors.primaryBlack,
+                              size: 30,
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                   ],
                 )
               : Center(

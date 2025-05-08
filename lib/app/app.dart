@@ -8,7 +8,6 @@ import 'package:tufan_rider/core/themes/app_theme.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
-import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
@@ -28,9 +27,6 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider<ThemeCubit>(
           create: (context) => locator<ThemeCubit>(),
-        ),
-        BlocProvider<ModeCubit>(
-          create: (context) => locator<ModeCubit>(),
         ),
         BlocProvider<AuthCubit>(
           create: (context) => locator<AuthCubit>(),
@@ -73,10 +69,9 @@ class MyApp extends StatelessWidget {
             themeMode: theme.themeMode,
             initialRoute: AppRoutes.splash,
             onGenerateRoute: (settings) {
-              final mode = context.read<ModeCubit>().state;
               final loginResponse = context.read<AuthCubit>().loginResponse;
 
-              return AppRoutes.generateRoute(settings, mode, loginResponse);
+              return AppRoutes.generateRoute(settings, loginResponse);
             },
           );
         },

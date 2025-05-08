@@ -112,29 +112,34 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
           bottom: 0,
           left: 0,
           right: 0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _requests.map((request) {
-              final animation = _animations[request.rideRequestId.toString()]!;
-              return SlideTransition(
-                position: animation,
-                child: RiderRequestCard(
-                  request: request,
-                  onDecline: () =>
-                      _removeRequestById(request.rideRequestId.toString()),
-                  onAccept: () {
-                    // _removeRequestById(request.id);
-                    // final loginResponse = context.read<AuthCubit>().loginResponse;
-                    // if (loginResponse == null) return;
-                    // context
-                    //     .read<AddressCubit>()
-                    //     .approveRide('52', '43', loginResponse.token);
-                    // _removeAllRequests();
-                    widget.prepareDriverArriving(request);
-                  },
-                ),
-              );
-            }).toList(),
+          height: MediaQuery.of(context).size.height * 0.5, // Adjust as needed
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _requests.map((request) {
+                final animation =
+                    _animations[request.rideRequestId.toString()]!;
+
+                return SlideTransition(
+                  position: animation,
+                  child: RiderRequestCard(
+                    request: request,
+                    onDecline: () =>
+                        _removeRequestById(request.rideRequestId.toString()),
+                    onAccept: () {
+                      // _removeRequestById(request.id);
+                      // final loginResponse = context.read<AuthCubit>().loginResponse;
+                      // if (loginResponse == null) return;
+                      // context
+                      //     .read<AddressCubit>()
+                      //     .approveRide('52', '43', loginResponse.token);
+                      // _removeAllRequests();
+                      widget.prepareDriverArriving(request);
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ));
   }

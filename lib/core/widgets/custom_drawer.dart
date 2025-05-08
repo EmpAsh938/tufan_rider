@@ -347,8 +347,21 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     Center(
                       child: CustomSwitch(
                         isActive: false,
-                        switchValue: currentMode == AppMode.rider,
-                        onChanged: (_) {
+                        switchValue: loginResponse == null
+                            ? false
+                            : loginResponse.user.modes.toLowerCase() == 'rider'
+                                ? true
+                                : false,
+                        onChanged: (_) async {
+                          if (loginResponse == null) return;
+                          final isChanged = await context
+                              .read<AuthCubit>()
+                              .changeMode(loginResponse.user.id.toString(),
+                                  loginResponse.token);
+
+                          if (!isChanged) {
+                            return;
+                          }
                           context.read<ModeCubit>().toggleMode();
                           Navigator.pushNamedAndRemoveUntil(
                               context, AppRoutes.map, (route) => false);
