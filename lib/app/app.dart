@@ -9,6 +9,7 @@ import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/forgot_password_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/emergency_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
@@ -57,6 +58,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<ProposePriceCubit>(
           create: (context) => locator<ProposePriceCubit>(),
+        ),
+        BlocProvider<EmergencyCubit>(
+          create: (context) => locator<EmergencyCubit>(),
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(

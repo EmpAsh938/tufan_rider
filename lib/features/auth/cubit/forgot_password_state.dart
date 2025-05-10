@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:tufan_rider/features/auth/models/forgot_password_response.dart';
 
 abstract class ForgotPasswordState extends Equatable {
   const ForgotPasswordState();

@@ -10,7 +10,6 @@ import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
-import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -163,7 +162,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
   @override
   Widget build(BuildContext context) {
     final authCubit = context.read<AuthCubit>();
-    final currentMode = context.watch<ModeCubit>().state;
     final riderResponse = context.read<CreateRiderCubit>().riderResponse;
 
     final loginResponse = authCubit.loginResponse;
@@ -222,7 +220,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             SizedBox(
                                 height:
                                     4), // Small spacing between name and rating
-                            if (currentMode == AppMode.rider)
+                            if (loginResponse!.user.modes.toLowerCase() ==
+                                'rider')
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -265,7 +264,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    if (currentMode == AppMode.rider) ...[
+                    if (loginResponse.user.modes.toLowerCase() == 'rider') ...[
                       _buildDrawerButton('Internal Rides', () {
                         Scaffold.of(context).closeDrawer();
                         // if (isInActive) {
@@ -327,7 +326,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             'Passenger',
                             style: AppTypography.labelText.copyWith(
                               fontWeight: FontWeight.w400,
-                              color: currentMode == AppMode.passenger
+                              color: loginResponse.user.modes.toLowerCase() ==
+                                      'pessenger'
                                   ? AppColors.primaryColor
                                   : AppColors.primaryBlack,
                             ),
@@ -336,7 +336,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             'Driver',
                             style: AppTypography.labelText.copyWith(
                               fontWeight: FontWeight.w400,
-                              color: currentMode == AppMode.rider
+                              color: loginResponse.user.modes.toLowerCase() ==
+                                      'rider'
                                   ? AppColors.primaryColor
                                   : AppColors.primaryBlack,
                             ),
@@ -347,13 +348,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     Center(
                       child: CustomSwitch(
                         isActive: false,
-                        switchValue: loginResponse == null
-                            ? false
-                            : loginResponse.user.modes.toLowerCase() == 'rider'
+                        switchValue:
+                            loginResponse.user.modes.toLowerCase() == 'rider'
                                 ? true
                                 : false,
                         onChanged: (_) async {
-                          if (loginResponse == null) return;
                           final isChanged = await context
                               .read<AuthCubit>()
                               .changeMode(loginResponse.user.id.toString(),
@@ -362,7 +361,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
                           if (!isChanged) {
                             return;
                           }
-                          context.read<ModeCubit>().toggleMode();
                           Navigator.pushNamedAndRemoveUntil(
                               context, AppRoutes.map, (route) => false);
                         },

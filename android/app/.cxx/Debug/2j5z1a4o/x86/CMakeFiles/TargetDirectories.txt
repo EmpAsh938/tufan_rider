@@ -1,0 +1,2 @@
+/Users/ashok/Documents/tufan_rider/android/app/.cxx/Debug/2j5z1a4o/x86/CMakeFiles/edit_cache.dir
+/Users/ashok/Documents/tufan_rider/android/app/.cxx/Debug/2j5z1a4o/x86/CMakeFiles/rebuild_cache.dir

@@ -40,7 +40,7 @@ class CustomToast {
   static OverlayState? _getOverlayState(BuildContext? context) {
     if (context != null) {
       final overlay = Overlay.of(context);
-      if (overlay != null) return overlay;
+      return overlay;
     }
 
     if (navigatorKey.currentState?.overlay != null) {
@@ -193,7 +193,7 @@ class _ToastWidgetState extends State<_ToastWidget>
             opacity: _opacityAnimation,
             child: Material(
               color: Colors.transparent,
-              child: Container(
+              child: SizedBox(
                 width: MediaQuery.of(context).size.width,
                 child: GestureDetector(
                   onTap: _dismissWithAnimation,

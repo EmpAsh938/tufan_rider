@@ -16,7 +16,7 @@ class RegistrationCubit extends Cubit<RegistrationState> {
   Future<void> sendOtp(String phoneNumber) async {
     emit(RegistrationLoading());
     try {
-      final data = await _repository.requestOTP(phoneNumber);
+      await _repository.requestOTP(phoneNumber);
       emit(OtpSent());
     } catch (e) {
       emit(OtpSendFailure(e.toString()));

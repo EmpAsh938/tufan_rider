@@ -500,4 +500,75 @@ class ApiService {
       throw DioExceptions.fromDioError(e);
     }
   }
+
+  Future<Response> getAllEmergencyContacts(String token) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.getEmergencyContacts,
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getEmergencyContactsbyUser(
+      String userId, String token) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.getEmergencyContactById(userId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> addEmergencyContact(
+      String userId, String token, String name, String mobile) async {
+    try {
+      final response = _dio.post(
+        ApiEndpoints.addEmergencyContact(userId),
+        data: {
+          'name': name,
+          'mobile': mobile,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> deleteEmergencyContact(
+      String emergencyId, String token) async {
+    try {
+      final response = _dio.delete(
+        ApiEndpoints.deleteEmergencyContact(emergencyId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
 }

@@ -7,9 +7,10 @@ import 'package:tufan_rider/features/auth/cubit/registration_cubit.dart';
 import 'package:tufan_rider/features/auth/repository/auth_repository.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
-import 'package:tufan_rider/features/global_cubit/mode_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/emergency_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/map/repository/emergency_repository.dart';
 import 'package:tufan_rider/features/map/repository/map_repository.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
@@ -32,9 +33,10 @@ void setupLocator() {
       () => MapRepository(locator<ApiService>()));
   locator.registerLazySingleton<RiderRepository>(
       () => RiderRepository(locator<ApiService>()));
+  locator.registerLazySingleton<EmergencyRepository>(
+      () => EmergencyRepository(locator<ApiService>()));
 
   // Register cubits
-  locator.registerLazySingleton<ModeCubit>(() => ModeCubit());
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
   locator.registerLazySingleton<AuthCubit>(
       () => AuthCubit(locator<AuthRepository>()));
@@ -55,4 +57,6 @@ void setupLocator() {
       () => RideRequestCubit(locator<RiderRepository>()));
   locator.registerFactory<ProposePriceCubit>(
       () => ProposePriceCubit(locator<RiderRepository>()));
+  locator.registerFactory<EmergencyCubit>(
+      () => EmergencyCubit(locator<EmergencyRepository>()));
 }

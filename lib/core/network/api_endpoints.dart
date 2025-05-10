@@ -60,4 +60,14 @@ class ApiEndpoints {
   // upload riders docs
   static String uploadRiderDocuments(String userId) =>
       '/rider/file/upload/$userId';
+
+  // emergency
+  static const String getEmergencyContacts = '/emergencycontact';
+  static String getEmergencyContactById(String userId) =>
+      '/emergencycontact/user/$userId';
+  static String addEmergencyContact(String userId) =>
+      '/emergencycontact/user/$userId';
+
+  static String deleteEmergencyContact(String emergencyId) =>
+      '/emergencycontact/$emergencyId';
 }
