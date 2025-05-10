@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/cubit/ride_request_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/ride_request_state.dart';
@@ -88,13 +90,6 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    fetchRiders();
-  }
-
-  @override
   void dispose() {
     for (var controller in _controllers.values) {
       controller.dispose();
@@ -103,44 +98,62 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return BlocListener<RideRequestCubit, RideRequestState>(
-        listener: (context, state) {
-          _handleStateChanges(state);
-        },
-        child: Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: MediaQuery.of(context).size.height * 0.5, // Adjust as needed
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: _requests.map((request) {
-                final animation =
-                    _animations[request.rideRequestId.toString()]!;
+  void initState() {
+    super.initState();
 
-                return SlideTransition(
-                  position: animation,
-                  child: RiderRequestCard(
-                    request: request,
-                    onDecline: () =>
-                        _removeRequestById(request.rideRequestId.toString()),
-                    onAccept: () {
-                      // _removeRequestById(request.id);
-                      // final loginResponse = context.read<AuthCubit>().loginResponse;
-                      // if (loginResponse == null) return;
-                      // context
-                      //     .read<AddressCubit>()
-                      //     .approveRide('52', '43', loginResponse.token);
-                      // _removeAllRequests();
-                      widget.prepareDriverArriving(request);
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ));
+    // fetchRiders();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return
+        //  BlocListener<RideRequestCubit, RideRequestState>(
+        //     listener: (context, state) {
+        //       _handleStateChanges(state);
+        //     },
+        BlocListener<StompSocketCubit, StompSocketState>(
+            listener: (context, state) {
+              // _handleStateChanges(state);
+              if (state is RiderRequestMessageReceived) {
+                // final request = RideRequestModel.fromJson(state.message);
+                // _addRequest(request);
+                print(state.message);
+              }
+            },
+            child: Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height:
+                  MediaQuery.of(context).size.height * 0.5, // Adjust as needed
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _requests.map((request) {
+                    final animation =
+                        _animations[request.rideRequestId.toString()]!;
+
+                    return SlideTransition(
+                      position: animation,
+                      child: RiderRequestCard(
+                        request: request,
+                        onDecline: () => _removeRequestById(
+                            request.rideRequestId.toString()),
+                        onAccept: () {
+                          // _removeRequestById(request.id);
+                          // final loginResponse = context.read<AuthCubit>().loginResponse;
+                          // if (loginResponse == null) return;
+                          // context
+                          //     .read<AddressCubit>()
+                          //     .approveRide('52', '43', loginResponse.token);
+                          // _removeAllRequests();
+                          widget.prepareDriverArriving(request);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ));
   }
 }

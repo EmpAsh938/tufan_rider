@@ -5,18 +5,20 @@ import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 
 class StompSocketCubit extends Cubit<StompSocketState> {
   StompSocketCubit() : super(StompSocketInitial()) {
-    // connectSocket('', '48');
+    connectSocket('10');
   }
 
   StompClient? _stompClient;
 
-  void connectSocket(String token, String userId) {
+  StompClient? get stompClient => _stompClient;
+
+  void connectSocket(String riderUserId) {
     emit(StompSocketConnecting());
 
     _stompClient = StompClient(
       config: StompConfig.sockJS(
         url: '${ApiConstants.socketUrl}/ride-websocket',
-        onConnect: _onConnect,
+        onConnect: (StompFrame frame) => _onConnect(frame, riderUserId),
         beforeConnect: () async {
           print('Connecting to STOMP...');
           await Future.delayed(Duration(milliseconds: 200));
@@ -48,7 +50,7 @@ class StompSocketCubit extends Cubit<StompSocketState> {
     _stompClient?.activate();
   }
 
-  void _onConnect(StompFrame frame) {
+  void _onConnect(StompFrame frame, String riderUserId) {
     print('✅ Connected to STOMP');
     emit(StompSocketConnected());
 
@@ -57,6 +59,14 @@ class StompSocketCubit extends Cubit<StompSocketState> {
       callback: (frame) {
         final message = frame.body;
         print('📩 Received: $message');
+        emit(StompSocketMessageReceived(message!));
+      },
+    );
+    _stompClient?.subscribe(
+      destination: '/topic/sorted-ride-requests/$riderUserId',
+      callback: (frame) {
+        final message = frame.body;
+        print('📩 Received Ride Requests: $message');
         emit(StompSocketMessageReceived(message!));
       },
     );

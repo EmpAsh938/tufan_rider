@@ -9,6 +9,7 @@ import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_state.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class RiderRegistration extends StatefulWidget {
@@ -40,50 +41,52 @@ class _RiderRegistrationState extends State<RiderRegistration> {
     return Scaffold(
       body: SafeArea(
           child: BlocListener<CreateRiderCubit, CreateRiderState>(
-        listener: (context, state) {
-          if (state is CreateRiderStateFailure) {
-            CustomToast.show(
-              state.message,
-              context: context,
-              toastType: ToastType.error,
-            );
-          }
-        },
-        child: BlocBuilder<CreateRiderCubit, CreateRiderState>(
-          builder: (context, state) {
-            if (state is CreateRiderStateLoading) {
-              return Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primaryColor,
-                ),
-              );
-            }
+              listenWhen: (previous, current) =>
+                  current is! CreateRiderStateLoading &&
+                  current is! CreateRiderStateFailure,
+              listener: (context, state) {
+                final riderResponse =
+                    context.read<CreateRiderCubit>().riderResponse;
 
-            final riderResponse =
-                context.read<CreateRiderCubit>().riderResponse;
+                if (riderResponse != null &&
+                    riderResponse.status.toLowerCase() == 'approved') {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => RiderMapScreen()),
+                  );
+                }
+              },
+              child: BlocBuilder<CreateRiderCubit, CreateRiderState>(
+                builder: (context, state) {
+                  if (state is CreateRiderStateLoading) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
+                      ),
+                    );
+                  }
 
-            // Case 1: Rider exists and is active
-            if (riderResponse != null &&
-                riderResponse.status.toLowerCase() == 'active') {
-              // Navigate to home/dashboard after small delay
-              Future.delayed(Duration.zero, () {
-                Navigator.pushReplacementNamed(context, AppRoutes.map);
-              });
-              return Center(
-                  child: CircularProgressIndicator()); // Temporary loading
-            }
+                  if (state is CreateRiderStateFailure) {
+                    CustomToast.show(
+                      state.message,
+                      context: context,
+                      toastType: ToastType.error,
+                    );
+                  }
 
-            // Case 2: Rider exists but pending approval
-            if (riderResponse != null &&
-                riderResponse.status.toLowerCase() == 'pending') {
-              return _buildPendingApprovalUI();
-            }
+                  final riderResponse =
+                      context.read<CreateRiderCubit>().riderResponse;
 
-            // Case 3: No rider exists (default case)
-            return _buildRegistrationPromptUI();
-          },
-        ),
-      )),
+                  // Case 2: Rider exists but pending approval
+                  if (riderResponse != null &&
+                      riderResponse.status.toLowerCase() == 'pending') {
+                    return _buildPendingApprovalUI();
+                  }
+
+                  // Case 3: No rider exists (default case)
+                  return _buildRegistrationPromptUI();
+                },
+              ))),
       drawer: CustomDrawer(),
     );
   }

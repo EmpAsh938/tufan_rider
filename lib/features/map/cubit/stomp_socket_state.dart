@@ -18,6 +18,11 @@ class StompSocketMessageReceived extends StompSocketState {
   const StompSocketMessageReceived(this.message);
 }
 
+class RiderRequestMessageReceived extends StompSocketState {
+  final String message;
+  const RiderRequestMessageReceived(this.message);
+}
+
 class StompSocketDisconnected extends StompSocketState {}
 
 class StompSocketError extends StompSocketState {
