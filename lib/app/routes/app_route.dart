@@ -6,6 +6,7 @@ import 'package:tufan_rider/features/auth/presentation/screens/signup_screen.dar
 import 'package:tufan_rider/features/map/presentation/screens/address_search_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/screens/map_screen.dart';
+import 'package:tufan_rider/features/permissions/presentation/screens/permission_screen.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/credit_history.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_credit_screen.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
@@ -36,12 +37,15 @@ class AppRoutes {
   static const String riderSignupFlow = '/riderSignup';
   static const String riderCredit = '/riderCredit';
   static const String riderCreditHistory = '/riderCreditHistory';
+  static const String permissionScreen = '/permissions';
 
   static Route<dynamic>? generateRoute(
       RouteSettings routeSettings, LoginResponse? loginResponse) {
     switch (routeSettings.name) {
       case splash:
         return _fadeRoute(const SplashScreen(), routeSettings);
+      case permissionScreen:
+        return _fadeRoute(const PermissionScreen(), routeSettings);
       case login:
         return _slideFromRight(LoginScreen(), routeSettings);
       case signup:
@@ -59,9 +63,9 @@ class AppRoutes {
         final roleId = loginResponse.user.roles.first.id.toString();
 
         if (modes == 'rider') {
-          if (roleId == '504') {
-            return _slideFromRight(const RiderMapScreen(), routeSettings);
-          }
+          // if (roleId == '504') {
+          //   return _slideFromRight(const RiderMapScreen(), routeSettings);
+          // }
           return _slideFromRight(const RiderRegistration(), routeSettings);
         } else {
           return _slideFromRight(const MapScreen(), routeSettings);

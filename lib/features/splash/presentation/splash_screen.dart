@@ -3,6 +3,7 @@ import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/core/utils/permission_checker.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -26,6 +27,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initAndNavigate() async {
     authCubit.initialize();
+
+    // Check permissions
+    await PermissionChecker.checkLocationPermission();
+    await PermissionChecker.checkCallPermission();
+    await PermissionChecker.checkGalleryPermission();
+
     await Future.delayed(const Duration(seconds: 2));
 
     final loginResponse = authCubit.loginResponse;

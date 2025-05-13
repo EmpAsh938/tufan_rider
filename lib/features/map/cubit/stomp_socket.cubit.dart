@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
+import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 
 class StompSocketCubit extends Cubit<StompSocketState> {
   StompSocketCubit() : super(StompSocketInitial()) {
@@ -59,7 +62,12 @@ class StompSocketCubit extends Cubit<StompSocketState> {
       callback: (frame) {
         final message = frame.body;
         print('📩 Received: $message');
-        emit(StompSocketMessageReceived(message!));
+        if (message != null) {
+          final decoded = jsonDecode(message);
+          final rideRequest = RideRequestModel.fromJson(decoded);
+          emit(RiderRequestMessageReceived(rideRequest));
+          print("EMITTED");
+        }
       },
     );
     _stompClient?.subscribe(

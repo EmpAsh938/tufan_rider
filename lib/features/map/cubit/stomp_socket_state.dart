@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 
 abstract class StompSocketState extends Equatable {
   const StompSocketState();
@@ -19,8 +20,8 @@ class StompSocketMessageReceived extends StompSocketState {
 }
 
 class RiderRequestMessageReceived extends StompSocketState {
-  final String message;
-  const RiderRequestMessageReceived(this.message);
+  final RideRequestModel rideRequest;
+  const RiderRequestMessageReceived(this.rideRequest);
 }
 
 class StompSocketDisconnected extends StompSocketState {}

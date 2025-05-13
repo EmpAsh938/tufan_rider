@@ -117,7 +117,7 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
               if (state is RiderRequestMessageReceived) {
                 // final request = RideRequestModel.fromJson(state.message);
                 // _addRequest(request);
-                print(state.message);
+                _addRequest(state.rideRequest);
               }
             },
             child: Positioned(

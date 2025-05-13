@@ -10,7 +10,7 @@ class RideRequestModel {
   final double sLongitude;
   final String sName;
   final double totalKm;
-  final DateTime addedDate;
+  final DateTime? addedDate;
   final User user;
   final double replacePessengerPrice;
   final double generatedPrice;
@@ -38,6 +38,34 @@ class RideRequestModel {
   });
 
   factory RideRequestModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parseAddedDate(dynamic input) {
+      if (input == null) return null;
+
+      try {
+        // Case 1: it's a list like [2025, 5, 13, 14, 23, 0, 840000000]
+        if (input is List && input.length >= 6) {
+          return DateTime(
+            input[0],
+            input[1],
+            input[2],
+            input[3],
+            input[4],
+            input[5],
+            input.length > 6 ? input[6] ~/ 1000000 : 0,
+          );
+        }
+
+        // Case 2: it's a string
+        if (input is String) {
+          return DateTime.tryParse(input);
+        }
+      } catch (e) {
+        print("❌ Failed to parse addedDate: $e");
+      }
+
+      return null;
+    }
+
     return RideRequestModel(
       rideRequestId: json['rideRequestId'],
       actualPrice: json['actualPrice'].toDouble(),
@@ -48,18 +76,10 @@ class RideRequestModel {
       sLongitude: json['s_longitude'].toDouble(),
       sName: json['s_Name'],
       totalKm: json['total_Km'].toDouble(),
-      addedDate: DateTime(
-        json['addedDate'][0],
-        json['addedDate'][1],
-        json['addedDate'][2],
-        json['addedDate'][3],
-        json['addedDate'][4],
-        json['addedDate'][5],
-        json['addedDate'][6] ~/ 1000000,
-      ),
+      addedDate: parseAddedDate(json['addedDate']),
       user: User.fromJson(json['user']),
       replacePessengerPrice: json['replacePessengerPrice'].toDouble(),
-      generatedPrice: json['generatedPrice'].toDouble(),
+      generatedPrice: (json['generatedPrice'] ?? 0).toDouble(),
       status: json['status'],
       ridebookedId: json['ridebookedId'],
       category: Category.fromJson(json['category']),
