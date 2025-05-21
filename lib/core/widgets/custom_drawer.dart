@@ -284,7 +284,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       // }),
                       _buildDrawerButton('Tufan Credits', () {
                         Scaffold.of(context).closeDrawer();
-                        if (isInActive) {
+                        if (!isInActive) {
                           CustomToast.show(
                             'You need to be registered and active to use the feature',
                             context: context,

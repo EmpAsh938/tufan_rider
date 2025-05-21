@@ -5,11 +5,11 @@ import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
-import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 
 class OfferFareScreen extends StatefulWidget {
@@ -48,8 +48,9 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
       destination = destinationInfo;
       isLoading = false;
       fareResponse = fareInfo;
-      fareController.text =
-          fareInfo == null ? '' : fareInfo.generatedPrice.toStringAsFixed(0);
+      fareController.text = fareInfo == null
+          ? ''
+          : (fareInfo.generatedPrice + 10).ceil().toString();
     });
   }
 
@@ -110,8 +111,8 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
 
                           final diff = (number - generated).abs();
 
-                          if (diff != 10) {
-                            return 'Fare must be either +10 or -10 of the generated price';
+                          if (diff > 10) {
+                            return 'Fare must be within ±10 of the generated price';
                           }
 
                           return null;
@@ -226,29 +227,29 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                     const SizedBox(height: 24),
                     _paymentMethodSelector(),
                     const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            "Automatically accept the nearest driver for your fare",
-                            style: AppTypography.smallText.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        CustomSwitch(
-                          isActive: true,
-                          switchValue: autoAccept,
-                          onChanged: (bool value) {
-                            setState(() {
-                              autoAccept = value;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     Expanded(
+                    //       child: Text(
+                    //         "Automatically accept the nearest driver for your fare",
+                    //         style: AppTypography.smallText.copyWith(
+                    //           fontSize: 14,
+                    //           fontWeight: FontWeight.w600,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //     CustomSwitch(
+                    //       isActive: true,
+                    //       switchValue: autoAccept,
+                    //       onChanged: (bool value) {
+                    //         setState(() {
+                    //           autoAccept = value;
+                    //         });
+                    //       },
+                    //     ),
+                    //   ],
+                    // ),
                     Spacer(),
                     Center(
                       child: isFindingRides
@@ -385,16 +386,19 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
           );
       if (rideRequest == null) {
         return CustomToast.show(
-          'Ride could not be created',
+          'Ride fare is either too low or high',
           context: context,
           toastType: ToastType.error,
         );
       }
       // put id from ride request here
-      await context.read<AddressCubit>().showRiders(
-            // rideRequest.rideRequestId.toString(),
-            '18',
-          );
+      // await context.read<AddressCubit>().showRiders(
+      //       rideRequest.rideRequestId.toString(),
+      // );
+      context
+          .read<StompSocketCubit>()
+          .subscribeToRideRiders(rideRequest.rideRequestId.toString());
+
       Navigator.pop(context, {
         'isFindDriversActive': true,
       });

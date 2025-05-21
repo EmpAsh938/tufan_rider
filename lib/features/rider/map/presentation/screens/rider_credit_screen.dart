@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
@@ -9,6 +10,7 @@ import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:imepay_merchant_sdk/start_sdk.dart';
 import 'package:tufan_rider/core/utils/random_id_generator.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 
 class RiderCreditScreen extends StatefulWidget {
   const RiderCreditScreen({super.key});
@@ -142,6 +144,7 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final riderResponse = context.read<CreateRiderCubit>().riderResponse;
     return SafeArea(
       child: Scaffold(
         drawer: const CustomDrawer(),
@@ -220,7 +223,7 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              "NPR6000",
+                              "NPR${riderResponse == null ? 0 : riderResponse.balance}",
                               style: AppTypography.labelText.copyWith(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,

@@ -22,7 +22,7 @@ class RiderRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(16.0),
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
@@ -30,104 +30,175 @@ class RiderRequestCard extends StatelessWidget {
           color: AppColors.primaryBlack.withOpacity(0.1),
           width: 1,
         ),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          // Top Section
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: Photo
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppColors.primaryColor,
-                backgroundImage: (request.user.imageName != null &&
-                        request.user.imageName!.isNotEmpty)
-                    ? NetworkImage(ApiEndpoints.baseUrl +
-                        ApiEndpoints.getImage(request.user.imageName!))
-                    : null,
-                child: (request.user.imageName == null ||
-                        request.user.imageName!.isEmpty)
-                    ? Icon(
-                        Icons.person,
-                        size: 40,
-                        color: AppColors.primaryBlack,
-                      )
-                    : null,
+              // Profile Avatar
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primaryColor.withOpacity(0.2),
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.primaryColor.withOpacity(0.1),
+                  backgroundImage: (request.user.imageName != null &&
+                          request.user.imageName!.isNotEmpty)
+                      ? NetworkImage(ApiEndpoints.baseUrl +
+                          ApiEndpoints.getImage(request.user.imageName!))
+                      : null,
+                  child: (request.user.imageName == null ||
+                          request.user.imageName!.isEmpty)
+                      ? Icon(
+                          Icons.person,
+                          size: 32,
+                          color: AppColors.primaryBlack.withOpacity(0.6),
+                        )
+                      : null,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
 
-              // Middle: Name, Vehicle, Ratings, Source → Destination
+              // Main Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(TextUtils.capitalizeEachWord(request.user.name),
-                        style: AppTypography.labelText),
-                    SizedBox(
-                      height: 8,
-                    ),
+                    // Name and Price
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Source
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_on,
-                                  size: 16, color: Colors.green),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  request.sName,
-                                  style: AppTypography.labelText,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          TextUtils.capitalizeEachWord(request.user.name),
+                          style: AppTypography.labelText.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
                         ),
-
-                        const SizedBox(width: 8),
-
-                        // Destination
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.flag,
-                                  size: 16, color: Colors.red),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  request.dName,
-                                  style: AppTypography.labelText,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                        const Spacer(),
+                        Text(
+                          'NPR ${request.actualPrice}',
+                          style: AppTypography.labelText.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryColor,
+                            fontSize: 16,
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+
+                    // Distance
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.directions_car,
+                          size: 16,
+                          color: AppColors.primaryBlack.withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${request.totalKm} km',
+                          style: AppTypography.labelText.copyWith(
+                            color: AppColors.primaryBlack.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
 
-              // Right: Arrow + Fare
+              // Action Button
               Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   IconButton(
                     onPressed: onAccept,
-                    icon: const Icon(Icons.arrow_forward_ios_outlined,
-                        color: Colors.grey),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 20,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text('NPR${request.actualPrice}',
-                      style: AppTypography.labelText),
                 ],
               ),
             ],
+          ),
+          // Route Information
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                // Source
+                Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 10,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        request.sName,
+                        style: AppTypography.labelText.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Destination
+                Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 10,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        request.dName,
+                        style: AppTypography.labelText.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

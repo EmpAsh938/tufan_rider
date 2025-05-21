@@ -137,4 +137,19 @@ class RiderRepository {
       token,
     );
   }
+
+  Future<List<Map<String, dynamic>>> getTransactionHistory(
+    String riderId,
+    String token,
+  ) async {
+    final response = await _apiService.getTransactionHistory(riderId, token);
+    if (response.data is List) {
+      final transactionsList = response.data as List;
+      return transactionsList
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
+    } else {
+      throw Exception("Unexpected response format");
+    }
+  }
 }

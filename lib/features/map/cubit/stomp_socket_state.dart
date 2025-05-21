@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
+import 'package:tufan_rider/features/rider/map/models/ride_request_passenger_model.dart';
 
 abstract class StompSocketState extends Equatable {
   const StompSocketState();
@@ -20,8 +22,53 @@ class StompSocketMessageReceived extends StompSocketState {
 }
 
 class RiderRequestMessageReceived extends StompSocketState {
+  final RideRequestPassengerModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RiderRequestMessageReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
+class PassengerMessageReceived extends StompSocketState {
+  final List<RiderBargainModel> rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  PassengerMessageReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
+class RideRejectedReceived extends StompSocketState {
   final RideRequestModel rideRequest;
-  const RiderRequestMessageReceived(this.rideRequest);
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RideRejectedReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
+class RideDeclineReceived extends StompSocketState {
+  final RideRequestModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RideDeclineReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
+class RideApproveReceived extends StompSocketState {
+  final RideRequestModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RideApproveReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
 }
 
 class StompSocketDisconnected extends StompSocketState {}

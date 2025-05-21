@@ -1,19 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
+import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/selectable_icons_row.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
-class LocationSetttingBottomsheet extends StatelessWidget {
+class LocationSetttingBottomsheet extends StatefulWidget {
   final TextEditingController sourceController;
   final TextEditingController destinationController;
   final void Function(String) onTapped;
+  final VoidCallback onPressed;
 
   const LocationSetttingBottomsheet({
     super.key,
     required this.sourceController,
     required this.destinationController,
     required this.onTapped,
+    required this.onPressed,
   });
+
+  @override
+  State<LocationSetttingBottomsheet> createState() =>
+      _LocationSetttingBottomsheetState();
+}
+
+class _LocationSetttingBottomsheetState
+    extends State<LocationSetttingBottomsheet> {
+  bool isLoading = false;
+  Future<void> fetchRideHistory() async {
+    if (!mounted) return;
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      await context.read<AddressCubit>().showRideHistory();
+    } catch (e) {
+      print(e);
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchRideHistory();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,73 +57,174 @@ class LocationSetttingBottomsheet extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SelectableIconsRow(),
-                SizedBox(height: 10),
-                buildLocationField(
-                  label: "From",
-                  icon: Icons.location_on_outlined,
-                  imagePath: Assets.icons.locationPinSource.path,
-                  controller: sourceController,
+                // Transportation type selector
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const SelectableIconsRow(),
                 ),
-                SizedBox(height: 10),
-                buildLocationField(
-                  label: "To",
-                  icon: Icons.location_on_outlined,
-                  imagePath: Assets.icons.locationPinDestination.path,
-                  controller: destinationController,
+                const SizedBox(height: 20),
+
+                // Location fields
+                Column(
+                  children: [
+                    buildLocationField(
+                      label: "From",
+                      icon: Icons.location_on_outlined,
+                      imagePath: Assets.icons.locationPinSource.path,
+                      controller: widget.sourceController,
+                    ),
+                    const SizedBox(height: 16),
+                    buildLocationField(
+                      label: "To",
+                      icon: Icons.location_on_outlined,
+                      imagePath: Assets.icons.locationPinDestination.path,
+                      controller: widget.destinationController,
+                    ),
+                  ],
                 ),
-                // SizedBox(height: 30),
-                // InkWell(
-                //   onTap: () {
-                //     setState(() {
-                //       _isDestinationSettingOn = true;
-                //     });
-                //   },
-                //   borderRadius: BorderRadius.circular(8),
-                //   child: Container(
-                //     padding: const EdgeInsets.symmetric(
-                //         vertical: 12, horizontal: 16),
-                //     decoration: BoxDecoration(
-                //       color: AppColors.primaryWhite,
-                //       borderRadius:
-                //           BorderRadius.circular(8),
-                //       border:
-                //           Border.all(color: AppColors.gray),
-                //     ),
-                //     child: Row(
-                //       mainAxisSize: MainAxisSize.min,
-                //       children: [
-                //         Image.asset(
-                //           Assets.icons.carbonMap.path,
-                //           width: 24,
-                //           height: 24,
-                //         ),
-                //         const SizedBox(width: 10),
-                //         Text(
-                //           'Set on Map',
-                //           style: AppTypography.paragraph,
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // ),
-                SizedBox(height: 20),
-                Text(
-                  "Previous History",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 10),
-                ...List.generate(
-                  4,
-                  (index) => ListTile(
-                    leading: Icon(Icons.history, color: Colors.orangeAccent),
-                    title: Text("Sallaghari, Araniko Highway"),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                const SizedBox(height: 24),
+
+                // Set on Map button (commented out)
+                // const SizedBox(height: 30),
+                // InkWell(...)
+
+                // History section
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Previous History",
+                        style: AppTypography.headline.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryBlack,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      !isLoading
+                          ? BlocBuilder<AddressCubit, AddressState>(
+                              builder: (context, state) {
+                                if (state.rideHistory.isEmpty) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 24),
+                                    child: Center(
+                                      child: Text(
+                                        'No ride history yet',
+                                        style: AppTypography.labelText.copyWith(
+                                          color: AppColors.primaryBlack
+                                              .withOpacity(0.5),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.backgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ...state.rideHistory.take(5).map((place) {
+                                        return Column(
+                                          children: [
+                                            ListTile(
+                                              onTap: () {
+                                                final source = RideLocation(
+                                                  lat: place.sLatitude,
+                                                  lng: place.sLongitude,
+                                                  name: place.sName,
+                                                );
+                                                final destination =
+                                                    RideLocation(
+                                                  lat: place.dLatitude,
+                                                  lng: place.dLongitude,
+                                                  name: place.dName,
+                                                );
+                                                context
+                                                    .read<AddressCubit>()
+                                                    .setSource(source);
+                                                context
+                                                    .read<AddressCubit>()
+                                                    .setDestination(
+                                                        destination);
+                                                widget.onPressed();
+                                              },
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 8),
+                                              leading: Container(
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primaryColor
+                                                      .withOpacity(0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.history,
+                                                  color: AppColors.primaryColor,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                              title: Text(
+                                                place.dName,
+                                                style: AppTypography.labelText
+                                                    .copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              subtitle: Text(
+                                                place.sName,
+                                                style: AppTypography.smallText
+                                                    .copyWith(
+                                                  color: AppColors.primaryBlack
+                                                      .withOpacity(0.6),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              trailing: Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 16,
+                                                color: AppColors.primaryBlack
+                                                    .withOpacity(0.4),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, indent: 60),
+                                          ],
+                                        );
+                                      }).toList(),
+                                    ],
+                                  ),
+                                );
+                              },
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                            ),
+                    ],
                   ),
                 ),
               ],
@@ -105,38 +242,55 @@ class LocationSetttingBottomsheet extends StatelessWidget {
     required TextEditingController controller,
   }) {
     return GestureDetector(
-      onTap: () => onTapped(label),
+      onTap: () => widget.onTapped(label),
       child: AbsorbPointer(
         child: TextField(
           controller: controller,
           readOnly: true,
           decoration: InputDecoration(
-            prefixIcon: Image.asset(imagePath),
-            labelText: label,
-            labelStyle: TextStyle(
-              color: AppColors.gray,
+            prefixIcon: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Image.asset(
+                imagePath,
+                width: 24,
+                height: 24,
+              ),
             ),
+            labelText: label,
+            labelStyle: AppTypography.labelText.copyWith(
+              color: AppColors.primaryBlack.withOpacity(0.6),
+            ),
+            floatingLabelBehavior: FloatingLabelBehavior.never,
+            filled: true,
+            fillColor: AppColors.backgroundColor,
             border: OutlineInputBorder(
               borderSide: BorderSide(
-                color: AppColors.gray,
+                color: AppColors.primaryBlack.withOpacity(0.1),
               ),
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(12),
             ),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: AppColors.gray,
+                color: AppColors.primaryBlack.withOpacity(0.1),
               ),
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(12),
             ),
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: AppColors.gray,
+                color: AppColors.primaryColor,
+                width: 1.5,
               ),
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(12),
             ),
-            suffixIcon: Image.asset(
-              Assets.icons.materialSymbolsSearch.path,
+            suffixIcon: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Image.asset(
+                Assets.icons.materialSymbolsSearch.path,
+                width: 24,
+                height: 24,
+              ),
             ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
       ),

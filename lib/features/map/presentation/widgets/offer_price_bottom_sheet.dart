@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
-import 'package:tufan_rider/core/widgets/custom_switch.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_state.dart';
 
 class OfferPriceBottomSheet extends StatelessWidget {
   final VoidCallback onPressed;
@@ -12,7 +13,8 @@ class OfferPriceBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.read<AddressCubit>();
+    final state = context.watch<AddressCubit>().rideRequest;
+    final loginResponse = context.read<AuthCubit>().loginResponse;
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
@@ -34,7 +36,17 @@ class OfferPriceBottomSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  if (state != null) {
+                    context.read<AddressCubit>().updateRideRequest(
+                          RideLocation(
+                              lat: state.dLatitude, lng: state.dLongitude),
+                          (state.actualPrice - 10).toString(),
+                          state.rideRequestId.toString(),
+                          loginResponse!.token,
+                        );
+                  }
+                },
                 style: TextButton.styleFrom(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -52,18 +64,26 @@ class OfferPriceBottomSheet extends StatelessWidget {
                 ),
               ),
               Text(
-                'NPR${state.fareResponse!.generatedPrice.toStringAsFixed(0)}',
+                'NPR${state!.actualPrice.toStringAsFixed(0)}',
                 style: AppTypography.labelText.copyWith(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  context.read<AddressCubit>().updateRideRequest(
+                        RideLocation(
+                            lat: state.dLatitude, lng: state.dLongitude),
+                        (state.actualPrice + 10).toString(),
+                        state.rideRequestId.toString(),
+                        loginResponse!.token,
+                      );
+                },
                 style: TextButton.styleFrom(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  backgroundColor: AppColors.neutralColor,
+                  backgroundColor: AppColors.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -72,41 +92,41 @@ class OfferPriceBottomSheet extends StatelessWidget {
                   '+10',
                   style: AppTypography.actionText.copyWith(
                     fontSize: 20,
-                    color: AppColors.primaryBlack,
+                    color: AppColors.backgroundColor,
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: CustomButton(
-              onPressed: () {},
-              text: 'Raise Fare',
-            ),
-          ),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: CustomButton(
+          //     onPressed: () {},
+          //     text: 'Raise Fare',
+          //   ),
+          // ),
+          // const SizedBox(height: 8),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     Expanded(
+          //       child: Text(
+          //         "Automatically accept the nearest driver for your fare",
+          //         style: AppTypography.smallText.copyWith(
+          //           fontSize: 14,
+          //           fontWeight: FontWeight.w600,
+          //         ),
+          //       ),
+          //     ),
+          //     CustomSwitch(
+          //       isActive: true,
+          //       switchValue: false,
+          //       onChanged: (bool value) {},
+          //     ),
+          //   ],
+          // ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  "Automatically accept the nearest driver for your fare",
-                  style: AppTypography.smallText.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              CustomSwitch(
-                isActive: true,
-                switchValue: false,
-                onChanged: (bool value) {},
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -131,8 +151,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
                       ),
                       children: [
                         TextSpan(
-                          text:
-                              'NPR${state.fareResponse!.generatedPrice.toStringAsFixed(0)}',
+                          text: 'NPR${state.actualPrice.toStringAsFixed(0)}',
                         ),
                         TextSpan(
                             text: '  Cash',
@@ -146,7 +165,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -186,7 +205,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      state.source == null ? '' : state.source!.name ?? '',
+                      state.sName,
                       style: AppTypography.smallText.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
@@ -229,9 +248,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      state.destination == null
-                          ? ''
-                          : state.destination!.name ?? '',
+                      state.dName,
                       style: AppTypography.smallText.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
@@ -244,7 +261,7 @@ class OfferPriceBottomSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: CustomButton(

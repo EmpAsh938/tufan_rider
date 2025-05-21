@@ -5,23 +5,25 @@ import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
+import 'package:tufan_rider/features/rider/map/models/ride_request_passenger_model.dart';
 
 class StompSocketCubit extends Cubit<StompSocketState> {
-  StompSocketCubit() : super(StompSocketInitial()) {
-    connectSocket('10');
-  }
+  StompSocketCubit() : super(StompSocketInitial());
 
   StompClient? _stompClient;
 
   StompClient? get stompClient => _stompClient;
 
-  void connectSocket(String riderUserId) {
+  void connectSocket() {
     emit(StompSocketConnecting());
-
+    if (_stompClient != null) {
+      _stompClient?.deactivate();
+    }
     _stompClient = StompClient(
       config: StompConfig.sockJS(
         url: '${ApiConstants.socketUrl}/ride-websocket',
-        onConnect: (StompFrame frame) => _onConnect(frame, riderUserId),
+        onConnect: (StompFrame frame) => _onConnect(frame),
         beforeConnect: () async {
           print('Connecting to STOMP...');
           await Future.delayed(Duration(milliseconds: 200));
@@ -53,40 +55,149 @@ class StompSocketCubit extends Cubit<StompSocketState> {
     _stompClient?.activate();
   }
 
-  void _onConnect(StompFrame frame, String riderUserId) {
+  void _onConnect(StompFrame frame) {
     print('✅ Connected to STOMP');
     emit(StompSocketConnected());
+    // subscribeToPassengerApproved();
+    // subscribeToRiderApprove();
+    // subscribeToRideReject();
+    // sendMessage();
+    // listendToMessage();
+  }
 
+  // void listendToMessage() {
+  //   if (_stompClient == null) return;
+  //   // Subscribe to topic
+  //   stompClient?.subscribe(
+  //     destination: '/topic/messages', // from @SendTo
+  //     callback: (StompFrame frame) {
+  //       print('Received message: ${frame.body}');
+  //     },
+  //   );
+  //   print('Message Recived');
+  // }
+
+  // void sendMessage() {
+  //   if (_stompClient == null) return;
+  //   // Send a message
+  //   stompClient?.send(
+  //     destination: '/send/message', // from @MessageMapping
+  //     body: '{"content": "Hello from Flutter"}',
+  //   );
+  //   print("MESSAGE SENT");
+  // }
+
+  void subscribeToRideBroadcasts() {
+    if (_stompClient == null) return;
     _stompClient?.subscribe(
-      destination: '/topic/rides',
+      destination: '/topic/eligible-riders',
       callback: (frame) {
         final message = frame.body;
         print('📩 Received: $message');
         if (message != null) {
-          final decoded = jsonDecode(message);
-          final rideRequest = RideRequestModel.fromJson(decoded);
-          emit(RiderRequestMessageReceived(rideRequest));
-          print("EMITTED");
+          try {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideRequestPassengerModel.fromJson(decoded);
+            emit(RiderRequestMessageReceived(rideRequest));
+            print("✅ EMITTED RiderRequestMessageReceived");
+          } catch (e) {
+            print("❌ Failed to parse ride message: $e");
+          }
         }
-      },
-    );
-    _stompClient?.subscribe(
-      destination: '/topic/sorted-ride-requests/$riderUserId',
-      callback: (frame) {
-        final message = frame.body;
-        print('📩 Received Ride Requests: $message');
-        emit(StompSocketMessageReceived(message!));
       },
     );
   }
 
-  void sendMessage(String destination, String body) {
+  void subscribeToRideReject(String rideRequestId) {
+    if (_stompClient == null) return;
+    _stompClient?.subscribe(
+      destination: '/topic/ride-rejected/$rideRequestId',
+      callback: (frame) {
+        final message = frame.body;
+        print('📩 Received RIde Rejected: $message');
+        if (message != null) {
+          try {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideRequestModel.fromJson(decoded);
+            emit(RideRejectedReceived(rideRequest));
+          } catch (e) {
+            print("❌ Failed to parse ride message: $e");
+          }
+        }
+      },
+    );
+  }
+
+  void subscribeToRequestDecline(String riderAppId) {
+    if (_stompClient == null) return;
+    _stompClient?.subscribe(
+      destination: '/topic/passenger-rejected-rider/$riderAppId',
+      callback: (frame) {
+        final message = frame.body;
+        print('📩 Received RIde Decline: $message');
+        if (message != null) {
+          try {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideRequestModel.fromJson(decoded);
+            emit(RideDeclineReceived(rideRequest));
+          } catch (e) {
+            print("❌ Failed to parse ride message: $e");
+          }
+        }
+      },
+    );
+  }
+
+  void subscribeToRiderApprove(String rideRequestId) {
+    if (_stompClient == null) return;
+    _stompClient?.subscribe(
+      destination: '/topic/passenger-approved/$rideRequestId',
+      callback: (frame) {
+        final message = frame.body;
+        print('📩 Received Approve final: $message');
+        if (message != null) {
+          try {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideRequestModel.fromJson(decoded);
+            emit(RideApproveReceived(rideRequest));
+          } catch (e) {
+            print("❌ Failed to parse ride message: $e");
+          }
+        }
+      },
+    );
+  }
+
+  void subscribeToRideRiders(String rideRequestId) {
     if (_stompClient?.connected ?? false) {
-      _stompClient?.send(destination: destination, body: body);
+      final destination = '/topic/rider-approvals/$rideRequestId';
+      _stompClient?.subscribe(
+        destination: destination,
+        callback: (frame) {
+          final message = frame.body;
+          if (message != null) {
+            final decoded = jsonDecode(message) as List<dynamic>;
+            final rideProposals =
+                decoded.map((e) => RiderBargainModel.fromJson(e)).toList();
+            emit(PassengerMessageReceived(rideProposals));
+            print('📩 Received for ride-riders/$rideRequestId: $message');
+          }
+          // Optionally emit another state here
+        },
+      );
     } else {
-      print("Client not connected");
+      print(
+          "Client not connected. Cannot subscribe to ride-riders/$rideRequestId");
     }
   }
+
+  // void sendMessage(String destination, String body) {
+  //   if (_stompClient?.connected ?? false) {
+  //     _stompClient?.send(destination: destination, body: body);
+  //   } else {
+  //     print("Client not connected");
+  //   }
+  // }
 
   void disconnect() {
     print('Stomp Disconnected');

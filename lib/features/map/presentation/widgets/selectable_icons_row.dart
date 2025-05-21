@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class SelectableIconsRow extends StatefulWidget {
@@ -10,17 +12,20 @@ class SelectableIconsRow extends StatefulWidget {
 }
 
 class _SelectableIconsRowState extends State<SelectableIconsRow> {
-  String selectedIcon = 'bike'; // Keep track of the selected icon
+  void changeCategoryId(int index) {
+    context.read<AddressCubit>().setCategoryId(index);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final categoryId = context.watch<AddressCubit>().categoryId;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSelectableIcon(
           imagePath: Assets.icons.bike.path,
-          isSelected: selectedIcon == 'bike',
-          onTap: () => setState(() => selectedIcon = 'bike'),
+          isSelected: categoryId == 1,
+          onTap: () => changeCategoryId(1),
         ),
         const SizedBox(width: 30),
         const SizedBox(
@@ -34,8 +39,8 @@ class _SelectableIconsRowState extends State<SelectableIconsRow> {
         const SizedBox(width: 30),
         _buildSelectableIcon(
           imagePath: Assets.icons.car.path,
-          isSelected: selectedIcon == 'car',
-          onTap: () => setState(() => selectedIcon = 'car'),
+          isSelected: categoryId == 2,
+          onTap: () => changeCategoryId(2),
         ),
       ],
     );

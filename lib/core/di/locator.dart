@@ -16,6 +16,7 @@ import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/ride_request_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/rider_payment_cubit.dart';
 import 'package:tufan_rider/features/rider/map/repository/rider_repository.dart';
 import 'package:tufan_rider/features/sidebar/cubit/update_profile_cubit.dart';
 
@@ -59,4 +60,6 @@ void setupLocator() {
       () => ProposePriceCubit(locator<RiderRepository>()));
   locator.registerFactory<EmergencyCubit>(
       () => EmergencyCubit(locator<EmergencyRepository>()));
+  locator.registerFactory<RiderPaymentCubit>(
+      () => RiderPaymentCubit(locator<RiderRepository>()));
 }

@@ -34,9 +34,16 @@ class ApiEndpoints {
   static String showRideHistory = '/ride-requests/';
 
   static String approveByPassenger(String approveId, String rideRequestId) =>
-      '/ride-requests/approve/$approveId/riderequest/$rideRequestId';
+      '/ride-requests/approve/$approveId/riderequest/$rideRequestId'; //rider
+
   static String rejectRideRequest(String rideRequestId) =>
-      '/ride-requests/$rideRequestId/reject';
+      '/ride-requests/$rideRequestId/reject'; // /topic/ride-rejected
+
+  static String rejectRideApproval(String approveId) =>
+      '/riderAppReq/$approveId/reject'; // /topic/ride-rejected-pess (decline)
+
+  static String updateRideRequest(String rideRequestId) =>
+      '/ride-requests/$rideRequestId';
 
   // riders
   static String createRider(String userId, String categoryId) =>
@@ -70,4 +77,11 @@ class ApiEndpoints {
 
   static String deleteEmergencyContact(String emergencyId) =>
       '/emergencycontact/$emergencyId';
+
+  // payments
+  static String getTransactionHistory(String riderId) =>
+      'riders/$riderId/statement';
+
+  // notifications
+  static String updateFcmToken(String userId) => '/users/$userId/deviceToken';
 }

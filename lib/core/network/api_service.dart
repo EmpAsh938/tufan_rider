@@ -221,6 +221,27 @@ class ApiService {
     }
   }
 
+  Future<Response> updateRideRequest(LocationModel location, String price,
+      String rideRequestId, String token) async {
+    try {
+      final response =
+          await _dio.put(ApiEndpoints.updateRideRequest(rideRequestId),
+              options: Options(
+                headers: {
+                  'Authorization': 'Sandip $token',
+                },
+              ),
+              data: {
+            'actualPrice': price,
+            'd_latitude': location.latitude,
+            'd_longitude': location.longitude,
+          });
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> showRiders(String rideId) async {
     try {
       final response = _dio.get(ApiEndpoints.showRiders(rideId));
@@ -364,6 +385,25 @@ class ApiService {
     try {
       final response = _dio.put(
         ApiEndpoints.rejectRideRequest(rideRequestId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> rejectRideApproval(
+    String approveId,
+    String token,
+  ) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.rejectRideApproval(approveId),
         options: Options(
           headers: {
             'Authorization': 'Sandip $token',
@@ -560,6 +600,45 @@ class ApiService {
     try {
       final response = _dio.delete(
         ApiEndpoints.deleteEmergencyContact(emergencyId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getTransactionHistory(
+    String riderId,
+    String token,
+  ) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.getTransactionHistory(riderId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> updateFcmToken(
+      String userId, String token, String fcmToken) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.updateFcmToken(userId),
+        data: {
+          "deviceToken": fcmToken,
+        },
         options: Options(
           headers: {
             'Authorization': 'Sandip $token',

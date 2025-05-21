@@ -2,12 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/accepted_bottomsheet.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/bargain_price_bottomsheet.dart';
@@ -18,7 +23,7 @@ class RiderMapScreen extends StatefulWidget {
   const RiderMapScreen({super.key});
 
   static const CameraPosition _kDefaultLocation = CameraPosition(
-    target: LatLng(27.7172, 85.3240),
+    target: LatLng(27.686359, 85.413205),
     zoom: 10,
   );
 
@@ -39,6 +44,10 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
   bool isBargain = false;
   RideRequestModel? request;
   Set<Marker> _markers = {};
+
+  Set<Polyline> _polylines = {};
+  List<LatLng> polylineCoordinates = [];
+  PolylinePoints polylinePoints = PolylinePoints();
 
   Future<void> _checkAndFetchLocation() async {
     try {
@@ -85,7 +94,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
           markerId: const MarkerId('current_location'),
           position: _center,
           icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(title: "Your Location"),
         );
         _markers.add(currentLocationMarker);
@@ -158,11 +167,117 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
     );
   }
 
+  void doSocketInitialization() async {
+    final stompCubit = context.read<StompSocketCubit>();
+
+    // Connect socket
+    stompCubit.connectSocket();
+
+    // ✅ Wait until connection is established
+    final subscriptionReady = await stompCubit.stream.firstWhere(
+      (state) => state is StompSocketConnected,
+    );
+
+    // ✅ Now it's safe to call subscriptions
+    stompCubit.subscribeToRideBroadcasts();
+  }
+
+  void resetModals() {
+    setState(() {
+      isAccepted = false;
+      isBargain = false;
+      request = null;
+      _markers.clear();
+    });
+    _checkAndFetchLocation();
+  }
+
+  void showApprove() {
+    setState(() {
+      isBargain = false;
+      isAccepted = true;
+    });
+  }
+
+  void _drawPolyline(LatLng start, LatLng end) {
+    final Polyline polyline = Polyline(
+      polylineId: PolylineId("route"),
+      color: Colors.blue,
+      width: 5,
+      points: polylineCoordinates,
+    );
+
+    setState(() {
+      _polylines.clear();
+
+      _polylines = {polyline};
+    });
+  }
+
+  void _getPolyline(LatLng mid, LatLng destinationLocation) async {
+    try {
+      // Get route from current location to mid-point
+      PolylineResult resultToMid =
+          await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: ApiConstants.mapAPI,
+        request: PolylineRequest(
+          origin: PointLatLng(_center.latitude, _center.longitude),
+          destination: PointLatLng(mid.latitude, mid.longitude),
+          mode: TravelMode.driving,
+          optimizeWaypoints: true,
+        ),
+      );
+
+      // Get route from mid-point to destination
+      PolylineResult resultToDestination =
+          await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: ApiConstants.mapAPI,
+        request: PolylineRequest(
+          origin: PointLatLng(mid.latitude, mid.longitude),
+          destination: PointLatLng(
+              destinationLocation.latitude, destinationLocation.longitude),
+          mode: TravelMode.driving,
+          optimizeWaypoints: true,
+        ),
+      );
+
+      // Clear previous coordinates and add new ones
+      polylineCoordinates.clear();
+      polylineCoordinates.add(_center);
+
+      if (resultToMid.points.isNotEmpty) {
+        for (var point in resultToMid.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+      }
+
+      polylineCoordinates.add(mid);
+
+      if (resultToDestination.points.isNotEmpty) {
+        for (var point in resultToDestination.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+      }
+
+      polylineCoordinates.add(destinationLocation);
+
+      // Draw the polyline
+      _drawPolyline(_center, destinationLocation);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _loadMapStyle();
     _checkAndFetchLocation();
+    doSocketInitialization();
+
     // _getAddressFromLatLng(_center);
     // animationInitialization();
   }
@@ -193,57 +308,73 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                         _controller.complete(controller);
                         controller.setMapStyle(_mapStyleString);
                       },
+                      polylines: _polylines,
                     ),
 
                     // popups
-                    if (!isAccepted && !isBargain)
-                      RiderRequestCardPopup(
+                    Visibility(
+                      visible: !isAccepted && !isBargain,
+                      maintainState: true,
+                      maintainAnimation: true,
+                      maintainSize: false,
+                      child: RiderRequestCardPopup(
+                        showApprove: showApprove,
+                        resetModals: resetModals,
+                        drawPolyline: _getPolyline,
                         prepareDriverArriving: (RideRequestModel request) {
                           setState(() {
                             isBargain = true;
                             this.request = request;
 
-                            final passengerMarker = {
-                              // Create a new Set instead of clearing the existing one
-                              createMarker(
-                                position: LatLng(
-                                    request.dLatitude, request.dLongitude),
-                                label: request.sName,
-                                icon: BitmapDescriptor.defaultMarkerWithHue(
-                                    BitmapDescriptor.hueBlue),
-                                snippet: request.rideRequestId.toString(),
-                                markerId:
-                                    MarkerId(request.rideRequestId.toString()),
-                              ),
-                            };
-                            _markers.addAll(passengerMarker);
+                            final passengerDestinationMarker = createMarker(
+                              position:
+                                  LatLng(request.dLatitude, request.dLongitude),
+                              label: request.dName,
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueRed),
+                              snippet: request.sName.toString(),
+                              markerId: MarkerId(UniqueKey().toString()),
+                            );
+                            final passengerSourceMarker = createMarker(
+                              position:
+                                  LatLng(request.sLatitude, request.sLongitude),
+                              label: request.sName,
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueGreen),
+                              snippet: request.rideRequestId.toString(),
+                              markerId: MarkerId(UniqueKey().toString()),
+                            );
+                            _markers.add(passengerDestinationMarker);
+                            _markers.add(passengerSourceMarker);
                           });
+
                           _controller.future.then((controller) {
                             controller.animateCamera(
                               CameraUpdate.newCameraPosition(
                                 CameraPosition(
                                   target: LatLng(
                                       request.dLatitude, request.dLongitude),
-                                  zoom:
-                                      12.0, // Adjust zoom level as needed (15–17 is usually good for streets)
+                                  zoom: 12.0,
                                 ),
                               ),
                             );
                           });
                         },
                       ),
+                    ),
 
 // bargain bottomsheet
                     if (isBargain && request != null)
                       CustomBottomsheet(
-                          minHeight: MediaQuery.of(context).size.height * 0.3,
-                          maxHeight: MediaQuery.of(context).size.height * 0.3,
+                          minHeight: MediaQuery.of(context).size.height * 0.5,
+                          maxHeight: MediaQuery.of(context).size.height * 0.5,
                           child: BargainPriceBottomsheet(
+                            onCancel: resetModals,
                             onPressed: () {
-                              setState(() {
-                                isBargain = false;
-                                isAccepted = true;
-                              });
+                              // setState(() {
+                              //   isBargain = false;
+                              //   isAccepted = true;
+                              // });
                             },
                             request: request!,
                           )),
@@ -251,8 +382,8 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                     // accepted bottomsheet
                     if (isAccepted && request != null)
                       CustomBottomsheet(
-                          minHeight: MediaQuery.of(context).size.height * 0.3,
-                          maxHeight: MediaQuery.of(context).size.height * 0.3,
+                          minHeight: MediaQuery.of(context).size.height * 0.4,
+                          maxHeight: MediaQuery.of(context).size.height * 0.5,
                           child: AcceptedBottomsheet(
                             onPressed: () {
                               setState(() {
@@ -314,10 +445,15 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                       ElevatedButton(
                         onPressed: () async {
                           await Geolocator.openLocationSettings();
-                          _checkAndFetchLocation(); // Retry
                         },
                         child: Text("Enable Location"),
                       ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () => _checkAndFetchLocation(),
+                        child: Text(
+                            "Try Again to reload the map once you enable location"),
+                      )
                     ],
                   ),
                 ),

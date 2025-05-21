@@ -20,6 +20,7 @@ class AddressState extends Equatable {
   final List<RideHistory> rideHistory;
   final List<RiderRequest> riderRequest;
   final RideRequestModel? acceptedRide;
+  final int categoryId;
 
   const AddressState({
     this.source,
@@ -29,6 +30,7 @@ class AddressState extends Equatable {
     this.acceptedRide,
     this.rideHistory = const [],
     this.riderRequest = const [],
+    this.categoryId = 1,
   });
 
   AddressState copyWith({
@@ -39,6 +41,7 @@ class AddressState extends Equatable {
     RideRequestModel? acceptedRide,
     List<RideHistory>? rideHistory,
     List<RiderRequest>? riderRequest,
+    int categoryId = 1,
   }) {
     return AddressState(
       source: source ?? this.source,
@@ -48,6 +51,7 @@ class AddressState extends Equatable {
       acceptedRide: acceptedRide ?? this.acceptedRide,
       rideHistory: rideHistory ?? this.rideHistory,
       riderRequest: riderRequest ?? this.riderRequest,
+      categoryId: categoryId,
     );
   }
 
@@ -60,5 +64,6 @@ class AddressState extends Equatable {
         acceptedRide,
         rideHistory,
         riderRequest,
+        categoryId,
       ];
 }

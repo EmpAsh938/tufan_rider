@@ -11,6 +11,7 @@ import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_state.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
+import 'package:tufan_rider/services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
                 phoneController.clear();
                 passwordController.clear();
+                NotificationService().sendTokenToServer();
                 Navigator.pushReplacementNamed(context, AppRoutes.map);
               } else if (state is AuthFailure) {
                 CustomToast.show(

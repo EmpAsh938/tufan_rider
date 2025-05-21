@@ -3,7 +3,12 @@ import 'package:permission_handler/permission_handler.dart';
 class PermissionChecker {
   static Future<bool> checkLocationPermission() async {
     final status = await Permission.location.request();
-    return status == PermissionStatus.granted;
+    final alwaysStatus = await Permission.locationAlways.request();
+    final whenStatus = await Permission.locationWhenInUse.request();
+
+    return status == PermissionStatus.granted ||
+        alwaysStatus == PermissionStatus.granted ||
+        whenStatus == PermissionStatus.granted;
   }
 
   static Future<bool> checkCallPermission() async {

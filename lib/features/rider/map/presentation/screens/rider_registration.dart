@@ -22,7 +22,6 @@ class RiderRegistration extends StatefulWidget {
 class _RiderRegistrationState extends State<RiderRegistration> {
   void getRiderByUser() {
     final loginResponse = context.read<AuthCubit>().loginResponse;
-
     if (loginResponse != null) {
       context
           .read<CreateRiderCubit>()
@@ -47,7 +46,6 @@ class _RiderRegistrationState extends State<RiderRegistration> {
               listener: (context, state) {
                 final riderResponse =
                     context.read<CreateRiderCubit>().riderResponse;
-
                 if (riderResponse != null &&
                     riderResponse.status.toLowerCase() == 'approved') {
                   Navigator.pushReplacement(
@@ -66,13 +64,13 @@ class _RiderRegistrationState extends State<RiderRegistration> {
                     );
                   }
 
-                  if (state is CreateRiderStateFailure) {
-                    CustomToast.show(
-                      state.message,
-                      context: context,
-                      toastType: ToastType.error,
-                    );
-                  }
+                  // if (state is CreateRiderStateFailure) {
+                  //   CustomToast.show(
+                  //     state.message,
+                  //     context: context,
+                  //     toastType: ToastType.error,
+                  //   );
+                  // }
 
                   final riderResponse =
                       context.read<CreateRiderCubit>().riderResponse;
