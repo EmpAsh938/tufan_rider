@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DriverArrivingBottomsheet extends StatelessWidget {
   final VoidCallback onPressed;
@@ -179,7 +181,11 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                         icon: Icons.call_outlined,
                         label: 'Call',
                         color: Colors.green,
-                        onPressed: () {},
+                        onPressed: () => _makeEmergencyCall(
+                            context,
+                            proposedRide == null
+                                ? ''
+                                : proposedRide.user.mobileNo),
                         // _makeCall(proposedRide?.driverPhone ?? ''),
                       ),
                       const SizedBox(width: 12),
@@ -294,26 +300,26 @@ class DriverArrivingBottomsheet extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Cancel button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryRed,
-                  side: BorderSide(color: AppColors.primaryRed),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: onPressed,
-                child: Text(
-                  'Cancel Ride',
-                  style: AppTypography.labelText.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
+            // SizedBox(
+            //   width: double.infinity,
+            //   child: OutlinedButton(
+            //     style: OutlinedButton.styleFrom(
+            //       foregroundColor: AppColors.primaryRed,
+            //       side: BorderSide(color: AppColors.primaryRed),
+            //       padding: const EdgeInsets.symmetric(vertical: 16),
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //     ),
+            //     onPressed: onPressed,
+            //     child: Text(
+            //       'Cancel Ride',
+            //       style: AppTypography.labelText.copyWith(
+            //         fontWeight: FontWeight.w700,
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -373,5 +379,66 @@ class DriverArrivingBottomsheet extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _makeEmergencyCall(BuildContext context, String phonenumber) async {
+    // Show confirmation dialog
+    final shouldCall = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              'Emergency Call',
+              style: AppTypography.labelText.copyWith(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            content: Text(
+              'This will call rider immediately. Proceed?',
+              style: AppTypography.labelText,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'Cancel',
+                  style: AppTypography.labelText.copyWith(
+                    color: AppColors.primaryBlack.withOpacity(0.6),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'Call',
+                  style: AppTypography.labelText.copyWith(
+                    color: AppColors.primaryRed,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (shouldCall) {
+      try {
+        // Use url_launcher package to make the call
+        final Uri url = Uri(scheme: 'tel', path: phonenumber);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        } else {
+          CustomToast.show(
+            'Could not launch phone app',
+            context: context,
+            toastType: ToastType.error,
+          );
+        }
+      } catch (e) {
+        CustomToast.show('Error making call',
+            context: context, toastType: ToastType.error);
+      }
+    }
   }
 }

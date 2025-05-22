@@ -57,7 +57,7 @@ class _LocationSetttingBottomsheetState
       children: [
         Expanded(
           child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

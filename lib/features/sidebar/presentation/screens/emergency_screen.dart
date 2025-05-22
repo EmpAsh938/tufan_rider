@@ -530,14 +530,30 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   const SizedBox(width: 8),
                   CustomButton(
                     backgroundColor: AppColors.primaryRed,
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
                       final token = _loginResponse?.token;
                       if (token != null) {
-                        context.read<EmergencyCubit>().deleteEmergencyContact(
+                        final isDeleted = await context
+                            .read<EmergencyCubit>()
+                            .deleteEmergencyContact(
                               contact.econtactId.toString(),
                               token,
                             );
+
+                        // if (isDeleted) {
+                        //   CustomToast.show(
+                        //     'Emergency contact removed successfully',
+                        //     context: context,
+                        //     toastType: ToastType.success,
+                        //   );
+                        // } else {
+                        //   CustomToast.show(
+                        //     'Emergency contact removing failed',
+                        //     context: context,
+                        //     toastType: ToastType.error,
+                        //   );
+                        // }
                       }
                     },
                     text: 'Delete',

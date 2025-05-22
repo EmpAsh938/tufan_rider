@@ -40,10 +40,10 @@ class EmergencyContactCreated extends EmergencyState {
 }
 
 class EmergencyContactDeleted extends EmergencyState {
-  final EmergencyContact deletedContactId;
+  // final EmergencyContact deletedContactId;
 
-  const EmergencyContactDeleted(this.deletedContactId);
+  const EmergencyContactDeleted();
 
   @override
-  List<Object?> get props => [deletedContactId];
+  List<Object?> get props => [];
 }

@@ -45,6 +45,9 @@ class ApiEndpoints {
   static String updateRideRequest(String rideRequestId) =>
       '/ride-requests/$rideRequestId';
 
+  static String completeRide(String rideRequestId) =>
+      '/ride-requests/ride/complete/$rideRequestId'; // put
+
   // riders
   static String createRider(String userId, String categoryId) =>
       '/user/$userId/category/$categoryId/riders';

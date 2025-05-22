@@ -48,9 +48,8 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
       destination = destinationInfo;
       isLoading = false;
       fareResponse = fareInfo;
-      fareController.text = fareInfo == null
-          ? ''
-          : (fareInfo.generatedPrice + 10).ceil().toString();
+      fareController.text =
+          fareInfo == null ? '' : (fareInfo.generatedPrice).ceil().toString();
     });
   }
 

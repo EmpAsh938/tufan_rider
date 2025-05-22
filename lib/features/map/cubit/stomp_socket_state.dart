@@ -71,6 +71,16 @@ class RideApproveReceived extends StompSocketState {
   List<Object?> get props => [rideRequest, timestamp];
 }
 
+class RideCompletionReceive extends StompSocketState {
+  final RideRequestModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RideCompletionReceive(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
 class StompSocketDisconnected extends StompSocketState {}
 
 class StompSocketError extends StompSocketState {

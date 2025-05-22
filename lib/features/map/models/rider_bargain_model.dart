@@ -9,6 +9,9 @@ class RiderBargainModel {
   final int rideRequestId;
   final String vehicleNumber;
   final int id;
+  final double riderLati;
+  final double riderLong;
+  final String riderImage;
 
   RiderBargainModel({
     required this.userId,
@@ -21,6 +24,9 @@ class RiderBargainModel {
     required this.rideRequestId,
     required this.vehicleNumber,
     required this.id,
+    required this.riderLati,
+    required this.riderLong,
+    required this.riderImage,
   });
 
   factory RiderBargainModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +41,9 @@ class RiderBargainModel {
       rideRequestId: json['rideRequestId'],
       vehicleNumber: json['vehicleNumber'],
       id: json['id'],
+      riderLati: (json['riderLati'] as num).toDouble(),
+      riderLong: (json['riderLong'] as num).toDouble(),
+      riderImage: json['riderImage'],
     );
   }
 

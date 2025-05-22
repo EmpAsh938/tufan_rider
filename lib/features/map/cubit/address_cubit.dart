@@ -142,6 +142,20 @@ class AddressCubit extends Cubit<AddressState> {
     }
   }
 
+  Future<bool> completeRide(
+    String rideRequestId,
+    String token,
+  ) async {
+    try {
+      final data = await _repository.completeRide(rideRequestId, token);
+
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
   Future<void> showRiders(String requestId) async {
     try {
       final data = await _repository.showRiders(requestId);

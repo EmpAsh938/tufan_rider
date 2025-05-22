@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
@@ -41,14 +42,18 @@ class RequestCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.white,
-                child: CircleAvatar(
-                  radius: 30,
-                  child: Image.asset(
-                    Assets.images.tufan.path,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                backgroundColor: AppColors.primaryColor,
+                backgroundImage: (request.riderImage.isNotEmpty)
+                    ? NetworkImage(ApiEndpoints.baseUrl +
+                        ApiEndpoints.getImage(request.riderImage))
+                    : null,
+                child: (request.riderImage.isEmpty)
+                    ? Icon(
+                        Icons.person,
+                        size: 40,
+                        color: AppColors.primaryBlack,
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -63,25 +68,25 @@ class RequestCard extends StatelessWidget {
                     Text(TextUtils.capitalizeEachWord(request.name),
                         style: AppTypography.labelText),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star,
-                            size: 16, color: Colors.amberAccent),
-                        const SizedBox(width: 4),
-                        Text('4.9',
-                            style: AppTypography.labelText.copyWith(
-                              fontSize: 14,
-                            )),
-                        const SizedBox(width: 4),
-                        Text(
-                          '(432)',
-                          style: AppTypography.labelText.copyWith(
-                            fontSize: 14,
-                            color: AppColors.primaryBlack.withOpacity(0.4),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     const Icon(Icons.star,
+                    //         size: 16, color: Colors.amberAccent),
+                    //     const SizedBox(width: 4),
+                    //     Text('4.9',
+                    //         style: AppTypography.labelText.copyWith(
+                    //           fontSize: 14,
+                    //         )),
+                    //     const SizedBox(width: 4),
+                    //     Text(
+                    //       '(432)',
+                    //       style: AppTypography.labelText.copyWith(
+                    //         fontSize: 14,
+                    //         color: AppColors.primaryBlack.withOpacity(0.4),
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
                   ],
                 ),
               ),
@@ -98,7 +103,7 @@ class RequestCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text('${request.minToReach.toStringAsFixed(0)} min',
                       style: AppTypography.labelText),
-                  Text('1 km', style: AppTypography.labelText),
+                  // Text('1 km', style: AppTypography.labelText),
                 ],
               ),
             ],

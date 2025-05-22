@@ -90,7 +90,14 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
                     padding: EdgeInsets.all(10),
                     itemCount: state.rideHistory.length,
                     itemBuilder: (context, index) {
-                      return RideCard(ride: state.rideHistory[index]);
+                      if (state.rideHistory[index].status
+                              .toLowerCase()
+                              .trim() ==
+                          'ride_complete') {
+                        return RideCard(ride: state.rideHistory[index]);
+                      }
+                      return const SizedBox
+                          .shrink(); // Return empty widget for 'ride_complete'
                     },
                   ),
                 );
@@ -198,14 +205,15 @@ class _RideCardState extends State<RideCard> {
             Align(
               alignment: Alignment.bottomRight,
               child: Text(
-                widget.ride.status == 'PESSENGER_APPROVED'
-                    ? 'APPROVED'
+                widget.ride.status == 'RIDE_COMPLETE'
+                    ? 'COMPLETED'
                     : widget.ride.status,
                 style: AppTypography.smallText.copyWith(
                   fontSize: 14,
-                  color: widget.ride.status == "PESSENGER_APPROVED"
-                      ? AppColors.primaryGreen
-                      : AppColors.primaryRed,
+                  // color: widget.ride.status == "PESSENGER_APPROVED"
+                  // ? AppColors.primaryGreen
+                  // : AppColors.primaryRed,
+                  color: AppColors.primaryGreen,
                 ),
               ),
             ),

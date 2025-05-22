@@ -109,7 +109,7 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
             widget.resetModals();
           }
           if (state is RideDeclineReceived) {
-            // _removeRequestById(state.rideRequest.rideRequestId.toString());
+            _removeRequestById(state.rideRequest.rideRequestId.toString());
             widget.resetModals();
           }
           if (state is RideApproveReceived) {

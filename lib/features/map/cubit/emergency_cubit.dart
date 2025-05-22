@@ -50,16 +50,18 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     }
   }
 
-  Future<void> deleteEmergencyContact(String econtactId, String token) async {
+  Future<bool> deleteEmergencyContact(String econtactId, String token) async {
     try {
       emit(EmergencyLoading());
       final response =
           await _emergencyRepository.deleteEmergencyContact(econtactId, token);
-      emit(EmergencyContactDeleted(response));
-      _emergencyContactLists
-          .removeWhere((contact) => contact.econtactId == econtactId);
+      emit(EmergencyContactDeleted());
+      _emergencyContactLists.removeWhere(
+          (contact) => contact.econtactId.toString() == econtactId);
+      return true;
     } catch (error) {
       emit(EmergencyFailure(error.toString()));
+      return false;
     }
   }
 }

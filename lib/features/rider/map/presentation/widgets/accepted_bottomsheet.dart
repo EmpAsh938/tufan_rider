@@ -7,6 +7,8 @@ import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -274,9 +276,22 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                                   ),
                                   elevation: 0,
                                 ),
-                                onPressed: () {
+                                onPressed: () async {
+                                  final loginResponse =
+                                      context.read<AuthCubit>().loginResponse;
+                                  if (loginResponse == null) return;
+                                  final isCompleted = await context
+                                      .read<AddressCubit>()
+                                      .completeRide(
+                                          widget.request.rideRequestId
+                                              .toString(),
+                                          loginResponse.token);
+                                  if (!isCompleted) return;
                                   Navigator.pop(context);
-                                  widget.onPressed();
+                                  // widget.onPressed();
+                                  context
+                                      .read<StompSocketCubit>()
+                                      .clearRide(widget.request);
                                 },
                                 child: Text(
                                   'Confirm',

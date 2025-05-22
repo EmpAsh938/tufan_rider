@@ -362,7 +362,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             return;
                           }
                           Navigator.pushNamedAndRemoveUntil(
-                              context, AppRoutes.map, (route) => false);
+                              context, AppRoutes.splash, (route) => false);
                         },
                       ),
                     ),

@@ -11,7 +11,7 @@ import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart'
 
 class RequestCardPopup extends StatefulWidget {
   final VoidCallback prepareDriverArriving;
-  final Function(LatLng, LatLng) drawPolyline;
+  final Function(LatLng, LatLng, LatLng) drawPolyline;
   final Function(String id, Marker marker) createMarkers;
   const RequestCardPopup({
     super.key,
@@ -55,7 +55,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
 
     // Auto-remove after 10 seconds
     Future.delayed(const Duration(seconds: 30), () {
-      // _removeRequestById(request.id);
+      handleAutoDecline(request.rideRequestId.toString());
     });
   }
 
@@ -103,6 +103,30 @@ class _RequestCardPopupState extends State<RequestCardPopup>
   //   }
   // }
 
+  void handleAutoDecline(String rideRequestId) async {
+    if (!mounted) return;
+    final loginResponse = context.read<AuthCubit>().loginResponse;
+    // final rideResponse =
+    //     context.read<AddressCubit>().rideRequest;
+    // if (loginResponse == null || rideResponse == null) return;
+    if (loginResponse == null) return;
+    final isRejected =
+        await context.read<AddressCubit>().rejectRideRequestApproval(
+            // rideResponse.rideRequestId.toString(),
+            rideRequestId,
+            loginResponse.token);
+
+    if (!isRejected) {
+      CustomToast.show(
+        'Request could not be cancelled',
+        context: context,
+        toastType: ToastType.error,
+      );
+      return;
+    }
+    _removeRequestById(rideRequestId.toString());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -123,7 +147,6 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     return BlocListener<StompSocketCubit, StompSocketState>(
         listener: (context, state) {
           if (state is PassengerMessageReceived) {
-            print('hello');
             final existingRequestIds =
                 _requests.map((r) => r.rideRequestId).toSet();
             for (var rideRequest in state.rideRequest) {
@@ -131,7 +154,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
               _addRequest(rideRequest);
               final newMarker = Marker(
                 markerId: MarkerId(rideRequest.rideRequestId.toString()),
-                position: LatLng(27.7172, 85.3240),
+                position: LatLng(rideRequest.riderLati, rideRequest.riderLong),
                 icon: BitmapDescriptor.defaultMarkerWithHue(
                     BitmapDescriptor.hueMagenta),
               );
@@ -174,25 +197,8 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                       return;
                     }
                     _removeRequestById(rideResponse.rideRequestId.toString());
-                    // final loginResponse = context.read<AuthCubit>().loginResponse;
-                    // if (loginResponse == null) return;
-                    // final isRejected = await context
-                    //     .read<AddressCubit>()
-                    //     .rejectRideRequest(
-                    //         request.rideRequestId.toString(), loginResponse.token);
-
-                    // if (!isRejected) {
-                    //   CustomToast.show(
-                    //     'Ride could not be rejected',
-                    //     context: context,
-                    //     toastType: ToastType.error,
-                    //   );
-                    //   return;
-                    // }
-                    // _removeRequestById(request.id.toString());
                   }, // need to cancel the accepted request
                   onAccept: () async {
-                    // need to accept the ride and show in rider also in passenger
                     final loginResponse =
                         context.read<AuthCubit>().loginResponse;
                     final rideResponse =
@@ -214,11 +220,17 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                     }
                     _removeAllRequests();
                     widget.prepareDriverArriving();
-                    final riderLocation = LatLng(27.7172, 85.3240);
+                    context.read<StompSocketCubit>().subscribeToRideCompletion(
+                        request.rideRequestId.toString());
+                    final riderLocation =
+                        LatLng(request.riderLati, request.riderLong);
+                    final sourceLocation =
+                        LatLng(rideResponse.sLatitude, rideResponse.sLongitude);
                     final destinationLocation =
                         LatLng(rideResponse.dLatitude, rideResponse.dLongitude);
 
-                    widget.drawPolyline(riderLocation, destinationLocation);
+                    widget.drawPolyline(
+                        riderLocation, sourceLocation, destinationLocation);
                   },
                 ),
               );

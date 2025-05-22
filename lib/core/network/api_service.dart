@@ -242,6 +242,22 @@ class ApiService {
     }
   }
 
+  Future<Response> completeRide(String rideRequestId, String token) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.completeRide(rideRequestId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> showRiders(String rideId) async {
     try {
       final response = _dio.get(ApiEndpoints.showRiders(rideId));

@@ -32,12 +32,12 @@ class EmergencyRepository {
     return EmergencyContact.fromJson(response.data);
   }
 
-  Future<EmergencyContact> deleteEmergencyContact(
+  Future<void> deleteEmergencyContact(
     String econtactId,
     String token,
   ) async {
     final response =
         await _apiService.deleteEmergencyContact(econtactId, token);
-    return EmergencyContact.fromJson(response.data);
+    // return EmergencyContact.fromJson(response.data);
   }
 }

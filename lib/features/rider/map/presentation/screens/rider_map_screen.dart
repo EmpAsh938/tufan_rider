@@ -11,6 +11,8 @@ import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
@@ -34,7 +36,7 @@ class RiderMapScreen extends StatefulWidget {
 class _RiderMapScreenState extends State<RiderMapScreen> {
   final Completer<GoogleMapController> _controller = Completer();
 
-  LatLng _center = RiderMapScreen._kDefaultLocation.target;
+  final LatLng _center = RiderMapScreen._kDefaultLocation.target;
 
   late String _mapStyleString;
 
@@ -80,10 +82,10 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       final address = await _getAddressFromLatLng(_center);
 
       // // put updated coordinates
-      // locator.get<AddressCubit>().setSource(RideLocation(
-      //     lat: _center.latitude, lng: _center.longitude, name: address));
+      context.read<AddressCubit>().setSource(RideLocation(
+          lat: _center.latitude, lng: _center.longitude, name: address));
 
-      // await locator.get<AddressCubit>().sendCurrentLocationToServer();
+      await context.read<AddressCubit>().sendCurrentLocationToServer();
 
       setState(() {
         // _center = LatLng(position.latitude, position.longitude);
@@ -101,15 +103,17 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       });
 
       final GoogleMapController controller = await _controller.future;
-      // final currentLocation = locator.get<AddressCubit>().source;
-      // controller.animateCamera(
-      //   CameraUpdate.newCameraPosition(
-      //     CameraPosition(
-      //         target: LatLng(currentLocation!.lat, currentLocation.lng),
-      //         zoom: zoomLevel),
-      //   ),
-      // );
+      final currentLocation = context.read<AddressCubit>().source;
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(currentLocation!.lat, currentLocation.lng),
+            zoom: 12,
+          ),
+        ),
+      );
     } catch (e) {
+      print(e);
       setState(() {
         _locationEnabled = false;
         // _currentLocationMarker = null;
@@ -188,6 +192,8 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       isBargain = false;
       request = null;
       _markers.clear();
+      _polylines.clear();
+      polylineCoordinates.clear();
     });
     _checkAndFetchLocation();
   }
@@ -385,12 +391,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                           minHeight: MediaQuery.of(context).size.height * 0.4,
                           maxHeight: MediaQuery.of(context).size.height * 0.5,
                           child: AcceptedBottomsheet(
-                            onPressed: () {
-                              setState(() {
-                                isBargain = false;
-                                isAccepted = false;
-                              });
-                            },
+                            onPressed: resetModals,
                             request: request!,
                           )),
 

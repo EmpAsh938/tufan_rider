@@ -52,6 +52,14 @@ class MapRepository {
     return RideRequestModel.fromJson(response.data);
   }
 
+  Future<RideRequestModel> completeRide(
+    String rideRequestId,
+    String token,
+  ) async {
+    final response = await _apiService.completeRide(rideRequestId, token);
+    return RideRequestModel.fromJson(response.data);
+  }
+
   Future<List<RideHistory>> showRideHistory() async {
     final response = await _apiService.showRideHistory();
     final List<dynamic> data = response.data;
