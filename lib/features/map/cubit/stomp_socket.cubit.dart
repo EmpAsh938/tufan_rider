@@ -221,7 +221,7 @@ class StompSocketCubit extends Cubit<StompSocketState> {
 
   void subscribeToPassengerPickup(String rideRequestId) {
     if (_stompClient?.connected ?? false) {
-      final destination = '/ride/pickup/$rideRequestId';
+      final destination = '/topic/ride-pickup/$rideRequestId';
       _stompClient?.subscribe(
         destination: destination,
         callback: (frame) {

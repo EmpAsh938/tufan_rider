@@ -432,6 +432,25 @@ class ApiService {
     }
   }
 
+  Future<Response> pickupPassenger(
+    String rideRequestId,
+    String token,
+  ) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.pickupPassenger(rideRequestId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> uploadRiderDocuments(
     File uploadedFile,
     String userId,

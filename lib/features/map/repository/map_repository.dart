@@ -96,6 +96,13 @@ class MapRepository {
     await _apiService.rejectRideRequest(approveId, token);
   }
 
+  Future<void> pickupPassenger(
+    String rideRequestId,
+    String token,
+  ) async {
+    await _apiService.pickupPassenger(rideRequestId, token);
+  }
+
   Future<void> createRating(
     String userId,
     String riderId,

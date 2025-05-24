@@ -118,25 +118,24 @@ class _MapScreenState extends State<MapScreen>
           desiredAccuracy: LocationAccuracy.high);
 
       final address = await _getAddressFromLatLng(
-          LatLng(position.latitude, position.longitude));
+          LatLng(_center.latitude, _center.longitude));
 
-      // Update cubit with current position
       locator.get<AddressCubit>().setSource(RideLocation(
-          lat: position.latitude, lng: position.longitude, name: address));
+          lat: _center.latitude, lng: _center.longitude, name: address));
 
       if (isFirstTime) {
         await locator.get<AddressCubit>().sendCurrentLocationToServer();
       }
 
       setState(() {
-        _center = LatLng(position.latitude, position.longitude);
+        // _center = LatLng(position.latitude, position.longitude);
         isFirstTime = false;
         _locationEnabled = true;
         sourceController.text = address ?? '';
         _isLoading = false;
         _currentLocationMarker = Marker(
           markerId: const MarkerId('current_location_person'),
-          position: LatLng(position.latitude, position.longitude),
+          position: LatLng(_center.latitude, _center.longitude),
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(title: "Your Location"),
@@ -144,11 +143,12 @@ class _MapScreenState extends State<MapScreen>
       });
 
       if (_controller.isCompleted) {
+        print('not working');
         final GoogleMapController controller = await _controller.future;
         controller.animateCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(
-              target: LatLng(position.latitude, position.longitude),
+              target: LatLng(_center.latitude, _center.longitude),
               zoom: 14,
             ),
           ),
@@ -421,6 +421,7 @@ class _MapScreenState extends State<MapScreen>
       _dummyMarkers.clear();
       _destinationLocationMarker = null;
       _polylines.clear();
+      _riderMarkers.clear();
       _riderMarkers.clear();
 
       polylineCoordinates.clear();
@@ -721,9 +722,9 @@ class _MapScreenState extends State<MapScreen>
     _checkAndFetchLocation();
 
     // Then update every 5 seconds
-    _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
-      _checkAndFetchLocation();
-    });
+    // _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
+    //   _checkAndFetchLocation();
+    // });
   }
 
   void stopUpdates() {
@@ -831,6 +832,17 @@ class _MapScreenState extends State<MapScreen>
                             onMapCreated: (controller) {
                               _controller.complete(controller);
                               // controller.setMapStyle(_mapStyleString);
+                              if (_controller.isCompleted) {
+                                controller.animateCamera(
+                                  CameraUpdate.newCameraPosition(
+                                    CameraPosition(
+                                      target: LatLng(
+                                          _center.latitude, _center.longitude),
+                                      zoom: 14,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             onCameraMove: _onCameraMove,
                             polylines: _polylines,
@@ -1128,30 +1140,33 @@ class _MapScreenState extends State<MapScreen>
                                   MediaQuery.of(context).size.height * 0.5,
                               minHeight:
                                   MediaQuery.of(context).size.height * 0.3,
-                              child: OfferPriceBottomSheet(onPressed: () async {
-                                final loginResponse =
-                                    context.read<AuthCubit>().loginResponse;
-                                final requestByPassenger =
-                                    context.read<AddressCubit>().rideRequest;
-                                if (loginResponse == null ||
-                                    requestByPassenger == null) return;
-                                final isRejected = await context
-                                    .read<AddressCubit>()
-                                    .rejectRideRequest(
-                                        requestByPassenger.rideRequestId
-                                            .toString(),
-                                        loginResponse.token);
+                              child: OfferPriceBottomSheet(
+                                  drawPolyline: _getPolyline,
+                                  onPressed: (bool isMapReset) async {
+                                    final loginResponse =
+                                        context.read<AuthCubit>().loginResponse;
+                                    final requestByPassenger = context
+                                        .read<AddressCubit>()
+                                        .rideRequest;
+                                    if (loginResponse == null ||
+                                        requestByPassenger == null) return;
+                                    final isRejected = await context
+                                        .read<AddressCubit>()
+                                        .rejectRideRequest(
+                                            requestByPassenger.rideRequestId
+                                                .toString(),
+                                            loginResponse.token);
 
-                                if (!isRejected) {
-                                  CustomToast.show(
-                                    'Request could not be cancelled',
-                                    context: context,
-                                    toastType: ToastType.error,
-                                  );
-                                  return;
-                                }
-                                resetMap();
-                              }),
+                                    if (!isRejected) {
+                                      CustomToast.show(
+                                        'Request could not be cancelled',
+                                        context: context,
+                                        toastType: ToastType.error,
+                                      );
+                                      return;
+                                    }
+                                    if (isMapReset) resetMap();
+                                  }),
                             ),
                             RequestCardPopup(
                               prepareDriverArriving: prepareDriverArriving,

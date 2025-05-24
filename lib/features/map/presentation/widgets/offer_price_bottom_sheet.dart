@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
@@ -8,8 +9,10 @@ import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 
 class OfferPriceBottomSheet extends StatefulWidget {
-  final VoidCallback onPressed;
-  const OfferPriceBottomSheet({super.key, required this.onPressed});
+  final void Function(bool) onPressed;
+  final void Function(LatLng, LatLng, LatLng) drawPolyline;
+  const OfferPriceBottomSheet(
+      {super.key, required this.onPressed, required this.drawPolyline});
 
   @override
   State<OfferPriceBottomSheet> createState() => _OfferPriceBottomSheetState();
@@ -22,6 +25,20 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
     setState(() {
       isSending = value;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final addressCubit = context.read<AddressCubit>();
+    final source = addressCubit.source;
+    final destination = addressCubit.destination;
+    if (source == null || destination == null) return;
+    final sourceCoordinates = LatLng(source.lat, source.lng);
+    final destinationCoordinates = LatLng(destination.lat, destination.lng);
+
+    widget.drawPolyline(
+        sourceCoordinates, sourceCoordinates, destinationCoordinates);
   }
 
   @override
@@ -54,6 +71,8 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
                   onPressed: () async {
                     if (state != null) {
                       handleSending(true);
+                      widget.onPressed(false);
+
                       await context.read<AddressCubit>().updateRideRequest(
                             RideLocation(
                                 lat: state.dLatitude, lng: state.dLongitude),
@@ -90,7 +109,7 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
                 TextButton(
                   onPressed: () async {
                     handleSending(true);
-
+                    widget.onPressed(false);
                     await context.read<AddressCubit>().updateRideRequest(
                           RideLocation(
                               lat: state.dLatitude, lng: state.dLongitude),
@@ -285,7 +304,7 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
             SizedBox(
               width: double.infinity,
               child: CustomButton(
-                onPressed: widget.onPressed,
+                onPressed: () => widget.onPressed(true),
                 backgroundColor: AppColors.gray,
                 textColor: AppColors.primaryRed,
                 text: 'Cancel Request',

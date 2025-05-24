@@ -88,11 +88,11 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       // });
 
       final address = await _getAddressFromLatLng(
-          LatLng(_center.latitude, _center.longitude));
+          LatLng(position.latitude, position.longitude));
 
       // // put updated coordinates
       context.read<AddressCubit>().setSource(RideLocation(
-          lat: _center.latitude, lng: _center.longitude, name: address));
+          lat: position.latitude, lng: position.longitude, name: address));
 
       if (isFirstTime) {
         await context.read<AddressCubit>().sendCurrentLocationToServer();
@@ -100,13 +100,13 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
 
       setState(() {
         isFirstTime = false;
-        // _center = LatLng(position.latitude, position.longitude);
+        _center = LatLng(position.latitude, position.longitude);
         _locationEnabled = true;
         // sourceController.text = address ?? '';
         _isLoading = false;
         final currentLocationMarker = Marker(
           markerId: const MarkerId('current_location'),
-          position: LatLng(_center.latitude, _center.longitude),
+          position: LatLng(position.latitude, position.longitude),
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(title: "Your Location"),
@@ -119,7 +119,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(_center.latitude, _center.longitude),
+            target: LatLng(position.latitude, position.longitude),
             zoom: 12,
           ),
         ),
@@ -294,9 +294,9 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
     _checkAndFetchLocation();
 
     // Then update every 5 seconds
-    _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
-      _checkAndFetchLocation();
-    });
+    // _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
+    //   _checkAndFetchLocation();
+    // });
   }
 
   void stopUpdates() {
@@ -346,6 +346,17 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                       onMapCreated: (controller) {
                         _controller.complete(controller);
                         // controller.setMapStyle(_mapStyleString);
+                        if (_controller.isCompleted) {
+                          controller.animateCamera(
+                            CameraUpdate.newCameraPosition(
+                              CameraPosition(
+                                target:
+                                    LatLng(_center.latitude, _center.longitude),
+                                zoom: 14,
+                              ),
+                            ),
+                          );
+                        }
                       },
                       polylines: _polylines,
                     ),

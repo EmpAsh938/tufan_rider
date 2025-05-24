@@ -29,6 +29,7 @@ class AcceptedBottomsheet extends StatefulWidget {
 
 class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
   Timer? _locationTimer;
+  bool _passengerPicked = false;
 
   Future<void> ensureLocationPermission() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -65,8 +66,8 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
           longitude: position.longitude,
           type:
               'rider-${widget.request.user.id.toString()}-${widget.request.rideRequestId.toString()}',
-          userId: widget.request.user.id.toString(),
-          rideRequestId: widget.request.rideRequestId.toString(),
+          userId: widget.request.user.id,
+          rideRequestId: widget.request.rideRequestId,
         );
 
         print(rideMessageModel.toJson());
@@ -83,11 +84,37 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
     _locationTimer = null;
   }
 
+  Future<void> _markPassengerPicked() async {
+    final loginResponse = context.read<AuthCubit>().loginResponse;
+    if (loginResponse == null) return;
+
+    final isPicked = await context.read<AddressCubit>().pickupPassenger(
+          widget.request.rideRequestId.toString(),
+          loginResponse.token,
+        );
+
+    if (isPicked) {
+      setState(() {
+        _passengerPicked = true;
+      });
+      CustomToast.show(
+        'Passenger marked as picked',
+        context: context,
+        toastType: ToastType.success,
+      );
+    } else {
+      CustomToast.show(
+        'Failed to mark passenger as picked',
+        context: context,
+        toastType: ToastType.error,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-
-    startSendingRiderLiveLocation(); // starts timer and sends every 5 seconds
+    startSendingRiderLiveLocation();
   }
 
   @override
@@ -245,56 +272,58 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
 
             const SizedBox(height: 24),
 
-            // Ride Completed Button
-            CustomButton(
-              text: 'Set Ride as Completed',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      backgroundColor: AppColors.backgroundColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                      actionsPadding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
-                      title: Column(
-                        children: [
-                          Icon(
-                            Icons.directions_car,
-                            size: 40,
-                            color: AppColors.primaryGreen,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Confirm Ride Completion',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryBlack,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                      content: Text(
-                        'Are you sure you want to mark this ride as completed? This action cannot be undone.',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryBlack.withOpacity(0.7),
-                          height: 1.4,
+            // Passenger Picked or Ride Completed Button
+            if (!_passengerPicked)
+              CustomButton(
+                text: 'Passenger Picked',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        backgroundColor: AppColors.backgroundColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      actions: [
-                        Row(
+                        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                        contentPadding:
+                            const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                        actionsPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        title: Column(
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
+                            Icon(
+                              Icons.person,
+                              size: 40,
+                              color: AppColors.primaryGreen,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Confirm Passenger Pickup',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryBlack,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                        content: Text(
+                          'Are you sure you have picked up the passenger?',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryBlack.withOpacity(0.7),
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        actions: [
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor:
                                       AppColors.primaryBlack.withOpacity(0.5),
@@ -316,57 +345,165 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                              )),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+                                    await _markPassengerPicked();
+                                  },
+                                  child: Text(
+                                    'Confirm',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                backgroundColor: AppColors.primaryColor,
+              ),
+
+            if (_passengerPicked)
+              CustomButton(
+                text: 'Set Ride as Completed',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        backgroundColor: AppColors.backgroundColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                        contentPadding:
+                            const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                        actionsPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        title: Column(
+                          children: [
+                            Icon(
+                              Icons.directions_car,
+                              size: 40,
+                              color: AppColors.primaryGreen,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryGreen,
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                onPressed: () async {
-                                  final loginResponse =
-                                      context.read<AuthCubit>().loginResponse;
-                                  if (loginResponse == null) return;
-                                  final isCompleted = await context
-                                      .read<AddressCubit>()
-                                      .completeRide(
-                                          widget.request.rideRequestId
-                                              .toString(),
-                                          loginResponse.token);
-                                  if (!isCompleted) return;
-                                  stopSendingRiderLiveLocation();
-                                  Navigator.pop(context);
-                                  // widget.onPressed();
-                                  context
-                                      .read<StompSocketCubit>()
-                                      .clearRide(widget.request);
-                                },
-                                child: Text(
-                                  'Confirm',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Confirm Ride Completion',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryBlack,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
-                      ],
-                    );
-                  },
-                );
-              },
-              backgroundColor: AppColors.primaryColor,
-            ),
+                        content: Text(
+                          'Are you sure you want to mark this ride as completed? This action cannot be undone.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryBlack.withOpacity(0.7),
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        actions: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor:
+                                        AppColors.primaryBlack.withOpacity(0.5),
+                                    side: BorderSide(
+                                      color: AppColors.primaryBlack
+                                          .withOpacity(0.2),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: () async {
+                                    final loginResponse =
+                                        context.read<AuthCubit>().loginResponse;
+                                    if (loginResponse == null) return;
+                                    final isCompleted = await context
+                                        .read<AddressCubit>()
+                                        .completeRide(
+                                            widget.request.rideRequestId
+                                                .toString(),
+                                            loginResponse.token);
+                                    if (!isCompleted) return;
+                                    stopSendingRiderLiveLocation();
+                                    Navigator.pop(context);
+                                    context
+                                        .read<StompSocketCubit>()
+                                        .clearRide(widget.request);
+                                  },
+                                  child: Text(
+                                    'Confirm',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                backgroundColor: AppColors.primaryColor,
+              ),
           ],
         ),
       ),

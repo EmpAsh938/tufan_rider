@@ -88,7 +88,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
   bool sameAsPermanent = false;
 
   int pages = 6;
-  int maxUserDocUpload = 4;
+  int maxUserDocUpload = 5;
   int maxVehicleDocUpload = 3;
   int currentUserUpload = 0;
   int currentVehicleDocUpload = 0;
@@ -144,12 +144,24 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
               );
           break;
         case UploadType.selfieUpload:
-          // setState(() => _imageFile = File(croppedFile.path));
-          // context.read<UpdateProfileCubit>().uploadProfile(
-          //       File(croppedFile.path),
-          //       _loginResponse!.user.id.toString(),
-          //       _loginResponse!.token,
-          //     );
+          setState(() => _selfieWithIdFile = File(croppedFile.path));
+          final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+
+          if (riderResponse == null) {
+            CustomToast.show(
+              'Rider not found',
+              context: context,
+              toastType: ToastType.error,
+            );
+            return;
+          }
+          context.read<CreateRiderCubit>().uploadRiderDocuments(
+                File(croppedFile.path),
+                riderResponse.id.toString(),
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
+                _loginResponse!.token,
+                'selfie',
+              );
           break;
         case UploadType.licenseUpload:
           setState(() => _licenseImageFile = File(croppedFile.path));
@@ -166,7 +178,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateRiderCubit>().uploadRiderDocuments(
                 File(croppedFile.path),
                 riderResponse.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
                 'license',
               );
@@ -186,7 +198,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateRiderCubit>().uploadRiderDocuments(
                 File(croppedFile.path),
                 riderResponse.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
                 'nid',
               );
@@ -206,7 +218,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateRiderCubit>().uploadRiderDocuments(
                 File(croppedFile.path),
                 riderResponse.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
                 'citizen_back',
               );
@@ -226,7 +238,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateRiderCubit>().uploadRiderDocuments(
                 File(croppedFile.path),
                 riderResponse.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
                 'citizen_front',
               );
@@ -247,7 +259,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateVehicleCubit>().uploadVehicleDocuments(
                 File(croppedFile.path),
                 vehicleResponseModel.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
               );
           break;
@@ -267,7 +279,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateVehicleCubit>().uploadBillbookFront(
                 File(croppedFile.path),
                 vehicleResponseModel.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
               );
           break;
@@ -287,7 +299,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           context.read<CreateVehicleCubit>().uploadBillbookBack(
                 File(croppedFile.path),
                 vehicleResponseModel.id.toString(),
-                (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+                (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
                 _loginResponse!.token,
               );
           break;
@@ -376,7 +388,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
 
     context.read<CreateRiderCubit>().createRider(
           userId.toString(),
-          (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+          (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
           token,
           riderModel,
         );
@@ -397,7 +409,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
 
     context.read<CreateVehicleCubit>().createVehicle(
           userId.toString(),
-          (vehicleType == null && vehicleType == '2 Wheeler') ? '1' : '2',
+          (vehicleType == null || vehicleType == '2 Wheeler') ? '1' : '2',
           token,
           vehicleModel,
         );
@@ -997,6 +1009,11 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           ),
           const SizedBox(
             height: 10,
+          ),
+          CustomFileupload(
+            label: 'Upload Selfie with Document',
+            pickedFile: _selfieWithIdFile,
+            onTap: () => _pickImage(UploadType.selfieUpload),
           ),
           CustomFileupload(
             label: 'Upload License Photo',

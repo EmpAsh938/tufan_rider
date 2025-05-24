@@ -4,19 +4,45 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class DriverArrivingBottomsheet extends StatelessWidget {
+class DriverArrivingBottomsheet extends StatefulWidget {
   final VoidCallback onPressed;
   const DriverArrivingBottomsheet({super.key, required this.onPressed});
+
+  @override
+  State<DriverArrivingBottomsheet> createState() =>
+      _DriverArrivingBottomsheetState();
+}
+
+class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
+  bool _passengerPicked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for passenger picked updates
+    final stompSocketCubit = context.read<StompSocketCubit>();
+    stompSocketCubit.stream.listen((state) {
+      if (state is PassengerPickupReceived) {
+        // Check if this is a passenger picked message
+        setState(() {
+          _passengerPicked = true;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final acceptedRide = context.read<AddressCubit>().acceptedRide;
     final proposedRide =
         context.watch<ProposePriceCubit>().proposedRideRequestModel;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SingleChildScrollView(
@@ -24,11 +50,13 @@ class DriverArrivingBottomsheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Driver arrival header
+            // Driver arrival header - updated based on passenger picked status
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(0.1),
+                color: _passengerPicked
+                    ? AppColors.primaryGreen.withOpacity(0.1)
+                    : AppColors.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -38,7 +66,9 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Driver is arriving in',
+                          _passengerPicked
+                              ? 'On the way to destination'
+                              : 'Driver is arriving in',
                           style: AppTypography.headline.copyWith(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -46,14 +76,24 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '~${proposedRide?.minToReach ?? '--'} min',
-                          style: AppTypography.headline.copyWith(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primaryColor,
+                        if (!_passengerPicked)
+                          Text(
+                            '~${proposedRide?.minToReach ?? '--'} min',
+                            style: AppTypography.headline.copyWith(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryColor,
+                            ),
                           ),
-                        ),
+                        if (_passengerPicked)
+                          Text(
+                            'Estimated arrival: ~${proposedRide?.minToReach ?? '--'} min',
+                            style: AppTypography.headline.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -62,6 +102,7 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                       Image.asset(
                         Assets.icons.bike.path,
                         width: 60,
+                        // color: _passengerPicked ? AppColors.primaryGreen : null,
                       ),
                       const SizedBox(height: 4),
                       Container(
@@ -100,8 +141,7 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize:
-                          MainAxisSize.min, // Add this to prevent expansion
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(2),
@@ -123,13 +163,12 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
-                          maxLines: 1, // Prevent text from wrapping
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         SizedBox(
-                          // Constrain the height of the rating row
-                          height: 24, // Fixed height
+                          height: 24,
                           child: Row(
                             children: [
                               Container(
@@ -143,7 +182,7 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.star,
+                                    Icon(Icons.star,
                                         size: 14, color: Colors.amber),
                                     const SizedBox(width: 4),
                                     Text(
@@ -157,7 +196,6 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                // Make the vehicle text expandable
                                 child: Text(
                                   'Blue MOTOR-BIKE Honda',
                                   style: AppTypography.smallText.copyWith(
@@ -186,7 +224,6 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                             proposedRide == null
                                 ? ''
                                 : proposedRide.user.mobileNo),
-                        // _makeCall(proposedRide?.driverPhone ?? ''),
                       ),
                       const SizedBox(width: 12),
                       _buildActionButton(
@@ -194,7 +231,6 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                         label: 'Safety',
                         color: AppColors.primaryColor,
                         onPressed: () {},
-                        // onPressed: () => _showSafetyInfo(),
                       ),
                     ],
                   ),
@@ -229,8 +265,8 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          const Icon(Icons.payment,
-                              size: 20, color: AppColors.primaryGreen),
+                          Icon(Icons.payment,
+                              size: 20, color: AppColors.primaryColor),
                           const SizedBox(width: 8),
                           RichText(
                             text: TextSpan(
@@ -241,8 +277,10 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                                 TextSpan(
                                   text:
                                       'NPR ${acceptedRide?.actualPrice.toStringAsFixed(0) ?? '--'}',
-                                  style: const TextStyle(
-                                    color: AppColors.primaryBlack,
+                                  style: TextStyle(
+                                    color: _passengerPicked
+                                        ? AppColors.primaryGreen
+                                        : AppColors.primaryBlack,
                                   ),
                                 ),
                                 TextSpan(
@@ -275,7 +313,9 @@ class DriverArrivingBottomsheet extends StatelessWidget {
                       const SizedBox(height: 12),
                       _buildLocationRow(
                         icon: Icons.circle,
-                        iconColor: AppColors.primaryGreen,
+                        iconColor: _passengerPicked
+                            ? AppColors.primaryGreen
+                            : AppColors.primaryColor,
                         label: acceptedRide?.sName ?? 'Pickup location',
                       ),
                       Padding(
@@ -297,29 +337,30 @@ class DriverArrivingBottomsheet extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
-
-            // Cancel button
-            // SizedBox(
-            //   width: double.infinity,
-            //   child: OutlinedButton(
-            //     style: OutlinedButton.styleFrom(
-            //       foregroundColor: AppColors.primaryRed,
-            //       side: BorderSide(color: AppColors.primaryRed),
-            //       padding: const EdgeInsets.symmetric(vertical: 16),
-            //       shape: RoundedRectangleBorder(
-            //         borderRadius: BorderRadius.circular(12),
-            //       ),
-            //     ),
-            //     onPressed: onPressed,
-            //     child: Text(
-            //       'Cancel Ride',
-            //       style: AppTypography.labelText.copyWith(
-            //         fontWeight: FontWeight.w700,
-            //       ),
-            //     ),
-            //   ),
-            // ),
+            // Show ride status indicator if passenger is picked
+            if (_passengerPicked) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.primaryGreen),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Passenger picked up',
+                      style: AppTypography.labelText.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -382,7 +423,6 @@ class DriverArrivingBottomsheet extends StatelessWidget {
   }
 
   void _makeEmergencyCall(BuildContext context, String phonenumber) async {
-    // Show confirmation dialog
     final shouldCall = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -424,7 +464,6 @@ class DriverArrivingBottomsheet extends StatelessWidget {
 
     if (shouldCall) {
       try {
-        // Use url_launcher package to make the call
         final Uri url = Uri(scheme: 'tel', path: phonenumber);
         if (await canLaunchUrl(url)) {
           await launchUrl(url);

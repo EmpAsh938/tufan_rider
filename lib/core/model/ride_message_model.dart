@@ -2,8 +2,8 @@ class RideMessageModel {
   final double latitude;
   final double longitude;
   final String type;
-  final String? userId;
-  final String? rideRequestId;
+  final int? userId;
+  final int? rideRequestId;
 
   RideMessageModel({
     required this.latitude,
@@ -18,8 +18,8 @@ class RideMessageModel {
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
       type: json['type'] as String,
-      userId: json['userId'] as String?,
-      rideRequestId: json['rideRequestId'] as String?,
+      userId: json['userId'] as int?,
+      rideRequestId: json['rideRequestId'] as int?,
     );
   }
 

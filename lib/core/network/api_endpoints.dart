@@ -38,6 +38,8 @@ class ApiEndpoints {
 
   static String rejectRideRequest(String rideRequestId) =>
       '/ride-requests/$rideRequestId/reject'; // /topic/ride-rejected
+  static String pickupPassenger(String rideRequestId) =>
+      '/ride-requests/ride/pickup/$rideRequestId'; // /topic/ride-rejected
 
   static String rejectRideApproval(String approveId) =>
       '/riderAppReq/$approveId/reject'; // /topic/ride-rejected-pess (decline)
