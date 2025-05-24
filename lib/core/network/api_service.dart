@@ -666,4 +666,22 @@ class ApiService {
       throw DioExceptions.fromDioError(e);
     }
   }
+
+  Future<Response> createRating(
+      String userId, String riderId, String token, int star) async {
+    try {
+      final response = _dio.post(
+        ApiEndpoints.createRating(userId, riderId),
+        data: {"star": star, "feedback": "good"},
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
 }

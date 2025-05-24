@@ -207,6 +207,17 @@ class AddressCubit extends Cubit<AddressState> {
     }
   }
 
+  Future<bool> createRating(
+      String userId, String riderId, String token, int star) async {
+    try {
+      await _repository.createRating(userId, riderId, token, star);
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
   void reset() {
     emit(AddressState(
       source: source,

@@ -87,4 +87,8 @@ class ApiEndpoints {
 
   // notifications
   static String updateFcmToken(String userId) => '/users/$userId/deviceToken';
+
+  // rating
+  static String createRating(String userId, String riderId) =>
+      '/rider-ratings/user/$userId/rider/$riderId';
 }

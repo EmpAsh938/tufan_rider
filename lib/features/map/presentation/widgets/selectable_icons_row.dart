@@ -5,27 +5,25 @@ import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class SelectableIconsRow extends StatefulWidget {
-  const SelectableIconsRow({super.key});
+  final int categoryId;
+  final void Function(int) onCategoryChanged;
+  const SelectableIconsRow(
+      {super.key, required this.categoryId, required this.onCategoryChanged});
 
   @override
   State<SelectableIconsRow> createState() => _SelectableIconsRowState();
 }
 
 class _SelectableIconsRowState extends State<SelectableIconsRow> {
-  void changeCategoryId(int index) {
-    context.read<AddressCubit>().setCategoryId(index);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final categoryId = context.watch<AddressCubit>().categoryId;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSelectableIcon(
           imagePath: Assets.icons.bike.path,
-          isSelected: categoryId == 1,
-          onTap: () => changeCategoryId(1),
+          isSelected: widget.categoryId == 1,
+          onTap: () => widget.onCategoryChanged(1),
         ),
         const SizedBox(width: 30),
         const SizedBox(
@@ -39,8 +37,8 @@ class _SelectableIconsRowState extends State<SelectableIconsRow> {
         const SizedBox(width: 30),
         _buildSelectableIcon(
           imagePath: Assets.icons.car.path,
-          isSelected: categoryId == 2,
-          onTap: () => changeCategoryId(2),
+          isSelected: widget.categoryId == 2,
+          onTap: () => widget.onCategoryChanged(2),
         ),
       ],
     );

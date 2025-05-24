@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
@@ -24,21 +28,72 @@ class AcceptedBottomsheet extends StatefulWidget {
 }
 
 class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
-  final TextEditingController _askPriceController =
-      TextEditingController(text: '100');
+  Timer? _locationTimer;
+
+  Future<void> ensureLocationPermission() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Location permissions are permanently denied.');
+    }
+  }
+
+  void startSendingRiderLiveLocation() async {
+    if (_locationTimer != null) return; // already sending
+
+    await ensureLocationPermission();
+
+    _locationTimer = Timer.periodic(Duration(seconds: 5), (_) async {
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        final RideMessageModel rideMessageModel = RideMessageModel(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          type:
+              'rider-${widget.request.user.id.toString()}-${widget.request.rideRequestId.toString()}',
+          userId: widget.request.user.id.toString(),
+          rideRequestId: widget.request.rideRequestId.toString(),
+        );
+
+        print(rideMessageModel.toJson());
+
+        context.read<StompSocketCubit>().sendMessage(rideMessageModel);
+      } catch (e) {
+        print('❌ Failed to get location or send message: $e');
+      }
+    });
+  }
+
+  void stopSendingRiderLiveLocation() {
+    _locationTimer?.cancel();
+    _locationTimer = null;
+  }
 
   @override
   void initState() {
     super.initState();
-    setState(() {
-      _askPriceController.text = widget.request.actualPrice.toString();
-    });
+
+    startSendingRiderLiveLocation(); // starts timer and sends every 5 seconds
   }
 
   @override
   void dispose() {
-    _askPriceController.dispose();
     super.dispose();
+    stopSendingRiderLiveLocation();
   }
 
   @override
@@ -287,6 +342,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                                               .toString(),
                                           loginResponse.token);
                                   if (!isCompleted) return;
+                                  stopSendingRiderLiveLocation();
                                   Navigator.pop(context);
                                   // widget.onPressed();
                                   context

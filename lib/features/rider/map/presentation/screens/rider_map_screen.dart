@@ -36,7 +36,11 @@ class RiderMapScreen extends StatefulWidget {
 class _RiderMapScreenState extends State<RiderMapScreen> {
   final Completer<GoogleMapController> _controller = Completer();
 
-  final LatLng _center = RiderMapScreen._kDefaultLocation.target;
+  LatLng _center = RiderMapScreen._kDefaultLocation.target;
+
+  Timer? _updateTimer;
+
+  bool isFirstTime = true;
 
   late String _mapStyleString;
 
@@ -79,22 +83,30 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      final address = await _getAddressFromLatLng(_center);
+      // setState(() {
+      //   _center = LatLng(position.latitude, position.longitude);
+      // });
+
+      final address = await _getAddressFromLatLng(
+          LatLng(_center.latitude, _center.longitude));
 
       // // put updated coordinates
       context.read<AddressCubit>().setSource(RideLocation(
           lat: _center.latitude, lng: _center.longitude, name: address));
 
-      await context.read<AddressCubit>().sendCurrentLocationToServer();
+      if (isFirstTime) {
+        await context.read<AddressCubit>().sendCurrentLocationToServer();
+      }
 
       setState(() {
+        isFirstTime = false;
         // _center = LatLng(position.latitude, position.longitude);
         _locationEnabled = true;
         // sourceController.text = address ?? '';
         _isLoading = false;
         final currentLocationMarker = Marker(
           markerId: const MarkerId('current_location'),
-          position: _center,
+          position: LatLng(_center.latitude, _center.longitude),
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(title: "Your Location"),
@@ -103,11 +115,11 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
       });
 
       final GoogleMapController controller = await _controller.future;
-      final currentLocation = context.read<AddressCubit>().source;
+      // final currentLocation = context.read<AddressCubit>().source;
       controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(currentLocation!.lat, currentLocation.lng),
+            target: LatLng(_center.latitude, _center.longitude),
             zoom: 12,
           ),
         ),
@@ -277,15 +289,36 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
     }
   }
 
+  void startUpdates() {
+    // Get initial location immediately
+    _checkAndFetchLocation();
+
+    // Then update every 5 seconds
+    _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
+      _checkAndFetchLocation();
+    });
+  }
+
+  void stopUpdates() {
+    _updateTimer?.cancel();
+    _updateTimer = null;
+  }
+
   @override
   void initState() {
     super.initState();
     _loadMapStyle();
-    _checkAndFetchLocation();
+    startUpdates();
     doSocketInitialization();
 
     // _getAddressFromLatLng(_center);
     // animationInitialization();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    stopUpdates();
   }
 
   @override
@@ -312,7 +345,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
                       markers: _markers,
                       onMapCreated: (controller) {
                         _controller.complete(controller);
-                        controller.setMapStyle(_mapStyleString);
+                        // controller.setMapStyle(_mapStyleString);
                       },
                       polylines: _polylines,
                     ),

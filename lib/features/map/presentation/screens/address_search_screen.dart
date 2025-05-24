@@ -202,7 +202,9 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                     prefixIcon: Icon(Icons.my_location),
                     hintText: "Enter starting location",
                   ),
-                  onChanged: (value) {},
+                  onChanged: (value) {
+                    _onSearchChanged(isFrom: true, query: value);
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -280,16 +282,17 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                               cubit.setSource(RideLocation(
                                   lat: details['lat'],
                                   lng: details['lng'],
-                                  name: details[
-                                      'address'])); // Save source with lat, lng, address
+                                  name: suggestion[
+                                      'description'])); // Save source with lat, lng, address
                               setState(() => fromSuggestions = []);
                             } else {
-                              toController.text = details['address'] ?? '';
+                              toController.text =
+                                  suggestion['description'] ?? '';
                               cubit.setDestination(RideLocation(
                                   lat: details['lat'],
                                   lng: details['lng'],
-                                  name: details[
-                                      'address'])); // Save source with lat, lng, address
+                                  name: suggestion[
+                                      'description'])); // Save source with lat, lng, address
                               setState(() => toSuggestions = []);
                             }
                           }

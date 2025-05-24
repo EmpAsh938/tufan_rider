@@ -33,6 +33,7 @@ class RiderSignupflow extends StatefulWidget {
 }
 
 enum UploadType {
+  selfieUpload,
   profileUpload,
   licenseUpload,
   nationalIdUpload,
@@ -69,6 +70,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
   File? _imageFile;
   File? _licenseImageFile;
   File? _nationaIdImageFile;
+  File? _selfieWithIdFile;
   File? _citizenshipFrontImageFile;
   File? _citizenshipBackImageFile;
   File? _vehiclePhotoFile;
@@ -140,6 +142,14 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
                 _loginResponse!.user.id.toString(),
                 _loginResponse!.token,
               );
+          break;
+        case UploadType.selfieUpload:
+          // setState(() => _imageFile = File(croppedFile.path));
+          // context.read<UpdateProfileCubit>().uploadProfile(
+          //       File(croppedFile.path),
+          //       _loginResponse!.user.id.toString(),
+          //       _loginResponse!.token,
+          //     );
           break;
         case UploadType.licenseUpload:
           setState(() => _licenseImageFile = File(croppedFile.path));

@@ -95,4 +95,13 @@ class MapRepository {
   ) async {
     await _apiService.rejectRideRequest(approveId, token);
   }
+
+  Future<void> createRating(
+    String userId,
+    String riderId,
+    String token,
+    int star,
+  ) async {
+    await _apiService.createRating(userId, riderId, token, star);
+  }
 }

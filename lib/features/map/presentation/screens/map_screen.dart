@@ -11,9 +11,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
+import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
-import 'package:tufan_rider/core/utils/map_helper.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
@@ -28,6 +28,7 @@ import 'package:tufan_rider/features/map/presentation/widgets/driver_arriving_bo
 import 'package:tufan_rider/features/map/presentation/widgets/location_settting_bottomsheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/offer_price_bottom_sheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card_popup.dart';
+import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -49,6 +50,9 @@ class _MapScreenState extends State<MapScreen>
   TextEditingController destinationController = TextEditingController();
   TextEditingController sourceController = TextEditingController();
 
+  Timer? _updateTimer;
+  bool isFirstTime = true;
+
   late String _mapStyleString;
 
   LatLng _center = MapScreen._kDefaultLocation.target;
@@ -64,6 +68,7 @@ class _MapScreenState extends State<MapScreen>
   bool _isLoading = true;
   bool _isFindingDrivers = false;
   bool _hasAcceptedRequest = false;
+  int _categoryId = 1;
 
   Marker? _currentLocationMarker;
   Marker? _destinationLocationMarker;
@@ -75,6 +80,12 @@ class _MapScreenState extends State<MapScreen>
   Set<Circle> _animatedCircle = {};
   late AnimationController _circleAnimationController;
   late Animation<double> _radiusAnimation;
+
+  void handleCategoryChange(int value) {
+    setState(() {
+      _categoryId = value;
+    });
+  }
 
   Future<void> _checkAndFetchLocation() async {
     try {
@@ -106,38 +117,45 @@ class _MapScreenState extends State<MapScreen>
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      final address = await _getAddressFromLatLng(_center);
+      final address = await _getAddressFromLatLng(
+          LatLng(position.latitude, position.longitude));
 
-      // put updated coordinates
+      // Update cubit with current position
       locator.get<AddressCubit>().setSource(RideLocation(
-          lat: _center.latitude, lng: _center.longitude, name: address));
+          lat: position.latitude, lng: position.longitude, name: address));
 
-      await locator.get<AddressCubit>().sendCurrentLocationToServer();
+      if (isFirstTime) {
+        await locator.get<AddressCubit>().sendCurrentLocationToServer();
+      }
 
       setState(() {
-        // _center = LatLng(position.latitude, position.longitude);
+        _center = LatLng(position.latitude, position.longitude);
+        isFirstTime = false;
         _locationEnabled = true;
         sourceController.text = address ?? '';
         _isLoading = false;
         _currentLocationMarker = Marker(
-          markerId: const MarkerId('current_location'),
-          position: _center,
+          markerId: const MarkerId('current_location_person'),
+          position: LatLng(position.latitude, position.longitude),
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(title: "Your Location"),
         );
       });
 
-      final GoogleMapController controller = await _controller.future;
-      final currentLocation = locator.get<AddressCubit>().source;
-      controller.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-              target: LatLng(currentLocation!.lat, currentLocation.lng),
-              zoom: zoomLevel),
-        ),
-      );
+      if (_controller.isCompleted) {
+        final GoogleMapController controller = await _controller.future;
+        controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(position.latitude, position.longitude),
+              zoom: 14,
+            ),
+          ),
+        );
+      }
     } catch (e) {
+      print('Error getting location: $e');
       setState(() {
         _locationEnabled = false;
         _currentLocationMarker = null;
@@ -505,12 +523,220 @@ class _MapScreenState extends State<MapScreen>
     });
   }
 
+  void _showRideCompletedDialog(BuildContext context) {
+    int selectedRating = 0;
+    bool isSubmitting = false;
+    bool submissionSuccess = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final loginResponse = context.read<AuthCubit>().loginResponse;
+        final userId = loginResponse?.user.id.toString() ?? '';
+        final token = loginResponse?.token ?? '';
+        final riderId = context
+                .read<ProposePriceCubit>()
+                .proposedRideRequestModel
+                ?.user
+                .id
+                .toString() ??
+            '';
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: AppColors.backgroundColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!submissionSuccess) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          color: AppColors.primaryColor,
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Rate Your Ride',
+                        style: AppTypography.headline.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'How was your experience with the driver?',
+                        style: AppTypography.labelText.copyWith(
+                          color: AppColors.primaryBlack.withOpacity(0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          return IconButton(
+                            icon: Icon(
+                              index < selectedRating
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              size: 32,
+                              color: AppColors.primaryColor,
+                            ),
+                            onPressed: isSubmitting
+                                ? null
+                                : () {
+                                    setState(() {
+                                      selectedRating = index + 1;
+                                    });
+                                  },
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: isSubmitting
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primaryColor,
+                                ),
+                              )
+                            : ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryColor,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                onPressed: selectedRating == 0
+                                    ? null
+                                    : () async {
+                                        setState(() => isSubmitting = true);
+                                        final success = await context
+                                            .read<AddressCubit>()
+                                            .createRating(userId, '3', token,
+                                                selectedRating);
+
+                                        setState(() {
+                                          isSubmitting = false;
+                                          submissionSuccess = success;
+                                        });
+
+                                        Navigator.pop(context);
+                                        // if (success) {
+                                        //   await Future.delayed(
+                                        //       const Duration(seconds: 1));
+                                        // }
+                                      },
+                                child: Text(
+                                  'Submit Rating',
+                                  style: AppTypography.labelText.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          color: AppColors.primaryColor,
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Thank You!',
+                        style: AppTypography.headline.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Your rating has been submitted successfully.',
+                        style: AppTypography.labelText.copyWith(
+                          color: AppColors.primaryBlack.withOpacity(0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Done',
+                            style: AppTypography.labelText.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void startUpdates() {
+    // Get initial location immediately
+    _checkAndFetchLocation();
+
+    // Then update every 5 seconds
+    _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
+      _checkAndFetchLocation();
+    });
+  }
+
+  void stopUpdates() {
+    _updateTimer?.cancel();
+    _updateTimer = null;
+  }
+
   @override
   void initState() {
     super.initState();
     _loadMapStyle();
-    _checkAndFetchLocation();
-    _getAddressFromLatLng(_center);
+    startUpdates();
+    // _getAddressFromLatLng(_center);
     animationInitialization();
     context.read<StompSocketCubit>().connectSocket();
   }
@@ -528,6 +754,7 @@ class _MapScreenState extends State<MapScreen>
     _circleAnimationController.dispose();
     sourceController.dispose();
     destinationController.dispose();
+    stopUpdates();
   }
 
   @override
@@ -545,6 +772,37 @@ class _MapScreenState extends State<MapScreen>
                     listener: (context, socketState) {
                     if (socketState is RideCompletionReceive) {
                       resetMap();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _showRideCompletedDialog(context);
+                      });
+                    }
+
+                    if (socketState is RideMessageReceived) {
+                      final ridemessageModel = socketState.rideRequest;
+                      final incomingData = ridemessageModel.type.split('-');
+                      final incomingUserId = incomingData[1];
+                      final incomingRideRequestId = incomingData[2];
+                      final loginResponse =
+                          context.read<AuthCubit>().loginResponse;
+                      if (loginResponse == null) return;
+
+                      if (incomingUserId == loginResponse.user.id.toString()) {
+                        final LatLng newPosition = LatLng(
+                            ridemessageModel.latitude,
+                            ridemessageModel.longitude);
+                        final Marker newMarker = Marker(
+                          markerId:
+                              MarkerId(incomingRideRequestId), // Unique key
+                          position: newPosition,
+                          infoWindow: InfoWindow(title: 'Rider'),
+                          icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueMagenta),
+                        );
+
+                        // Clear the old one and add the updated marker
+                        addMarkerToRiderMarkers(
+                            incomingRideRequestId, newMarker);
+                      }
                     }
                   }, child: BlocBuilder<AddressCubit, AddressState>(
                     builder: (context, addressState) {
@@ -572,7 +830,7 @@ class _MapScreenState extends State<MapScreen>
                             circles: _animatedCircle,
                             onMapCreated: (controller) {
                               _controller.complete(controller);
-                              controller.setMapStyle(_mapStyleString);
+                              // controller.setMapStyle(_mapStyleString);
                             },
                             onCameraMove: _onCameraMove,
                             polylines: _polylines,
@@ -705,6 +963,17 @@ class _MapScreenState extends State<MapScreen>
                                               //   LatLng(destination.lat,
                                               //       destination!.lng),
                                               // );
+
+                                              final sourceLocation = LatLng(
+                                                  source.lat, source.lng);
+                                              final destinationLocation =
+                                                  LatLng(destination.lat,
+                                                      destination.lng);
+
+                                              _getPolyline(
+                                                  sourceLocation,
+                                                  sourceLocation,
+                                                  destinationLocation);
                                             }
                                           });
                                         }
@@ -723,8 +992,10 @@ class _MapScreenState extends State<MapScreen>
                                     sourceController: sourceController,
                                     destinationController:
                                         destinationController,
+                                    categoryId: _categoryId,
                                     onTapped: setLocationForUser,
                                     onPressed: findDrivers,
+                                    onCategoryChanged: handleCategoryChange,
                                   ),
                                 ),
                               Positioned(

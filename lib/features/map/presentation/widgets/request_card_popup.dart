@@ -222,6 +222,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                     widget.prepareDriverArriving();
                     context.read<StompSocketCubit>().subscribeToRideCompletion(
                         request.rideRequestId.toString());
+                    context.read<StompSocketCubit>().listenToMessage();
                     final riderLocation =
                         LatLng(request.riderLati, request.riderLong);
                     final sourceLocation =

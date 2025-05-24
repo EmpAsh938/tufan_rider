@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
 import 'package:tufan_rider/features/rider/map/models/ride_request_passenger_model.dart';
@@ -41,6 +42,16 @@ class PassengerMessageReceived extends StompSocketState {
   List<Object?> get props => [rideRequest, timestamp];
 }
 
+class PassengerPickupReceived extends StompSocketState {
+  final RideRequestModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  PassengerPickupReceived(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
 class RideRejectedReceived extends StompSocketState {
   final RideRequestModel rideRequest;
   final DateTime timestamp; // or use a UUID if you prefer
@@ -76,6 +87,16 @@ class RideCompletionReceive extends StompSocketState {
   final DateTime timestamp; // or use a UUID if you prefer
 
   RideCompletionReceive(this.rideRequest) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [rideRequest, timestamp];
+}
+
+class RideMessageReceived extends StompSocketState {
+  final RideMessageModel rideRequest;
+  final DateTime timestamp; // or use a UUID if you prefer
+
+  RideMessageReceived(this.rideRequest) : timestamp = DateTime.now();
 
   @override
   List<Object?> get props => [rideRequest, timestamp];

@@ -12,13 +12,17 @@ class LocationSetttingBottomsheet extends StatefulWidget {
   final TextEditingController destinationController;
   final void Function(String) onTapped;
   final VoidCallback onPressed;
+  final void Function(int) onCategoryChanged;
+  final int categoryId;
 
   const LocationSetttingBottomsheet({
     super.key,
     required this.sourceController,
     required this.destinationController,
+    required this.categoryId,
     required this.onTapped,
     required this.onPressed,
+    required this.onCategoryChanged,
   });
 
   @override
@@ -69,7 +73,10 @@ class _LocationSetttingBottomsheetState
                     color: AppColors.backgroundColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const SelectableIconsRow(),
+                  child: SelectableIconsRow(
+                    categoryId: widget.categoryId,
+                    onCategoryChanged: widget.onCategoryChanged,
+                  ),
                 ),
                 const SizedBox(height: 20),
 

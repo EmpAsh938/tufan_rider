@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
+import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
@@ -47,8 +48,8 @@ class StompSocketCubit extends Cubit<StompSocketState> {
           emit(StompSocketError(frame.body ?? 'Unknown STOMP error'));
         },
         onDebugMessage: (msg) => print('🟡 DEBUG: $msg'),
-        heartbeatIncoming: Duration(seconds: 0),
-        heartbeatOutgoing: Duration(seconds: 0),
+        heartbeatIncoming: Duration(seconds: 10),
+        heartbeatOutgoing: Duration(seconds: 10),
       ),
     );
 
@@ -58,33 +59,40 @@ class StompSocketCubit extends Cubit<StompSocketState> {
   void _onConnect(StompFrame frame) {
     print('✅ Connected to STOMP');
     emit(StompSocketConnected());
-    // subscribeToPassengerApproved();
-    // subscribeToRiderApprove();
-    // subscribeToRideReject();
-    listendToMessage();
-    sendMessage();
   }
 
-  void listendToMessage() {
-    if (_stompClient == null) return;
-    // Subscribe to topic
-    stompClient?.subscribe(
-      destination: '/topic/messages', // from @SendTo
+  void listenToMessage() {
+    if (_stompClient == null || !_stompClient!.connected) return;
+
+    _stompClient!.subscribe(
+      destination: '/topic/messages',
       callback: (StompFrame frame) {
-        print('Live Received message: ${frame.body}');
+        final message = frame.body;
+        print('📩 Received Message Live: $message');
+        if (message != null) {
+          try {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideMessageModel.fromJson(decoded);
+            emit(RideMessageReceived(rideRequest));
+          } catch (e) {
+            print("❌ Failed to parse ride message: $e");
+          }
+        }
       },
     );
   }
 
-  void sendMessage() {
-    if (_stompClient == null) return;
-    // Send a message
-    stompClient?.send(
-      destination: '/send/message', // from @MessageMapping
-      body:
-          '{"longitude": "27.80123", "latitude": "85.60789", "type": "rider",}',
+  void sendMessage(RideMessageModel message) {
+    if (_stompClient == null || !_stompClient!.connected) return;
+
+    final body = jsonEncode(message.toJson());
+
+    _stompClient!.send(
+      destination: '/app/send/message',
+      body: body,
     );
-    print("MESSAGE SENT");
+
+    print("MESSAGE SENT: $body");
   }
 
   void subscribeToRideBroadcasts() {
@@ -201,6 +209,27 @@ class StompSocketCubit extends Cubit<StompSocketState> {
                 decoded.map((e) => RiderBargainModel.fromJson(e)).toList();
             emit(PassengerMessageReceived(rideProposals));
             print('📩 Received for ride-riders/$rideRequestId: $message');
+          }
+          // Optionally emit another state here
+        },
+      );
+    } else {
+      print(
+          "Client not connected. Cannot subscribe to ride-riders/$rideRequestId");
+    }
+  }
+
+  void subscribeToPassengerPickup(String rideRequestId) {
+    if (_stompClient?.connected ?? false) {
+      final destination = '/ride/pickup/$rideRequestId';
+      _stompClient?.subscribe(
+        destination: destination,
+        callback: (frame) {
+          final message = frame.body;
+          if (message != null) {
+            final decoded = jsonDecode(message);
+            final rideRequest = RideRequestModel.fromJson(decoded);
+            emit(PassengerPickupReceived(rideRequest));
           }
           // Optionally emit another state here
         },

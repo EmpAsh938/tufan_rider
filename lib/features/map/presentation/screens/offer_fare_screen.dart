@@ -69,6 +69,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: Colors.white,
         appBar: AppBar(
           title: Text(
@@ -91,6 +92,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                     Form(
                       key: _formKey,
                       child: TextFormField(
+                        autofocus: true,
                         controller: fareController,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.left,

@@ -29,9 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
     authCubit.initialize();
 
     // Check permissions
-    await PermissionChecker.checkLocationPermission();
-    await PermissionChecker.checkCallPermission();
-    await PermissionChecker.checkGalleryPermission();
+    await PermissionChecker.requestAllPermissions();
+    // await PermissionChecker.checkGalleryPermission();
 
     await Future.delayed(const Duration(seconds: 2));
 

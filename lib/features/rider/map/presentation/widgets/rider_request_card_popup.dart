@@ -114,11 +114,11 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
           }
           if (state is RideApproveReceived) {
             widget.showApprove();
-            LatLng mid = LatLng(
-                state.rideRequest.sLatitude, state.rideRequest.sLongitude);
-            LatLng end = LatLng(
-                state.rideRequest.dLatitude, state.rideRequest.dLongitude);
-            widget.drawPolyline(mid, end);
+            // LatLng mid = LatLng(
+            //     state.rideRequest.sLatitude, state.rideRequest.sLongitude);
+            // LatLng end = LatLng(
+            //     state.rideRequest.dLatitude, state.rideRequest.dLongitude);
+            // widget.drawPolyline(mid, end);
           }
         },
         child: Align(
@@ -144,6 +144,12 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
                       //     .read<AddressCubit>()
                       //     .approveRide('52', '43', loginResponse.token);
                       // _removeAllRequests();
+                      LatLng mid =
+                          LatLng(request.sLatitude, request.sLongitude);
+                      LatLng end =
+                          LatLng(request.dLatitude, request.dLongitude);
+                      widget.drawPolyline(mid, end);
+
                       widget.prepareDriverArriving(request);
                     },
                   ),

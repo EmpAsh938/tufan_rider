@@ -16,7 +16,7 @@ class CreateRiderModel {
     return CreateRiderModel(
       driverLicense: json['driver_License'] ?? '',
       dateOfBirth: json['date_Of_Birth'] ?? '',
-      nidNo: json['Nid_No'] ?? '',
+      nidNo: json['nid_No'] ?? '',
       citizenNo: json['citizen_No'] ?? '',
     );
   }
@@ -26,7 +26,7 @@ class CreateRiderModel {
     return {
       'driver_License': driverLicense,
       'date_Of_Birth': dateOfBirth,
-      'Nid_No': nidNo,
+      'nid_No': nidNo,
       'citizen_No': citizenNo,
     };
   }

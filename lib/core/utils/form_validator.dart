@@ -138,12 +138,9 @@ class FormValidator {
     // Remove any dashes or spaces for validation
     final cleanedValue = value.replaceAll(RegExp(r'[-\s]'), '');
 
-    // Accept either:
-    // 1. Traditional format: 000-00000-0000 (which becomes 11 digits when cleaned)
-    // 2. Plain 11-digit number
-    if (cleanedValue.length != 11 ||
-        !RegExp(r'^[0-9]{11}$').hasMatch(cleanedValue)) {
-      return 'Enter 11 digits or format: 00-00-00-00000';
+    // Check if it's digits only and greater than 4 digits
+    if (!RegExp(r'^\d+$').hasMatch(cleanedValue) || cleanedValue.length <= 4) {
+      return 'Enter a valid citizenship number with more than 4 digits';
     }
 
     return null;
