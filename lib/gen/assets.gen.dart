@@ -9,6 +9,17 @@
 
 import 'package:flutter/widgets.dart';
 
+class $AssetsAudioGen {
+  const $AssetsAudioGen();
+
+  /// File path: assets/audio/ride_request_notification.wav
+  String get rideRequestNotification =>
+      'assets/audio/ride_request_notification.wav';
+
+  /// List of all assets
+  List<String> get values => [rideRequestNotification];
+}
+
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
@@ -114,13 +125,34 @@ class $AssetsImagesGen {
   List<AssetGenImage> get values => [mapPlaceholder, tufan];
 }
 
+class $AssetsMarkersGen {
+  const $AssetsMarkersGen();
+
+  /// File path: assets/markers/bike_marker.png
+  AssetGenImage get bikeMarker =>
+      const AssetGenImage('assets/markers/bike_marker.png');
+
+  /// File path: assets/markers/car_marker.png
+  AssetGenImage get carMarker =>
+      const AssetGenImage('assets/markers/car_marker.png');
+
+  /// File path: assets/markers/marker_motorcycle.png
+  AssetGenImage get markerMotorcycle =>
+      const AssetGenImage('assets/markers/marker_motorcycle.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [bikeMarker, carMarker, markerMotorcycle];
+}
+
 class Assets {
   const Assets._();
 
+  static const $AssetsAudioGen audio = $AssetsAudioGen();
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
   static const AssetGenImage logo = AssetGenImage('assets/logo.png');
   static const String mapStyles = 'assets/map_styles.json';
+  static const $AssetsMarkersGen markers = $AssetsMarkersGen();
 
   /// List of all assets
   static List<dynamic> get values => [logo, mapStyles];

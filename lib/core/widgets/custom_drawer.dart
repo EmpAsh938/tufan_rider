@@ -8,8 +8,10 @@ import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
+import 'package:tufan_rider/core/widgets/custom_rating.dart';
 import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -145,6 +147,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                         (route) => false,
                       );
 
+                      locator.get<StompSocketCubit>().disconnect();
+
                       locator.get<AuthCubit>().logout();
                     },
                     child: const Text("Logout",
@@ -221,38 +225,41 @@ class _CustomDrawerState extends State<CustomDrawer> {
                                 height:
                                     4), // Small spacing between name and rating
                             if (loginResponse!.user.modes.toLowerCase() ==
-                                'rider')
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  RatingBar.builder(
-                                    initialRating:
-                                        4.5, // Replace with actual user rating
-                                    minRating: 1,
-                                    direction: Axis.horizontal,
-                                    allowHalfRating: true,
-                                    itemCount: 5,
-                                    itemSize: 16,
-                                    itemPadding:
-                                        EdgeInsets.symmetric(horizontal: 1.0),
-                                    itemBuilder: (context, _) => Icon(
-                                      Icons.star,
-                                      color: AppColors.primaryColor,
-                                    ),
-                                    onRatingUpdate: (rating) {
-                                      // Handle rating updates if needed
-                                    },
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '4.5', // Replace with actual user rating
-                                    style: AppTypography.labelText.copyWith(
-                                      color: AppColors.primaryBlack
-                                          .withOpacity(0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                    'rider' &&
+                                riderResponse != null)
+                              CustomRating(
+                                  riderId: riderResponse.id.toString()),
+                            // Row(
+                            //   mainAxisSize: MainAxisSize.min,
+                            //   children: [
+                            //     RatingBar.builder(
+                            //       initialRating:
+                            //           4.5, // Replace with actual user rating
+                            //       minRating: 1,
+                            //       direction: Axis.horizontal,
+                            //       allowHalfRating: true,
+                            //       itemCount: 5,
+                            //       itemSize: 16,
+                            //       itemPadding:
+                            //           EdgeInsets.symmetric(horizontal: 1.0),
+                            //       itemBuilder: (context, _) => Icon(
+                            //         Icons.star,
+                            //         color: AppColors.primaryColor,
+                            //       ),
+                            //       onRatingUpdate: (rating) {
+                            //         // Handle rating updates if needed
+                            //       },
+                            //     ),
+                            //     SizedBox(width: 4),
+                            //     Text(
+                            //       '4.5', // Replace with actual user rating
+                            //       style: AppTypography.labelText.copyWith(
+                            //         color: AppColors.primaryBlack
+                            //             .withOpacity(0.7),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                           ],
                         ),
                         IconButton(
@@ -385,8 +392,25 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 child: Column(
                   children: [
                     Text(
+                      'Powered by ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    Text(
+                      'A1 IT Innovation',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue, // or your brand color
+                      ),
+                    ),
+                    Text(
                       'Follow us on',
-                      style: AppTypography.paragraph,
+                      style: AppTypography.paragraph.copyWith(
+                        color: Colors.grey,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),

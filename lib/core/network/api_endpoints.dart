@@ -57,6 +57,7 @@ class ApiEndpoints {
       '/vehicles/user/$userId/category/$categoryId';
 
   static String getRiderByUser(String userId) => '/user/$userId/riders';
+  static String getRiderById(String riderId) => '/riders/$riderId';
   static String proposePriceForRide(String rideRequestId, String userId) =>
       '/riderAppReq/$rideRequestId/user/$userId';
 
@@ -93,4 +94,13 @@ class ApiEndpoints {
   // rating
   static String createRating(String userId, String riderId) =>
       '/rider-ratings/user/$userId/rider/$riderId';
+
+  static String averageRating(String riderId) =>
+      '/rider-ratings/rider/$riderId/average-rating';
+
+  // history
+  static String fetchPassengerHistory(String userId) =>
+      '/ride-requests/passenger/$userId';
+  static String fetchRiderHistory(String userId) =>
+      '/ride-requests/rider/$userId/requests';
 }

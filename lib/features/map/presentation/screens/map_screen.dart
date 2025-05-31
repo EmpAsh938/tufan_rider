@@ -1,19 +1,25 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animarker/widgets/animarker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
+import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
+import 'package:tufan_rider/core/utils/map_helper.dart';
+import 'package:tufan_rider/core/utils/marker_util.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
@@ -23,12 +29,14 @@ import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_proposal_model.dart';
+import 'package:tufan_rider/features/map/presentation/screens/offer_fare_screen.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/active_location_pin.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/driver_arriving_bottomsheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/location_settting_bottomsheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/offer_price_bottom_sheet.dart';
 import 'package:tufan_rider/features/map/presentation/widgets/request_card_popup.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
+import 'package:tufan_rider/features/rider/map/models/proposed_ride_request_model.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -45,13 +53,14 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen>
     with SingleTickerProviderStateMixin {
+  late AudioPlayer _player;
+
   final Completer<GoogleMapController> _controller = Completer();
 
   TextEditingController destinationController = TextEditingController();
   TextEditingController sourceController = TextEditingController();
 
   Timer? _updateTimer;
-  bool isFirstTime = true;
 
   late String _mapStyleString;
 
@@ -59,6 +68,8 @@ class _MapScreenState extends State<MapScreen>
 
   final Set<Marker> _dummyMarkers = {};
   Map<String, Marker> _riderMarkers = {}; // Keyed by rider id or rideRequestId
+
+  List<LatLng> _riderPath = [];
 
   double zoomLevel = 12;
   bool _locationEnabled = false;
@@ -68,10 +79,19 @@ class _MapScreenState extends State<MapScreen>
   bool _isLoading = true;
   bool _isFindingDrivers = false;
   bool _hasAcceptedRequest = false;
+  bool _hasPickedup = false;
   int _categoryId = 1;
+  bool _autoAcceptRiders = false;
+  bool _isPlayed = false;
+
+  ProposedRideRequestModel? price;
+
+  LatLng? _sourceLocation;
 
   Marker? _currentLocationMarker;
   Marker? _destinationLocationMarker;
+
+  BitmapDescriptor? riderMarkerIcon;
 
   Set<Polyline> _polylines = {};
   List<LatLng> polylineCoordinates = [];
@@ -85,11 +105,25 @@ class _MapScreenState extends State<MapScreen>
     setState(() {
       _categoryId = value;
     });
+    // _loadCustomMarker();
+  }
+
+  void handleAutoAcceptRiders(bool value) {
+    setState(() {
+      _autoAcceptRiders = value;
+    });
+  }
+
+  void handlePrice(ProposedRideRequestModel price) {
+    setState(() {
+      price = price;
+    });
   }
 
   Future<void> _checkAndFetchLocation() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      // 1. Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
           _locationEnabled = false;
@@ -99,6 +133,7 @@ class _MapScreenState extends State<MapScreen>
         return;
       }
 
+      // 2. Check and request location permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
@@ -114,41 +149,48 @@ class _MapScreenState extends State<MapScreen>
         }
       }
 
+      // 3. Get the current position
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
+      final LatLng currentLatLng =
+          LatLng(position.latitude, position.longitude);
 
-      final address = await _getAddressFromLatLng(
-          LatLng(_center.latitude, _center.longitude));
+      // 4. Reverse geocode
+      final address = await _getAddressFromLatLng(currentLatLng);
 
+      // 5. Update Cubit
       locator.get<AddressCubit>().setSource(RideLocation(
-          lat: _center.latitude, lng: _center.longitude, name: address));
+            lat: position.latitude,
+            lng: position.longitude,
+            name: address,
+          ));
 
-      if (isFirstTime) {
-        await locator.get<AddressCubit>().sendCurrentLocationToServer();
-      }
+      await locator.get<AddressCubit>().sendCurrentLocationToServer();
 
+      // 6. Update state
       setState(() {
-        // _center = LatLng(position.latitude, position.longitude);
-        isFirstTime = false;
+        _center = currentLatLng;
+        _sourceLocation = currentLatLng;
         _locationEnabled = true;
         sourceController.text = address ?? '';
         _isLoading = false;
         _currentLocationMarker = Marker(
+          zIndex: 1,
           markerId: const MarkerId('current_location_person'),
-          position: LatLng(_center.latitude, _center.longitude),
+          position: currentLatLng,
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(title: "Your Location"),
+          infoWindow: const InfoWindow(title: "Your Location"),
         );
       });
 
+      // 7. Animate camera
       if (_controller.isCompleted) {
-        print('not working');
         final GoogleMapController controller = await _controller.future;
         controller.animateCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(
-              target: LatLng(_center.latitude, _center.longitude),
+              target: currentLatLng,
               zoom: 14,
             ),
           ),
@@ -162,6 +204,21 @@ class _MapScreenState extends State<MapScreen>
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _init() async {
+    try {
+      await _player.setAsset(
+          'assets/audio/ride_request_notification.wav'); // Add your audio in pubspec.yaml
+    } catch (e) {
+      print("Error loading audio: $e");
+    }
+  }
+
+  void playNotification() async {
+    await _player.stop();
+    _init();
+    _player.play();
   }
 
   // Reverse geocode
@@ -191,6 +248,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void _onCameraMove(CameraPosition position) {
+    if (_hasAcceptedRequest || _isFindingDrivers) return;
     setState(() {
       _center = position.target;
     });
@@ -211,143 +269,123 @@ class _MapScreenState extends State<MapScreen>
     });
   }
 
-  void _getPolyline(LatLng riderLocation, LatLng sourceLocation,
-      LatLng destinationLocation) async {
+  Future<void> _getPolyline({
+    required LatLng origin,
+    required LatLng destination,
+    LatLng? waypoint, // optional
+  }) async {
     try {
-      // Get route from current location to mid-point
-      PolylineResult resultToMid =
-          await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: ApiConstants.mapAPI,
-        request: PolylineRequest(
-          origin: PointLatLng(
-              destinationLocation.latitude, destinationLocation.longitude),
-          destination:
-              PointLatLng(sourceLocation.latitude, sourceLocation.longitude),
-          mode: TravelMode.driving,
-          optimizeWaypoints: true,
-        ),
-      );
-
-      // Get route from mid-point to destination
-      PolylineResult resultToDestination =
-          await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: ApiConstants.mapAPI,
-        request: PolylineRequest(
-          origin:
-              PointLatLng(sourceLocation.latitude, sourceLocation.longitude),
-          destination:
-              PointLatLng(riderLocation.latitude, riderLocation.longitude),
-          mode: TravelMode.driving,
-          optimizeWaypoints: true,
-        ),
-      );
-
-      // Clear previous coordinates and add new ones
       polylineCoordinates.clear();
-      polylineCoordinates.add(destinationLocation);
 
-      if (resultToMid.points.isNotEmpty) {
-        for (var point in resultToMid.points) {
-          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-        }
+      final request = PolylineRequest(
+        origin: PointLatLng(origin.latitude, origin.longitude),
+        destination: PointLatLng(destination.latitude, destination.longitude),
+        mode: TravelMode.driving,
+        wayPoints: waypoint != null
+            ? [
+                PolylineWayPoint(
+                  location:
+                      "${waypoint.latitude},${waypoint.longitude}", // formatted as string
+                ),
+              ]
+            : [],
+      );
+
+      final result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: ApiConstants.mapAPI,
+        request: request,
+      );
+
+      if (result.points.isNotEmpty) {
+        polylineCoordinates = result.points
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList();
       }
 
-      polylineCoordinates.add(sourceLocation);
-
-      if (resultToDestination.points.isNotEmpty) {
-        for (var point in resultToDestination.points) {
-          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-        }
-      }
-
-      polylineCoordinates.add(riderLocation);
-
-      // Draw the polyline
-      _drawPolyline(destinationLocation, riderLocation);
+      _drawPolyline(origin, destination);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: Text("Polyline Error: $e")));
       }
     }
   }
 
-  Future<void> _generateDummyMarkers(LatLng source) async {
-    final random = Random();
-    final radius = 0.05; // approx 3km
-    final basePosition = source;
+  // Future<void> _generateAnimatedCircle(LatLng source) async {
+  //   final radius = 0.05; // approx 3km
+  //   final basePosition = source;
 
-    setState(() => _isMapInteractionDisabled = true);
+  //   setState(() => _isMapInteractionDisabled = true);
 
-    final controller = await _controller.future;
-    _circleAnimationController.reset();
+  //   final controller = await _controller.future;
+  //   _circleAnimationController.reset();
 
-    // Configure animations
-    final radiusTween = Tween<double>(begin: 10.0, end: 1000.0);
-    final zoomTween = Tween<double>(begin: 18.0, end: 14.0);
+  //   // Configure animations
+  //   final radiusTween = Tween<double>(begin: 10.0, end: 10000.0);
+  //   final zoomTween = Tween<double>(begin: 18.0, end: 14.0);
 
-    // Use the same animation controller for both animations
-    final radiusAnimation = radiusTween.animate(
-      CurvedAnimation(
-        parent: _circleAnimationController,
-        curve: Curves.easeInOutCubic, // Smoother curve
-      ),
-    );
+  //   // Use the same animation controller for both animations
+  //   final radiusAnimation = radiusTween.animate(
+  //     CurvedAnimation(
+  //       parent: _circleAnimationController,
+  //       curve: Curves.easeInOutCubic, // Smoother curve
+  //     ),
+  //   );
 
-    // Add a small delay to prevent initial stutter
-    await Future.delayed(const Duration(milliseconds: 100));
+  //   // Add a small delay to prevent initial stutter
+  //   await Future.delayed(const Duration(milliseconds: 100));
 
-    // Animation listener
-    radiusAnimation.addListener(() {
-      final currentProgress = _circleAnimationController.value;
-      final currentZoom = zoomTween.transform(currentProgress);
+  //   // Animation listener
+  //   radiusAnimation.addListener(() {
+  //     final currentProgress = _circleAnimationController.value;
+  //     final currentZoom = zoomTween.transform(currentProgress);
 
-      setState(() {
-        _animatedCircle = {
-          Circle(
-            circleId: const CircleId('animatedCircle'),
-            center: _center,
-            radius: radiusAnimation.value,
-            fillColor: Colors.blue.withOpacity(0.2),
-            strokeColor: Colors.blue,
-            strokeWidth: 2,
-          ),
-        };
-      });
+  //     setState(() {
+  //       _animatedCircle = {
+  //         Circle(
+  //           circleId: const CircleId('animatedCircle'),
+  //           center: _center,
+  //           radius: radiusAnimation.value,
+  //           fillColor: Colors.blue.withOpacity(0.2),
+  //           strokeColor: Colors.blue,
+  //           strokeWidth: 2,
+  //         ),
+  //       };
+  //     });
 
-      // Use newLatLngZoom for smoother camera transitions
-      controller.moveCamera(
-        CameraUpdate.newLatLngZoom(
-          basePosition,
-          currentZoom,
-        ),
-      );
-    });
+  //     // Use newLatLngZoom for smoother camera transitions
+  //     controller.moveCamera(
+  //       CameraUpdate.newLatLngZoom(
+  //         basePosition,
+  //         currentZoom,
+  //       ),
+  //     );
+  //   });
 
-    // Start the animation
-    Future.microtask(() async {
-      await _circleAnimationController.forward();
-    });
-    // Add markers with staggered appearance
-    for (int i = 0; i < 5; i++) {
-      final offsetLat =
-          basePosition.latitude + (random.nextDouble() - 0.5) * radius;
-      final offsetLng =
-          basePosition.longitude + (random.nextDouble() - 0.5) * radius;
+  //   // Start the animation
+  //   Future.microtask(() async {
+  //     await _circleAnimationController.forward();
+  //   });
+  //   // Add markers with staggered appearance
+  //   // for (int i = 0; i < 5; i++) {
+  //   //   final offsetLat =
+  //   //       basePosition.latitude + (random.nextDouble() - 0.5) * radius;
+  //   //   final offsetLng =
+  //   //       basePosition.longitude + (random.nextDouble() - 0.5) * radius;
 
-      setState(() {
-        _dummyMarkers.add(
-          createMarker(
-            position: LatLng(offsetLat, offsetLng),
-            label: 'Vehicles Position',
-            icon:
-                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          ),
-        );
-      });
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-  }
+  //   //   setState(() {
+  //   //     _dummyMarkers.add(
+  //   //       createMarker(
+  //   //         position: LatLng(offsetLat, offsetLng),
+  //   //         label: 'Vehicles Position',
+  //   //         icon:
+  //   //             BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+  //   //       ),
+  //   //     );
+  //   //   });
+  //   //   await Future.delayed(const Duration(milliseconds: 100));
+  //   // }
+  // }
 
   Marker createMarker({
     required LatLng position,
@@ -418,18 +456,23 @@ class _MapScreenState extends State<MapScreen>
     setState(() {
       _isFindingDrivers = false;
       _hasAcceptedRequest = false;
-      _dummyMarkers.clear();
-      _destinationLocationMarker = null;
-      _polylines.clear();
-      _riderMarkers.clear();
-      _riderMarkers.clear();
+      _hasPickedup = false;
+      _autoAcceptRiders = false;
 
+      _dummyMarkers.clear(); // custom markers
+      _riderMarkers.clear(); // all rider markers
+      _destinationLocationMarker = null; // destination marker
+      // _currentLocationMarker = null; // <--- ADD THIS LINE IF YOU HAVE ONE
+
+      _polylines.clear();
       polylineCoordinates.clear();
       destinationController.clear();
       _animatedCircle.clear();
       _isMapInteractionDisabled = false;
     });
-    // _circleAnimationController.reset();
+
+    _circleAnimationController.reset();
+
     // _radiusAnimation = null;
   }
 
@@ -487,21 +530,17 @@ class _MapScreenState extends State<MapScreen>
     _circleAnimationController.reset();
   }
 
-  void addRidersMarker(RideProposalModel request) async {
-    // Create or update marker
-    // final newMarker = createMarker(
-    //   position: LatLng(request., request.lng),
-    //   label: request.name,
-    //   icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-    // );
-
-    // setState(() {
-    //   _riderMarkers[request.rideRequestId.toString()] = newMarker;
-    // });
+  void handlePickup(bool value) {
+    setState(() {
+      _hasPickedup = value;
+    });
   }
 
-  void findDrivers() async {
-    Navigator.pushNamed(context, AppRoutes.mapofferFare)
+  void findDrivers(String categoryId) async {
+    Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => OfferFareScreen(categoryId: categoryId)))
         .then((offeredFare) async {
       setState(() => _dummyMarkers.clear());
 
@@ -536,13 +575,7 @@ class _MapScreenState extends State<MapScreen>
         final loginResponse = context.read<AuthCubit>().loginResponse;
         final userId = loginResponse?.user.id.toString() ?? '';
         final token = loginResponse?.token ?? '';
-        final riderId = context
-                .read<ProposePriceCubit>()
-                .proposedRideRequestModel
-                ?.user
-                .id
-                .toString() ??
-            '';
+        final riderId = price?.user.id.toString() ?? '';
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -633,15 +666,18 @@ class _MapScreenState extends State<MapScreen>
                                         setState(() => isSubmitting = true);
                                         final success = await context
                                             .read<AddressCubit>()
-                                            .createRating(userId, '3', token,
-                                                selectedRating);
+                                            .createRating(userId, riderId,
+                                                token, selectedRating);
 
                                         setState(() {
                                           isSubmitting = false;
                                           submissionSuccess = success;
                                         });
+                                        stopUpdates();
+                                        resetMap();
 
                                         Navigator.pop(context);
+
                                         // if (success) {
                                         //   await Future.delayed(
                                         //       const Duration(seconds: 1));
@@ -717,29 +753,91 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  void startUpdates() {
-    // Get initial location immediately
-    _checkAndFetchLocation();
+  void startUpdates() async {
+    if (_updateTimer != null) return; // already sending
 
-    // Then update every 5 seconds
-    // _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
-    //   _checkAndFetchLocation();
-    // });
+    // await MapHelper.ensureLocationPermission();
+
+    _updateTimer = Timer.periodic(Duration(seconds: 5), (_) async {
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        final location = LatLng(position.latitude, position.longitude);
+
+        setState(() {
+          _currentLocationMarker = Marker(
+            markerId: const MarkerId('current_location_person'),
+            position: location,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen),
+            infoWindow: InfoWindow(title: "Your Location"),
+          );
+
+          _sourceLocation = location;
+        });
+      } catch (e) {
+        print('❌ Failed to get location or send message: $e');
+      }
+    });
+  }
+
+  void _loadCustomMarker() async {
+    try {
+      final bikeIcon = await MarkerUtil.createSimpleMarker(
+        Assets.markers.bikeMarker.path,
+      );
+
+      final carIcon = await MarkerUtil.createSimpleMarker(
+        Assets.markers.carMarker.path,
+      );
+      setState(() {
+        riderMarkerIcon = _categoryId == 1 ? bikeIcon : carIcon;
+      });
+    } catch (e) {
+      print("Failed to load icon: $e");
+    }
+  }
+
+  void checkIfRiderIsNear(double riderLat, double riderLng, double passengerLat,
+      double passengerLng) {
+    if (_isPlayed) return;
+    bool nearby = MapHelper().isWithin500Meters(
+      riderLat: riderLat,
+      riderLng: riderLng,
+      passengerLat: passengerLat,
+      passengerLng: passengerLng,
+    );
+
+    if (nearby) {
+      _isPlayed = true;
+      playNotification();
+      print('Rider is within 500 meters.');
+    } else {
+      print('Rider is too far.');
+    }
   }
 
   void stopUpdates() {
     _updateTimer?.cancel();
     _updateTimer = null;
+    _polylines.clear();
+    polylineCoordinates.clear();
   }
 
   @override
   void initState() {
     super.initState();
+    _loadCustomMarker();
     _loadMapStyle();
-    startUpdates();
     // _getAddressFromLatLng(_center);
     animationInitialization();
     context.read<StompSocketCubit>().connectSocket();
+    _checkAndFetchLocation();
+    _player = AudioPlayer();
+    _init();
+    // startUpdates();
   }
 
   @override
@@ -756,6 +854,7 @@ class _MapScreenState extends State<MapScreen>
     sourceController.dispose();
     destinationController.dispose();
     stopUpdates();
+    _player.dispose();
   }
 
   @override
@@ -772,17 +871,19 @@ class _MapScreenState extends State<MapScreen>
                 ? BlocListener<StompSocketCubit, StompSocketState>(
                     listener: (context, socketState) {
                     if (socketState is RideCompletionReceive) {
-                      resetMap();
+                      stopUpdates();
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _showRideCompletedDialog(context);
+                        _showRideCompletedDialog(
+                          context,
+                        );
                       });
+                      resetMap();
                     }
 
                     if (socketState is RideMessageReceived) {
                       final ridemessageModel = socketState.rideRequest;
                       final incomingData = ridemessageModel.type.split('-');
                       final incomingUserId = incomingData[1];
-                      final incomingRideRequestId = incomingData[2];
                       final loginResponse =
                           context.read<AuthCubit>().loginResponse;
                       if (loginResponse == null) return;
@@ -792,17 +893,68 @@ class _MapScreenState extends State<MapScreen>
                             ridemessageModel.latitude,
                             ridemessageModel.longitude);
                         final Marker newMarker = Marker(
-                          markerId:
-                              MarkerId(incomingRideRequestId), // Unique key
+                          markerId: MarkerId(ridemessageModel.rideRequestId
+                              .toString()), // Unique key
                           position: newPosition,
-                          infoWindow: InfoWindow(title: 'Rider'),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(
-                              BitmapDescriptor.hueMagenta),
+                          infoWindow: InfoWindow(
+                              title: ridemessageModel.rideRequestId.toString()),
+                          icon: riderMarkerIcon ??
+                              BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueBlue),
+
+                          // icon: _customIcon,
                         );
 
                         // Clear the old one and add the updated marker
                         addMarkerToRiderMarkers(
-                            incomingRideRequestId, newMarker);
+                            ridemessageModel.rideRequestId.toString(),
+                            newMarker);
+                        final requestRide =
+                            context.read<AddressCubit>().rideRequest;
+                        if (requestRide == null) return;
+                        final riderLocation = LatLng(ridemessageModel.latitude,
+                            ridemessageModel.longitude);
+                        final destinationLocation = LatLng(
+                            requestRide!.dLatitude, requestRide.dLongitude);
+                        if (_sourceLocation == null) return;
+                        if (_hasPickedup) {
+                          _getPolyline(
+                              origin: _sourceLocation!,
+                              destination: destinationLocation,
+                              waypoint: null);
+                        } else {
+                          _getPolyline(
+                              origin: riderLocation,
+                              destination: _sourceLocation!,
+                              waypoint: null);
+                        }
+                        final destinationMaker = createMarker(
+                            position: destinationLocation,
+                            label: 'Your destination');
+                        setState(() {
+                          if (_hasPickedup) {
+                            _riderMarkers.clear();
+                          }
+                          _destinationLocationMarker = destinationMaker;
+                        });
+
+                        checkIfRiderIsNear(
+                            riderLocation.latitude,
+                            riderLocation.longitude,
+                            _sourceLocation!.latitude,
+                            _sourceLocation!.longitude);
+                        // final RideMessageModel newModal = RideMessageModel(
+                        //   latitude: _center.latitude,
+                        //   longitude: _center.longitude,
+                        //   type:
+                        //       'passenger-${loginResponse.user.id.toString()}-${ridemessageModel.rideRequestId.toString()}',
+                        //   userId: loginResponse.user.id,
+                        //   rideRequestId: ridemessageModel.rideRequestId,
+                        // );
+
+                        // context.read<StompSocketCubit>().sendMessage(newModal);
+
+                        // _getPolyline(riderLocation, sourceLocation, destinationLocation)
                       }
                     }
                   }, child: BlocBuilder<AddressCubit, AddressState>(
@@ -821,13 +973,6 @@ class _MapScreenState extends State<MapScreen>
                             scrollGesturesEnabled: !_isMapInteractionDisabled,
                             rotateGesturesEnabled: !_isMapInteractionDisabled,
                             tiltGesturesEnabled: !_isMapInteractionDisabled,
-                            markers: {
-                              if (_currentLocationMarker != null)
-                                _currentLocationMarker!,
-                              if (_destinationLocationMarker != null)
-                                _destinationLocationMarker!,
-                              ..._riderMarkers.values,
-                            },
                             circles: _animatedCircle,
                             onMapCreated: (controller) {
                               _controller.complete(controller);
@@ -843,6 +988,13 @@ class _MapScreenState extends State<MapScreen>
                                   ),
                                 );
                               }
+                            },
+                            markers: {
+                              if (_currentLocationMarker != null)
+                                _currentLocationMarker!,
+                              if (_destinationLocationMarker != null)
+                                _destinationLocationMarker!,
+                              ..._riderMarkers.values,
                             },
                             onCameraMove: _onCameraMove,
                             polylines: _polylines,
@@ -966,7 +1118,7 @@ class _MapScreenState extends State<MapScreen>
                                                 });
                                               }
 
-                                              // await _generateDummyMarkers(
+                                              // await _generateAnimatedCircle(
                                               //   LatLng(source.lat, source.lng),
                                               // );
 
@@ -976,16 +1128,19 @@ class _MapScreenState extends State<MapScreen>
                                               //       destination!.lng),
                                               // );
 
-                                              final sourceLocation = LatLng(
-                                                  source.lat, source.lng);
+                                              // final sourceLocation = LatLng(
+                                              //     source.lat, source.lng);
                                               final destinationLocation =
                                                   LatLng(destination.lat,
                                                       destination.lng);
-
+                                              if (_sourceLocation == null)
+                                                return;
                                               _getPolyline(
-                                                  sourceLocation,
-                                                  sourceLocation,
-                                                  destinationLocation);
+                                                origin: _sourceLocation!,
+                                                destination:
+                                                    destinationLocation,
+                                                waypoint: null,
+                                              );
                                             }
                                           });
                                         }
@@ -1006,7 +1161,8 @@ class _MapScreenState extends State<MapScreen>
                                         destinationController,
                                     categoryId: _categoryId,
                                     onTapped: setLocationForUser,
-                                    onPressed: findDrivers,
+                                    onPressed: () =>
+                                        findDrivers(_categoryId.toString()),
                                     onCategoryChanged: handleCategoryChange,
                                   ),
                                 ),
@@ -1059,7 +1215,14 @@ class _MapScreenState extends State<MapScreen>
                                         child: CustomButton(
                                           isRounded: true,
                                           text: 'Find Drivers',
-                                          onPressed: findDrivers,
+                                          onPressed: () async {
+                                            // await _generateAnimatedCircle(
+                                            //   LatLng(addressState.source!.lat,
+                                            //       addressState.source!.lng),
+                                            // );
+
+                                            findDrivers(_categoryId.toString());
+                                          },
                                           // onPressed: () {
                                           // Navigator.pushNamed(context,
                                           //         AppRoutes.mapofferFare)
@@ -1080,11 +1243,6 @@ class _MapScreenState extends State<MapScreen>
                                           //         _isFindingDrivers = true;
                                           //       });
                                           //     }
-
-                                          // await _generateDummyMarkers(
-                                          //   LatLng(addressState.source!.lat,
-                                          //       addressState.source!.lng),
-                                          // );
 
                                           // _getPolyline(
                                           //   LatLng(state.source!.lat,
@@ -1128,6 +1286,10 @@ class _MapScreenState extends State<MapScreen>
                                   minHeight:
                                       MediaQuery.of(context).size.height * 0.3,
                                   child: DriverArrivingBottomsheet(
+                                    handlePrice: handlePrice,
+                                    handlePickup: handlePickup,
+                                    startUpdates: startUpdates,
+                                    drawPolyline: _getPolyline,
                                     onPressed: resetMap,
                                   ),
                                 ),
@@ -1137,7 +1299,7 @@ class _MapScreenState extends State<MapScreen>
                           if (_isFindingDrivers) ...[
                             CustomBottomsheet(
                               maxHeight:
-                                  MediaQuery.of(context).size.height * 0.5,
+                                  MediaQuery.of(context).size.height * 0.6,
                               minHeight:
                                   MediaQuery.of(context).size.height * 0.3,
                               child: OfferPriceBottomSheet(
@@ -1169,6 +1331,7 @@ class _MapScreenState extends State<MapScreen>
                                   }),
                             ),
                             RequestCardPopup(
+                              riderMarkerIcon: riderMarkerIcon,
                               prepareDriverArriving: prepareDriverArriving,
                               createMarkers: addMarkerToRiderMarkers,
                               drawPolyline: _getPolyline,

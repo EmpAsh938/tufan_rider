@@ -5,6 +5,7 @@ import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
 import 'package:tufan_rider/features/rider/map/models/proposed_ride_request_model.dart';
+import 'package:tufan_rider/features/rider/map/models/rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
 import 'package:tufan_rider/features/rider/map/models/vehicle_response.dart';
 
@@ -150,6 +151,37 @@ class RiderRepository {
           .toList();
     } else {
       throw Exception("Unexpected response format");
+    }
+  }
+
+  Future<double> averageRating(String riderId) async {
+    try {
+      final response = await _apiService.averageRating(riderId);
+
+      // Example: { "message": "Average Rating: 5.0", "success": true }
+      final message = response.data['message'] as String;
+
+      // Extract the number using RegExp
+      final match = RegExp(r'[\d.]+').firstMatch(message);
+      if (match != null) {
+        return double.tryParse(match.group(0)!) ?? 0.0;
+      } else {
+        return 0.0;
+      }
+    } catch (e) {
+      print('Error fetching average rating: $e');
+      return 0.0;
+    }
+  }
+
+  Future<RiderModel> getRiderById(String riderId) async {
+    final response = await _apiService.getRider(riderId); // Dio Response
+
+    // Make sure response.data is a map
+    if (response.data is Map<String, dynamic>) {
+      return RiderModel.fromJson(response.data);
+    } else {
+      throw Exception('Invalid response format for rider data');
     }
   }
 }

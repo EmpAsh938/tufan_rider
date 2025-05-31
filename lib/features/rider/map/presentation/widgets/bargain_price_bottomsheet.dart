@@ -7,6 +7,7 @@ import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_state.dart';
@@ -58,6 +59,8 @@ class _BargainPriceBottomsheetState extends State<BargainPriceBottomsheet> {
           );
         }
         if (state is ProposePriceSuccess) {
+          context.read<StompSocketCubit>().subscribeToRequestDecline(
+              state.proposedRideRequestModel.id.toString());
           setState(() {
             isSent = true;
           });

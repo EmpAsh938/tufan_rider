@@ -6,6 +6,7 @@ import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 import 'package:tufan_rider/features/map/models/location_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
 import 'package:tufan_rider/features/map/models/riders_request.dart';
 import 'package:tufan_rider/features/map/repository/map_repository.dart';
 import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
@@ -22,11 +23,7 @@ class AddressCubit extends Cubit<AddressState> {
   RideRequestModel? get acceptedRide => state.acceptedRide;
   List<RideHistory> get rideHistory => state.rideHistory;
   List<RiderRequest> get riderRequest => state.riderRequest;
-  int get categoryId => state.categoryId;
-
-  void setCategoryId(int value) {
-    emit(state.copyWith(categoryId: value));
-  }
+  RiderBargainModel? get bargainModel => state.bargainModel;
 
   void setSource(RideLocation source) {
     emit(state.copyWith(source: source));
@@ -38,6 +35,10 @@ class AddressCubit extends Cubit<AddressState> {
 
   AddressState fetchAddress() {
     return state;
+  }
+
+  void setBargainModel(RiderBargainModel bargainModel) {
+    emit(state.copyWith(bargainModel: bargainModel));
   }
 
   void setFare(FareResponse fareResponse) {
@@ -81,9 +82,7 @@ class AddressCubit extends Cubit<AddressState> {
       if (destinationInfo == null || loginResponse == null) {
         throw Exception();
       }
-      if (destinationInfo.lat == null || destinationInfo.lng == null) {
-        throw Exception();
-      }
+
       final location = LocationModel(
         latitude: destinationInfo.lat,
         longitude: destinationInfo.lng,
@@ -105,6 +104,7 @@ class AddressCubit extends Cubit<AddressState> {
     RideLocation destination,
     String price,
     String userId,
+    String categoryId,
     String token,
   ) async {
     try {
@@ -112,7 +112,7 @@ class AddressCubit extends Cubit<AddressState> {
           LocationModel(latitude: destination.lat, longitude: destination.lng);
 
       final data = await _repository.createRideRequest(
-          location, price, userId, state.categoryId.toString(), token);
+          location, price, userId, categoryId, destination.name ?? '', token);
 
       emit(state.copyWith(rideRequestModel: data));
       return data;
@@ -132,7 +132,7 @@ class AddressCubit extends Cubit<AddressState> {
       final location =
           LocationModel(latitude: destination.lat, longitude: destination.lng);
       final data = await _repository.updateRideRequest(
-          location, price, rideRequestId, token);
+          location, price, rideRequestId, destination.name ?? '', token);
 
       emit(state.copyWith(rideRequestModel: data));
       return data;
@@ -169,6 +169,24 @@ class AddressCubit extends Cubit<AddressState> {
     try {
       final data = await _repository.showRideHistory();
       emit(state.copyWith(rideHistory: data));
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> getPassengerHistory(String userId) async {
+    try {
+      final data = await _repository.showPassengerHistory(userId);
+      emit(state.copyWith(passengerHistory: data));
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> getRiderHistory(String userId) async {
+    try {
+      final data = await _repository.showRiderHistory(userId);
+      emit(state.copyWith(riderHistory: data));
     } catch (e) {
       print(e);
     }

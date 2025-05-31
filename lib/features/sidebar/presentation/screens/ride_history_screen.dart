@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/utils/date_utils.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
@@ -47,7 +48,17 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
 
   Future<void> fetchRideHistory() async {
     try {
-      await context.read<AddressCubit>().showRideHistory();
+      final loginResponse = context.read<AuthCubit>().loginResponse;
+      if (loginResponse == null) return;
+
+      final userId = loginResponse.user.id.toString();
+      final isRider = loginResponse.user.roles[0].name.contains('RIDER');
+
+      if (isRider) {
+        await context.read<AddressCubit>().getRiderHistory(userId);
+      } else {
+        await context.read<AddressCubit>().getPassengerHistory(userId);
+      }
     } catch (e) {
       print(e);
     } finally {
@@ -81,23 +92,34 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
               )
             : BlocBuilder<AddressCubit, AddressState>(
                 builder: (context, state) {
-                if (state.rideHistory.isEmpty) {
-                  return Text('No ride history');
+                final loginResponse = context.read<AuthCubit>().loginResponse;
+                final isRider =
+                    loginResponse?.user.roles[0].name.contains('RIDER') ??
+                        false;
+
+                final historyList =
+                    isRider ? state.riderHistory : state.passengerHistory;
+
+                if (historyList.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No ride history',
+                      style: AppTypography.smallText,
+                    ),
+                  );
                 }
+
                 return SizedBox(
                   height: MediaQuery.of(context).size.height,
                   child: ListView.builder(
                     padding: EdgeInsets.all(10),
-                    itemCount: state.rideHistory.length,
+                    itemCount: historyList.length,
                     itemBuilder: (context, index) {
-                      if (state.rideHistory[index].status
-                              .toLowerCase()
-                              .trim() ==
+                      if (historyList[index].status.toLowerCase().trim() ==
                           'ride_complete') {
-                        return RideCard(ride: state.rideHistory[index]);
+                        return RideCard(ride: historyList[index]);
                       }
-                      return const SizedBox
-                          .shrink(); // Return empty widget for 'ride_complete'
+                      return const SizedBox.shrink();
                     },
                   ),
                 );
@@ -210,9 +232,6 @@ class _RideCardState extends State<RideCard> {
                     : widget.ride.status,
                 style: AppTypography.smallText.copyWith(
                   fontSize: 14,
-                  // color: widget.ride.status == "PESSENGER_APPROVED"
-                  // ? AppColors.primaryGreen
-                  // : AppColors.primaryRed,
                   color: AppColors.primaryGreen,
                 ),
               ),

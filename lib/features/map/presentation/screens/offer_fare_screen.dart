@@ -5,6 +5,7 @@ import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
+import 'package:tufan_rider/core/widgets/custom_switch.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
@@ -13,7 +14,15 @@ import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 
 class OfferFareScreen extends StatefulWidget {
-  const OfferFareScreen({super.key});
+  final String categoryId;
+  // final bool autoAccept;
+  // final Function(bool) handleAutoAcceptRiders;
+  const OfferFareScreen({
+    super.key,
+    required this.categoryId,
+    // required this.autoAccept,
+    // required this.handleAutoAcceptRiders,
+  });
 
   @override
   State<OfferFareScreen> createState() => _OfferFareScreenState();
@@ -48,8 +57,9 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
       destination = destinationInfo;
       isLoading = false;
       fareResponse = fareInfo;
-      fareController.text =
-          fareInfo == null ? '' : (fareInfo.generatedPrice).ceil().toString();
+      fareController.text = fareInfo == null
+          ? ''
+          : (fareInfo.generatedPrice + 20).ceil().toString();
     });
   }
 
@@ -104,7 +114,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                           final number = double.tryParse(value ?? '');
                           final generated = fareResponse == null
                               ? 0.0
-                              : fareResponse!.generatedPrice;
+                              : fareResponse!.generatedPrice + 20;
 
                           if (number == null) {
                             return 'Enter a valid number';
@@ -112,8 +122,8 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
 
                           final diff = (number - generated).abs();
 
-                          if (diff > 10) {
-                            return 'Fare must be within ±10 of the generated price';
+                          if (diff > 20) {
+                            return 'Fare must be within ±20 of the generated price';
                           }
 
                           return null;
@@ -165,7 +175,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                                 ),
                                 TextSpan(
                                   text:
-                                      'NRs. ${fareResponse!.generatedPrice.toStringAsFixed(0)}',
+                                      'NRs. ${(fareResponse!.generatedPrice + 20).toStringAsFixed(0)}',
                                   style: AppTypography.labelText.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primaryBlack,
@@ -241,12 +251,10 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
                     //       ),
                     //     ),
                     //     CustomSwitch(
-                    //       isActive: true,
-                    //       switchValue: autoAccept,
+                    //       isActive: widget.autoAccept,
+                    //       switchValue: widget.autoAccept,
                     //       onChanged: (bool value) {
-                    //         setState(() {
-                    //           autoAccept = value;
-                    //         });
+                    //         widget.handleAutoAcceptRiders(value);
                     //       },
                     //     ),
                     //   ],
@@ -383,6 +391,7 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
             destination!,
             fare.toString(),
             loginResponse!.user.id.toString(),
+            widget.categoryId,
             loginResponse!.token,
           );
       if (rideRequest == null) {

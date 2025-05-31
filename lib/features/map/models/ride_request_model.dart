@@ -1,7 +1,7 @@
 import 'package:tufan_rider/features/auth/models/login_response.dart';
 
 class RideRequestModel {
-  final int rideRequestId;
+  final int? rideRequestId;
   final double actualPrice;
   final double dLatitude;
   final double dLongitude;
@@ -16,6 +16,7 @@ class RideRequestModel {
   final double generatedPrice;
   final String status;
   final int? ridebookedId;
+  final int totalMin;
   final Category category;
 
   RideRequestModel({
@@ -35,6 +36,7 @@ class RideRequestModel {
     required this.status,
     required this.ridebookedId,
     required this.category,
+    required this.totalMin,
   });
 
   factory RideRequestModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +85,7 @@ class RideRequestModel {
       status: json['status'],
       ridebookedId: json['ridebookedId'],
       category: Category.fromJson(json['category']),
+      totalMin: json['total_min'],
     );
   }
 }

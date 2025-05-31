@@ -73,7 +73,11 @@ class AppRoutes {
       case mapAddressSearch:
         return _slideFromRight(const AddressSearchScreen(), routeSettings);
       case mapofferFare:
-        return _slideFromBottom(const OfferFareScreen(), routeSettings);
+        return _slideFromBottom(
+            const OfferFareScreen(
+              categoryId: '1',
+            ),
+            routeSettings);
       case profile:
         return _slideFromRight(const ProfileScreen(), routeSettings);
       case rideHistory:

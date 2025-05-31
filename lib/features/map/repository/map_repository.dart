@@ -34,10 +34,11 @@ class MapRepository {
     String price,
     String userId,
     String categoryId,
+    String destinationName,
     String token,
   ) async {
     final response = await _apiService.createRideRequest(
-        location, price, userId, categoryId, token);
+        location, price, userId, categoryId, destinationName, token);
     return RideRequestModel.fromJson(response.data);
   }
 
@@ -45,10 +46,11 @@ class MapRepository {
     LocationModel location,
     String price,
     String rideRequestId,
+    String destinationName,
     String token,
   ) async {
     final response = await _apiService.updateRideRequest(
-        location, price, rideRequestId, token);
+        location, price, rideRequestId, destinationName, token);
     return RideRequestModel.fromJson(response.data);
   }
 
@@ -62,6 +64,18 @@ class MapRepository {
 
   Future<List<RideHistory>> showRideHistory() async {
     final response = await _apiService.showRideHistory();
+    final List<dynamic> data = response.data;
+    return data.map((json) => RideHistory.fromJson(json)).toList();
+  }
+
+  Future<List<RideHistory>> showPassengerHistory(String userId) async {
+    final response = await _apiService.getPassengerHistory(userId);
+    final List<dynamic> data = response.data;
+    return data.map((json) => RideHistory.fromJson(json)).toList();
+  }
+
+  Future<List<RideHistory>> showRiderHistory(String userId) async {
+    final response = await _apiService.getRiderHistory(userId);
     final List<dynamic> data = response.data;
     return data.map((json) => RideHistory.fromJson(json)).toList();
   }
@@ -93,7 +107,7 @@ class MapRepository {
     String approveId,
     String token,
   ) async {
-    await _apiService.rejectRideRequest(approveId, token);
+    await _apiService.rejectRideApproval(approveId, token);
   }
 
   Future<void> pickupPassenger(

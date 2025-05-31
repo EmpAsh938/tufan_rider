@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_state.dart';
 import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
+import 'package:tufan_rider/features/rider/map/models/rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
 import 'package:tufan_rider/features/rider/map/repository/rider_repository.dart';
 
@@ -60,6 +61,25 @@ class CreateRiderCubit extends Cubit<CreateRiderState> {
       emit(CreateRiderUploadedSuccess());
     } catch (e) {
       emit(CreateRiderUploadedFailure(e.toString()));
+    }
+  }
+
+  Future<double> averageRating(String riderId) async {
+    try {
+      final rating = await _repository.averageRating(riderId);
+      return rating;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
+  Future<RiderResponse> getRiderById(String riderId) async {
+    try {
+      final rider = await _repository.getRiderbyUser(riderId);
+      return rider;
+    } catch (e) {
+      print('Error fetching rider: $e');
+      rethrow; // or return a default RiderModel if needed
     }
   }
 }

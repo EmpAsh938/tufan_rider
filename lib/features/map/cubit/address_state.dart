@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:tufan_rider/features/map/models/fare_response.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
 import 'package:tufan_rider/features/map/models/riders_request.dart';
 import 'package:tufan_rider/features/sidebar/models/ride_history.dart';
 
@@ -18,9 +19,11 @@ class AddressState extends Equatable {
   final FareResponse? fareResponse;
   final RideRequestModel? rideRequestModel;
   final List<RideHistory> rideHistory;
+  final List<RideHistory> passengerHistory;
+  final List<RideHistory> riderHistory;
   final List<RiderRequest> riderRequest;
   final RideRequestModel? acceptedRide;
-  final int categoryId;
+  final RiderBargainModel? bargainModel;
 
   const AddressState({
     this.source,
@@ -29,8 +32,10 @@ class AddressState extends Equatable {
     this.rideRequestModel,
     this.acceptedRide,
     this.rideHistory = const [],
+    this.passengerHistory = const [],
+    this.riderHistory = const [],
     this.riderRequest = const [],
-    this.categoryId = 1,
+    this.bargainModel,
   });
 
   AddressState copyWith({
@@ -39,9 +44,11 @@ class AddressState extends Equatable {
     FareResponse? fareResponse,
     RideRequestModel? rideRequestModel,
     RideRequestModel? acceptedRide,
+    RiderBargainModel? bargainModel,
     List<RideHistory>? rideHistory,
+    List<RideHistory>? passengerHistory,
+    List<RideHistory>? riderHistory,
     List<RiderRequest>? riderRequest,
-    int categoryId = 1,
   }) {
     return AddressState(
       source: source ?? this.source,
@@ -50,8 +57,10 @@ class AddressState extends Equatable {
       rideRequestModel: rideRequestModel ?? this.rideRequestModel,
       acceptedRide: acceptedRide ?? this.acceptedRide,
       rideHistory: rideHistory ?? this.rideHistory,
+      passengerHistory: passengerHistory ?? this.passengerHistory,
+      riderHistory: riderHistory ?? this.riderHistory,
       riderRequest: riderRequest ?? this.riderRequest,
-      categoryId: categoryId,
+      bargainModel: bargainModel ?? this.bargainModel,
     );
   }
 
@@ -63,7 +72,9 @@ class AddressState extends Equatable {
         rideRequestModel,
         acceptedRide,
         rideHistory,
+        passengerHistory,
+        riderHistory,
         riderRequest,
-        categoryId,
+        bargainModel,
       ];
 }

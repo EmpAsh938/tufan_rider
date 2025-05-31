@@ -5,6 +5,7 @@ import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
+import 'package:tufan_rider/features/map/models/bid_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
 import 'package:tufan_rider/features/rider/map/models/ride_request_passenger_model.dart';
@@ -146,7 +147,7 @@ class StompSocketCubit extends Cubit<StompSocketState> {
         if (message != null) {
           try {
             final decoded = jsonDecode(message);
-            final rideRequest = RideRequestModel.fromJson(decoded);
+            final rideRequest = BidModel.fromJson(decoded);
             emit(RideDeclineReceived(rideRequest));
           } catch (e) {
             print("❌ Failed to parse ride message: $e");
@@ -241,16 +242,8 @@ class StompSocketCubit extends Cubit<StompSocketState> {
   }
 
   void clearRide(RideRequestModel rideRequest) {
-    emit(RideDeclineReceived(rideRequest));
+    emit(RideRejectedReceived(rideRequest));
   }
-
-  // void sendMessage(String destination, String body) {
-  //   if (_stompClient?.connected ?? false) {
-  //     _stompClient?.send(destination: destination, body: body);
-  //   } else {
-  //     print("Client not connected");
-  //   }
-  // }
 
   void disconnect() {
     print('Stomp Disconnected');

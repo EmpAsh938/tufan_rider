@@ -11,10 +11,15 @@ import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart'
 
 class RequestCardPopup extends StatefulWidget {
   final VoidCallback prepareDriverArriving;
-  final Function(LatLng, LatLng, LatLng) drawPolyline;
+  final BitmapDescriptor? riderMarkerIcon;
+  final Future<void> Function(
+      {required LatLng destination,
+      required LatLng origin,
+      LatLng? waypoint}) drawPolyline;
   final Function(String id, Marker marker) createMarkers;
   const RequestCardPopup({
     super.key,
+    required this.riderMarkerIcon,
     required this.prepareDriverArriving,
     required this.createMarkers,
     required this.drawPolyline,
@@ -43,19 +48,19 @@ class _RequestCardPopupState extends State<RequestCardPopup>
 
     setState(() {
       _requests.add(request);
-      _controllers[request.rideRequestId.toString()] = controller;
-      _animations[request.rideRequestId.toString()] = animation;
+      _controllers[request.id.toString()] = controller;
+      _animations[request.id.toString()] = animation;
     });
 
     Future.delayed(Duration(milliseconds: 150 * _requests.length), () {
-      if (mounted && _controllers[request.rideRequestId.toString()] != null) {
-        _controllers[request.rideRequestId.toString()]!.forward();
+      if (mounted && _controllers[request.id.toString()] != null) {
+        _controllers[request.id.toString()]!.forward();
       }
     });
 
     // Auto-remove after 10 seconds
-    Future.delayed(const Duration(seconds: 30), () {
-      handleAutoDecline(request.rideRequestId.toString());
+    Future.delayed(const Duration(seconds: 60), () {
+      handleAutoDecline(request.id.toString());
     });
   }
 
@@ -68,7 +73,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     if (!mounted) return;
 
     setState(() {
-      _requests.removeWhere((r) => r.rideRequestId.toString() == id);
+      _requests.removeWhere((r) => r.id.toString() == id);
       _controllers.remove(id)?.dispose();
       _animations.remove(id);
     });
@@ -147,16 +152,17 @@ class _RequestCardPopupState extends State<RequestCardPopup>
     return BlocListener<StompSocketCubit, StompSocketState>(
         listener: (context, state) {
           if (state is PassengerMessageReceived) {
-            final existingRequestIds =
-                _requests.map((r) => r.rideRequestId).toSet();
+            _requests.clear();
+
             for (var rideRequest in state.rideRequest) {
               // if (!existingRequestIds.contains(rideRequest.rideRequestId)) {
               _addRequest(rideRequest);
               final newMarker = Marker(
                 markerId: MarkerId(rideRequest.rideRequestId.toString()),
                 position: LatLng(rideRequest.riderLati, rideRequest.riderLong),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueMagenta),
+                icon: widget.riderMarkerIcon ??
+                    BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueBlue),
               );
               widget.createMarkers(
                   rideRequest.rideRequestId.toString(), newMarker);
@@ -171,7 +177,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: _requests.map((request) {
-              final animation = _animations[request.rideRequestId.toString()]!;
+              final animation = _animations[request.id.toString()]!;
               return SlideTransition(
                 position: animation,
                 child: RequestCard(
@@ -185,8 +191,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                     final isRejected = await context
                         .read<AddressCubit>()
                         .rejectRideRequestApproval(
-                            rideResponse.rideRequestId.toString(),
-                            loginResponse.token);
+                            request.id.toString(), loginResponse.token);
 
                     if (!isRejected) {
                       CustomToast.show(
@@ -196,7 +201,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                       );
                       return;
                     }
-                    _removeRequestById(rideResponse.rideRequestId.toString());
+                    _removeRequestById(request.id.toString());
                   }, // need to cancel the accepted request
                   onAccept: () async {
                     final loginResponse =
@@ -220,6 +225,8 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                     }
                     _removeAllRequests();
                     widget.prepareDriverArriving();
+                    context.read<AddressCubit>().setBargainModel(request);
+
                     context.read<StompSocketCubit>().subscribeToRideCompletion(
                         request.rideRequestId.toString());
                     context.read<StompSocketCubit>().listenToMessage();
@@ -229,11 +236,13 @@ class _RequestCardPopupState extends State<RequestCardPopup>
                         LatLng(request.riderLati, request.riderLong);
                     final sourceLocation =
                         LatLng(rideResponse.sLatitude, rideResponse.sLongitude);
-                    final destinationLocation =
-                        LatLng(rideResponse.dLatitude, rideResponse.dLongitude);
+                    // final destinationLocation =
+                    //     LatLng(rideResponse.dLatitude, rideResponse.dLongitude);
 
                     widget.drawPolyline(
-                        riderLocation, sourceLocation, destinationLocation);
+                        origin: sourceLocation,
+                        destination: riderLocation,
+                        waypoint: null);
                   },
                 ),
               );

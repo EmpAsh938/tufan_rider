@@ -10,7 +10,10 @@ import 'package:tufan_rider/features/map/cubit/address_state.dart';
 
 class OfferPriceBottomSheet extends StatefulWidget {
   final void Function(bool) onPressed;
-  final void Function(LatLng, LatLng, LatLng) drawPolyline;
+  final Future<void> Function(
+      {required LatLng destination,
+      required LatLng origin,
+      LatLng? waypoint}) drawPolyline;
   const OfferPriceBottomSheet(
       {super.key, required this.onPressed, required this.drawPolyline});
 
@@ -38,7 +41,9 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
     final destinationCoordinates = LatLng(destination.lat, destination.lng);
 
     widget.drawPolyline(
-        sourceCoordinates, sourceCoordinates, destinationCoordinates);
+        origin: sourceCoordinates,
+        destination: destinationCoordinates,
+        waypoint: null);
   }
 
   @override
@@ -138,6 +143,7 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
               ],
             ),
             const SizedBox(height: 12),
+            // state.to
             // SizedBox(
             //   width: double.infinity,
             //   child: CustomButton(
@@ -166,6 +172,14 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
             //   ],
             // ),
             const SizedBox(height: 8),
+
+            FareInfoBubble(
+              fare: '${state.totalKm.toStringAsFixed(0)} Km',
+              duration: '${state.totalMin} min',
+            ),
+
+            const SizedBox(height: 8),
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -312,6 +326,56 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class FareInfoBubble extends StatelessWidget {
+  final String fare;
+  final String duration;
+
+  const FareInfoBubble({
+    Key? key,
+    required this.fare,
+    required this.duration,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.blue, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(color: Colors.black87, fontSize: 14),
+                children: [
+                  const TextSpan(text: 'The total estimated distance is '),
+                  TextSpan(
+                    text: fare,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const TextSpan(text: '.\nTravel time ~'),
+                  TextSpan(
+                    text: duration,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

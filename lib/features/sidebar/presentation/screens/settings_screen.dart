@@ -5,6 +5,7 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/cubit/theme/theme_cubit.dart';
 import 'package:tufan_rider/core/di/locator.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/webview_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/widgets/sidebar_scaffold.dart';
 
@@ -204,6 +205,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         AppRoutes.login,
                         (route) => false,
                       );
+
+                      locator.get<StompSocketCubit>().disconnect();
 
                       locator.get<AuthCubit>().logout();
                     },

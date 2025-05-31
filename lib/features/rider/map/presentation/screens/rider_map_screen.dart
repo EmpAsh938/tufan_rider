@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animarker/widgets/animarker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
+import 'package:tufan_rider/core/model/ride_message_model.dart';
+import 'package:tufan_rider/core/utils/map_helper.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
@@ -33,8 +37,11 @@ class RiderMapScreen extends StatefulWidget {
   State<RiderMapScreen> createState() => _RiderMapScreenState();
 }
 
-class _RiderMapScreenState extends State<RiderMapScreen> {
+class _RiderMapScreenState extends State<RiderMapScreen>
+    with WidgetsBindingObserver {
   final Completer<GoogleMapController> _controller = Completer();
+
+  late AudioPlayer _player;
 
   LatLng _center = RiderMapScreen._kDefaultLocation.target;
 
@@ -48,14 +55,22 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
   bool _isLoading = true;
   bool isAccepted = false;
   bool isBargain = false;
+  bool _handlePickup = false;
   RideRequestModel? request;
-  Set<Marker> _markers = {};
+  // Set<Marker> _markers = {};
+
+  Map<String, Marker> _markers = {};
 
   Set<Polyline> _polylines = {};
   List<LatLng> polylineCoordinates = [];
   PolylinePoints polylinePoints = PolylinePoints();
 
+  LatLng? _lastOrigin;
+  LatLng? _lastDestination;
+
   Future<void> _checkAndFetchLocation() async {
+    _polylines.clear();
+    polylineCoordinates.clear();
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -111,7 +126,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(title: "Your Location"),
         );
-        _markers.add(currentLocationMarker);
+        _markers['current_location'] = (currentLocationMarker);
       });
 
       final GoogleMapController controller = await _controller.future;
@@ -120,7 +135,7 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: LatLng(position.latitude, position.longitude),
-            zoom: 12,
+            zoom: 14,
           ),
         ),
       );
@@ -199,10 +214,13 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
   }
 
   void resetModals() {
+    print('RESETTING');
+    stopUpdates();
     setState(() {
       isAccepted = false;
       isBargain = false;
       request = null;
+      _handlePickup = false;
       _markers.clear();
       _polylines.clear();
       polylineCoordinates.clear();
@@ -210,14 +228,17 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
     _checkAndFetchLocation();
   }
 
-  void showApprove() {
+  void showApprove(RideRequestModel request) {
+    stopUpdates();
     setState(() {
       isBargain = false;
       isAccepted = true;
     });
+    startUpdates(request, false);
   }
 
   void _drawPolyline(LatLng start, LatLng end) {
+    print('POLYLLINE');
     final Polyline polyline = Polyline(
       polylineId: PolylineId("route"),
       color: Colors.blue,
@@ -227,7 +248,6 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
 
     setState(() {
       _polylines.clear();
-
       _polylines = {polyline};
     });
   }
@@ -289,27 +309,159 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
     }
   }
 
-  void startUpdates() {
-    // Get initial location immediately
-    _checkAndFetchLocation();
+  void addMarker(String id, Marker updatedLocation) {
+    setState(() {
+      _markers[id] = updatedLocation;
+    });
+  }
 
-    // Then update every 5 seconds
-    // _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) {
-    //   _checkAndFetchLocation();
-    // });
+  void startUpdates(RideRequestModel? request, bool isRiderOnly) async {
+    if (_updateTimer != null) return; // already sending
+
+    // await MapHelper.ensureLocationPermission();
+
+    _updateTimer = Timer.periodic(Duration(seconds: 5), (_) async {
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        final location = LatLng(position.latitude, position.longitude);
+
+        final updatedMarker = Marker(
+          markerId: const MarkerId('current_location'),
+          position: location,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(title: "Your Location"),
+        );
+        setState(() {
+          _center = location;
+          // _markers.removeWhere((m) => m.markerId.value == 'current_location');
+
+          _markers['current_location'] = updatedMarker;
+        });
+
+        if (request == null || !isAccepted) return;
+
+        // final passengerDestinationMarker = createMarker(
+        //   position: LatLng(request.dLatitude, request.dLongitude),
+        //   label: request.dName,
+        //   icon:
+        //       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        //   snippet: request.sName.toString(),
+        //   markerId: MarkerId(UniqueKey().toString()),
+        // );
+        // final passengerSourceMarker = createMarker(
+        //   position: LatLng(request.sLatitude, request.sLongitude),
+        //   label: request.sName,
+        //   icon: BitmapDescriptor.defaultMarkerWithHue(
+        //       BitmapDescriptor.hueGreen),
+        //   snippet: request.rideRequestId.toString(),
+        //   markerId: MarkerId(UniqueKey().toString()),
+        // );
+        // _markers.add(passengerDestinationMarker);
+        // _markers.add(passengerSourceMarker);
+
+        if (_handlePickup) {
+          setState(() {
+            _markers.remove(request.user.id.toString());
+          });
+        }
+
+        final mid = LatLng(request.sLatitude, request.sLongitude);
+        final destinationLocation =
+            LatLng(request.dLatitude, request.dLongitude);
+
+        if (isAccepted || _handlePickup) {
+          _getPolyline(isRiderOnly ? _center : mid, destinationLocation);
+        }
+
+        if (isAccepted) {
+          final RideMessageModel rideMessageModel = RideMessageModel(
+            latitude: position.latitude,
+            longitude: position.longitude,
+            type:
+                'rider-${request.user.id.toString()}-${request.rideRequestId.toString()}',
+            userId: request.user.id,
+            rideRequestId: request.rideRequestId,
+          );
+
+          context.read<StompSocketCubit>().sendMessage(rideMessageModel);
+        }
+      } catch (e) {
+        print('❌ Failed to get location or send message: $e');
+      }
+    });
   }
 
   void stopUpdates() {
     _updateTimer?.cancel();
     _updateTimer = null;
+    _polylines.clear();
+    polylineCoordinates.clear();
+  }
+
+  void restartLiveLocationPolyline(RideRequestModel request) {
+    stopUpdates();
+    startUpdates(request, true);
+  }
+
+  void handlePickup(bool value) {
+    setState(() {
+      _handlePickup = value;
+    });
+  }
+
+  Future<void> _init() async {
+    try {
+      await _player.setAsset(
+          'assets/audio/ride_request_notification.wav'); // Add your audio in pubspec.yaml
+    } catch (e) {
+      print("Error loading audio: $e");
+    }
+  }
+
+  void playNotification() async {
+    await _player.stop();
+    _init();
+    _player.play();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    try {
+      switch (state) {
+        case AppLifecycleState.resumed:
+          // 🔁 Reconnect and re-subscribe
+          doSocketInitialization();
+          break;
+
+        case AppLifecycleState.paused:
+        case AppLifecycleState.inactive:
+        case AppLifecycleState.detached:
+          // Optional: you may want to disconnect the socket to clean up resources
+          context.read<StompSocketCubit>().disconnect();
+          break;
+
+        default:
+          break;
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _player = AudioPlayer();
+    _init();
     _loadMapStyle();
-    startUpdates();
     doSocketInitialization();
+    _checkAndFetchLocation();
+    startUpdates(null, false);
 
     // _getAddressFromLatLng(_center);
     // animationInitialization();
@@ -318,7 +470,9 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
   @override
   void dispose() {
     super.dispose();
+    _player.dispose();
     stopUpdates();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   @override
@@ -332,148 +486,184 @@ class _RiderMapScreenState extends State<RiderMapScreen> {
               ),
             )
           : _locationEnabled
-              ? Stack(
-                  children: [
-                    GoogleMap(
-                      mapType: MapType.normal,
-                      initialCameraPosition: RiderMapScreen._kDefaultLocation,
-                      myLocationEnabled: false,
-                      myLocationButtonEnabled: false,
-                      compassEnabled: false,
-                      mapToolbarEnabled: false,
-                      zoomControlsEnabled: false,
-                      markers: _markers,
-                      onMapCreated: (controller) {
-                        _controller.complete(controller);
-                        // controller.setMapStyle(_mapStyleString);
-                        if (_controller.isCompleted) {
-                          controller.animateCamera(
-                            CameraUpdate.newCameraPosition(
-                              CameraPosition(
-                                target:
-                                    LatLng(_center.latitude, _center.longitude),
-                                zoom: 14,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      polylines: _polylines,
-                    ),
+              ? BlocListener<StompSocketCubit, StompSocketState>(
+                  listener: (context, socketState) {
+                    //  if (socketState is RideMessageReceived) {
 
-                    // popups
-                    Visibility(
-                      visible: !isAccepted && !isBargain,
-                      maintainState: true,
-                      maintainAnimation: true,
-                      maintainSize: false,
-                      child: RiderRequestCardPopup(
-                        showApprove: showApprove,
-                        resetModals: resetModals,
-                        drawPolyline: _getPolyline,
-                        prepareDriverArriving: (RideRequestModel request) {
-                          setState(() {
-                            isBargain = true;
-                            this.request = request;
+                    //     final ridemessageModel = socketState.rideRequest;
+                    //     final incomingData = ridemessageModel.type.split('-');
+                    //     final userType = incomingData[0];
+                    //     if (userType != 'Passenger')
+                    //     final incomingUserId = incomingData[1];
+                    //     final loginResponse =
+                    //         context.read<AuthCubit>().loginResponse;
+                    //     if (loginResponse == null) return;
 
-                            final passengerDestinationMarker = createMarker(
-                              position:
-                                  LatLng(request.dLatitude, request.dLongitude),
-                              label: request.dName,
-                              icon: BitmapDescriptor.defaultMarkerWithHue(
-                                  BitmapDescriptor.hueRed),
-                              snippet: request.sName.toString(),
-                              markerId: MarkerId(UniqueKey().toString()),
-                            );
-                            final passengerSourceMarker = createMarker(
-                              position:
-                                  LatLng(request.sLatitude, request.sLongitude),
-                              label: request.sName,
-                              icon: BitmapDescriptor.defaultMarkerWithHue(
-                                  BitmapDescriptor.hueGreen),
-                              snippet: request.rideRequestId.toString(),
-                              markerId: MarkerId(UniqueKey().toString()),
-                            );
-                            _markers.add(passengerDestinationMarker);
-                            _markers.add(passengerSourceMarker);
-                          });
+                    //     if (incomingUserId == loginResponse.user.id.toString()) {
+                    //       final LatLng newPosition = LatLng(
+                    //           ridemessageModel.latitude,
+                    //           ridemessageModel.longitude);
+                    //       final Marker newMarker = Marker(
+                    //         markerId: MarkerId('Passenger'), // Unique key
+                    //         position: newPosition,
+                    //         infoWindow: InfoWindow(title: 'Passenger'),
+                    //         icon: BitmapDescriptor.defaultMarkerWithHue(
+                    //             BitmapDescriptor.hueGreen),
+                    //       );
 
-                          _controller.future.then((controller) {
+                    //       // Clear the old one and add the updated marker
+                    //       addMarkerToPassengerMarkers('Passenger', newMarker);
+                    //     }
+                    //  }
+                  },
+                  child: Stack(
+                    children: [
+                      GoogleMap(
+                        mapType: MapType.normal,
+                        initialCameraPosition: RiderMapScreen._kDefaultLocation,
+                        myLocationEnabled: false,
+                        myLocationButtonEnabled: false,
+                        compassEnabled: false,
+                        mapToolbarEnabled: false,
+                        zoomControlsEnabled: false,
+                        markers: _markers.values.toSet(),
+                        onMapCreated: (controller) {
+                          _controller.complete(controller);
+                          // controller.setMapStyle(_mapStyleString);
+                          if (_controller.isCompleted) {
                             controller.animateCamera(
                               CameraUpdate.newCameraPosition(
                                 CameraPosition(
                                   target: LatLng(
-                                      request.dLatitude, request.dLongitude),
-                                  zoom: 12.0,
+                                      _center.latitude, _center.longitude),
+                                  zoom: 14,
                                 ),
                               ),
                             );
-                          });
+                          }
                         },
+                        polylines: _polylines,
                       ),
-                    ),
 
-// bargain bottomsheet
-                    if (isBargain && request != null)
-                      CustomBottomsheet(
-                          minHeight: MediaQuery.of(context).size.height * 0.5,
-                          maxHeight: MediaQuery.of(context).size.height * 0.5,
-                          child: BargainPriceBottomsheet(
-                            onCancel: resetModals,
-                            onPressed: () {
-                              // setState(() {
-                              //   isBargain = false;
-                              //   isAccepted = true;
-                              // });
-                            },
-                            request: request!,
-                          )),
+                      // popups
+                      Visibility(
+                        visible: !isAccepted && !isBargain,
+                        maintainState: true,
+                        maintainAnimation: true,
+                        maintainSize: false,
+                        child: RiderRequestCardPopup(
+                          playNotification: playNotification,
+                          showApprove: showApprove,
+                          resetModals: resetModals,
+                          drawPolyline: _getPolyline,
+                          prepareDriverArriving: (RideRequestModel request) {
+                            setState(() {
+                              isBargain = true;
+                              this.request = request;
 
-                    // accepted bottomsheet
-                    if (isAccepted && request != null)
-                      CustomBottomsheet(
-                          minHeight: MediaQuery.of(context).size.height * 0.4,
-                          maxHeight: MediaQuery.of(context).size.height * 0.5,
-                          child: AcceptedBottomsheet(
-                            onPressed: resetModals,
-                            request: request!,
-                          )),
+                              final passengerDestinationMarker = createMarker(
+                                position: LatLng(
+                                    request.dLatitude, request.dLongitude),
+                                label: request.dName,
+                                icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueRed),
+                                snippet: request.sName.toString(),
+                                markerId: MarkerId(UniqueKey().toString()),
+                              );
+                              final passengerSourceMarker = createMarker(
+                                position: LatLng(
+                                    request.sLatitude, request.sLongitude),
+                                label: request.sName,
+                                icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueGreen),
+                                snippet: request.rideRequestId.toString(),
+                                markerId: MarkerId(request.user.id.toString()),
+                              );
+                              _markers[UniqueKey().toString()] =
+                                  (passengerDestinationMarker);
+                              _markers[request.user.id.toString()] =
+                                  (passengerSourceMarker);
+                            });
 
-                    // Drawer
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Container(
-                        padding:
-                            EdgeInsets.all(1), // Adds space around the icon
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryWhite, // Background color
-                          borderRadius:
-                              BorderRadius.circular(15), // Makes it circular
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryBlack
-                                  .withOpacity(0.1), // Optional shadow
-                              blurRadius: 5,
-                              spreadRadius: 2,
-                            ),
-                          ],
+                            _controller.future.then((controller) {
+                              controller.animateCamera(
+                                CameraUpdate.newCameraPosition(
+                                  CameraPosition(
+                                    target: LatLng(
+                                        request.dLatitude, request.dLongitude),
+                                    zoom: 12.0,
+                                  ),
+                                ),
+                              );
+                            });
+                          },
                         ),
-                        child: Builder(builder: (context) {
-                          return IconButton(
-                            onPressed: () {
-                              Scaffold.of(context).openDrawer();
-                            },
-                            icon: Icon(
-                              Icons.menu,
-                              color: AppColors.primaryBlack,
-                              size: 30,
-                            ),
-                          );
-                        }),
                       ),
-                    ),
-                  ],
+
+                      // bargain bottomsheet
+                      if (isBargain && request != null)
+                        CustomBottomsheet(
+                            minHeight: MediaQuery.of(context).size.height * 0.5,
+                            maxHeight: MediaQuery.of(context).size.height * 0.5,
+                            child: BargainPriceBottomsheet(
+                              onCancel: resetModals,
+                              onPressed: () {
+                                // setState(() {
+                                //   isBargain = false;
+                                //   isAccepted = true;
+                                // });
+                              },
+                              request: request!,
+                            )),
+
+                      // accepted bottomsheet
+                      if (isAccepted && request != null)
+                        CustomBottomsheet(
+                            minHeight: MediaQuery.of(context).size.height * 0.4,
+                            maxHeight: MediaQuery.of(context).size.height * 0.6,
+                            child: AcceptedBottomsheet(
+                              handlePickup: handlePickup,
+                              drawPolyline: restartLiveLocationPolyline,
+                              onPressed: resetModals,
+                              request: request!,
+                            )),
+
+                      // Drawer
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding:
+                              EdgeInsets.all(1), // Adds space around the icon
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryWhite, // Background color
+                            borderRadius:
+                                BorderRadius.circular(15), // Makes it circular
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryBlack
+                                    .withOpacity(0.1), // Optional shadow
+                                blurRadius: 5,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Builder(builder: (context) {
+                            return IconButton(
+                              onPressed: () {
+                                Scaffold.of(context).openDrawer();
+                              },
+                              icon: Icon(
+                                Icons.menu,
+                                color: AppColors.primaryBlack,
+                                size: 30,
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               : Center(
                   child: Column(

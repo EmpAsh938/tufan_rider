@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:tufan_rider/core/model/ride_message_model.dart';
+import 'package:tufan_rider/features/map/models/bid_model.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
 import 'package:tufan_rider/features/rider/map/models/ride_request_passenger_model.dart';
@@ -63,7 +64,7 @@ class RideRejectedReceived extends StompSocketState {
 }
 
 class RideDeclineReceived extends StompSocketState {
-  final RideRequestModel rideRequest;
+  final BidModel rideRequest;
   final DateTime timestamp; // or use a UUID if you prefer
 
   RideDeclineReceived(this.rideRequest) : timestamp = DateTime.now();

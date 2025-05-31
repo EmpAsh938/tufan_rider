@@ -10,16 +10,18 @@ import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/rider_request_card.dart';
 
 class RiderRequestCardPopup extends StatefulWidget {
+  final VoidCallback playNotification;
   final void Function(RideRequestModel) prepareDriverArriving;
   final void Function(LatLng, LatLng) drawPolyline;
   final VoidCallback resetModals;
-  final VoidCallback showApprove;
+  final void Function(RideRequestModel) showApprove;
   const RiderRequestCardPopup({
     super.key,
     required this.prepareDriverArriving,
     required this.resetModals,
     required this.showApprove,
     required this.drawPolyline,
+    required this.playNotification,
   });
 
   @override
@@ -76,6 +78,27 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
     });
   }
 
+  void _clearAllRequests() async {
+    // Create a copy to safely iterate
+    final ids = _controllers.keys.toList();
+
+    for (final id in ids) {
+      final controller = _controllers[id];
+      if (controller != null) {
+        await controller.reverse(); // play reverse animation if needed
+        controller.dispose(); // clean up the controller
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _requests.clear(); // Clear all requests
+      _controllers.clear(); // Clear all animation controllers
+      _animations.clear(); // Clear all animation mappings
+    });
+  }
+
   @override
   void dispose() {
     for (var controller in _controllers.values) {
@@ -94,26 +117,35 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
           if (state is RiderRequestMessageReceived) {
             if (loginResponse == null) return;
             if (state.rideRequest.userIds
-                    .contains(loginResponse.user.id.toString()) ||
-                state.rideRequest.userIds.isEmpty) {
-              _addRequest(state.rideRequest.rideRequest);
-              context.read<StompSocketCubit>().subscribeToRideReject(
-                  state.rideRequest.rideRequest.rideRequestId.toString());
-              context.read<StompSocketCubit>().subscribeToRiderApprove(
-                  state.rideRequest.rideRequest.rideRequestId.toString());
+                .contains(loginResponse.user.id.toString())) {
+              if (!_requests.contains(state.rideRequest.rideRequest)) {
+                _addRequest(state.rideRequest.rideRequest);
+                // context.read<StompSocketCubit>().subscribeToRequestDecline(
+                //     state.rideRequest.rideRequest.rideRequestId.toString());
+                context.read<StompSocketCubit>().subscribeToRideReject(
+                    state.rideRequest.rideRequest.rideRequestId.toString());
+                context.read<StompSocketCubit>().subscribeToRiderApprove(
+                    state.rideRequest.rideRequest.rideRequestId.toString());
+                widget.playNotification();
+              }
             }
           }
 
           if (state is RideRejectedReceived) {
+            if (_requests.isEmpty) return;
+
             _removeRequestById(state.rideRequest.rideRequestId.toString());
-            widget.resetModals();
+            // widget.resetModals();
           }
           if (state is RideDeclineReceived) {
+            if (_requests.isEmpty) return;
+
             _removeRequestById(state.rideRequest.rideRequestId.toString());
             widget.resetModals();
           }
           if (state is RideApproveReceived) {
-            widget.showApprove();
+            if (_requests.isEmpty) return;
+            widget.showApprove(state.rideRequest);
             // LatLng mid = LatLng(
             //     state.rideRequest.sLatitude, state.rideRequest.sLongitude);
             // LatLng end = LatLng(
@@ -132,26 +164,32 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
 
                 return SlideTransition(
                   position: animation,
-                  child: RiderRequestCard(
-                    request: request,
-                    onDecline: () =>
-                        _removeRequestById(request.rideRequestId.toString()),
-                    onAccept: () {
-                      // _removeRequestById(request.id);
-                      // final loginResponse = context.read<AuthCubit>().loginResponse;
-                      // if (loginResponse == null) return;
-                      // context
-                      //     .read<AddressCubit>()
-                      //     .approveRide('52', '43', loginResponse.token);
-                      // _removeAllRequests();
-                      LatLng mid =
-                          LatLng(request.sLatitude, request.sLongitude);
-                      LatLng end =
-                          LatLng(request.dLatitude, request.dLongitude);
-                      widget.drawPolyline(mid, end);
-
-                      widget.prepareDriverArriving(request);
+                  child: Dismissible(
+                    key: Key(request.rideRequestId.toString()),
+                    onDismissed: (direction) {
+                      _removeRequestById(request.rideRequestId.toString());
                     },
+                    child: RiderRequestCard(
+                      request: request,
+                      onDecline: () =>
+                          _removeRequestById(request.rideRequestId.toString()),
+                      onAccept: () {
+                        // _removeRequestById(request.id);
+                        // final loginResponse = context.read<AuthCubit>().loginResponse;
+                        // if (loginResponse == null) return;
+                        // context
+                        //     .read<AddressCubit>()
+                        //     .approveRide('52', '43', loginResponse.token);
+                        // _removeAllRequests();
+                        LatLng mid =
+                            LatLng(request.sLatitude, request.sLongitude);
+                        LatLng end =
+                            LatLng(request.dLatitude, request.dLongitude);
+                        widget.drawPolyline(mid, end);
+
+                        widget.prepareDriverArriving(request);
+                      },
+                    ),
                   ),
                 );
               }).toList(),

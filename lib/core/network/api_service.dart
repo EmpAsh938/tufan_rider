@@ -200,8 +200,13 @@ class ApiService {
     }
   }
 
-  Future<Response> createRideRequest(LocationModel location, String price,
-      String userId, String categoryId, String token) async {
+  Future<Response> createRideRequest(
+      LocationModel location,
+      String price,
+      String userId,
+      String categoryId,
+      String destinationName,
+      String token) async {
     try {
       final response =
           await _dio.post(ApiEndpoints.createRideRequest(userId, categoryId),
@@ -214,6 +219,7 @@ class ApiService {
             'actualPrice': price,
             'd_latitude': location.latitude,
             'd_longitude': location.longitude,
+            'd_Name': destinationName,
           });
       return response;
     } on DioException catch (e) {
@@ -222,7 +228,7 @@ class ApiService {
   }
 
   Future<Response> updateRideRequest(LocationModel location, String price,
-      String rideRequestId, String token) async {
+      String rideRequestId, String destinationName, String token) async {
     try {
       final response =
           await _dio.put(ApiEndpoints.updateRideRequest(rideRequestId),
@@ -235,6 +241,7 @@ class ApiService {
             'actualPrice': price,
             'd_latitude': location.latitude,
             'd_longitude': location.longitude,
+            'd_Name': destinationName,
           });
       return response;
     } on DioException catch (e) {
@@ -576,6 +583,28 @@ class ApiService {
     }
   }
 
+  Future<Response> getPassengerHistory(String userId) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.fetchPassengerHistory(userId),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getRiderHistory(String userId) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.fetchRiderHistory(userId),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> getAllEmergencyContacts(String token) async {
     try {
       final response = _dio.get(
@@ -697,6 +726,28 @@ class ApiService {
             'Authorization': 'Sandip $token',
           },
         ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> averageRating(String riderId) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.averageRating(riderId),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getRider(String riderId) async {
+    try {
+      final response = _dio.get(
+        ApiEndpoints.getRiderById(riderId),
       );
       return response;
     } on DioException catch (e) {

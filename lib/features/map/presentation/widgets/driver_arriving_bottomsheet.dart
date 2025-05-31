@@ -1,18 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/custom_toast.dart';
+import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
+import 'package:tufan_rider/features/rider/map/models/proposed_ride_request_model.dart';
+import 'package:tufan_rider/features/rider/map/models/rider_model.dart';
+import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DriverArrivingBottomsheet extends StatefulWidget {
+  final VoidCallback startUpdates;
+  final Function(bool) handlePickup;
+  final Function(ProposedRideRequestModel) handlePrice;
   final VoidCallback onPressed;
-  const DriverArrivingBottomsheet({super.key, required this.onPressed});
+  final Future<void> Function(
+      {required LatLng destination,
+      required LatLng origin,
+      LatLng? waypoint}) drawPolyline;
+
+  const DriverArrivingBottomsheet(
+      {super.key,
+      required this.onPressed,
+      required this.handlePickup,
+      required this.handlePrice,
+      required this.drawPolyline,
+      required this.startUpdates});
 
   @override
   State<DriverArrivingBottomsheet> createState() =>
@@ -21,27 +42,70 @@ class DriverArrivingBottomsheet extends StatefulWidget {
 
 class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
   bool _passengerPicked = false;
+  RiderResponse? _rider;
+
+  void fetchRider(BuildContext context, String riderId) async {
+    try {
+      final rider =
+          await context.read<CreateRiderCubit>().getRiderById(riderId);
+      setState(() {
+        _rider = rider;
+      });
+    } catch (e) {
+      print('Failed to fetch rider: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final proposedRide =
+        context.read<ProposePriceCubit>().proposedRideRequestModel;
+
+    if (proposedRide != null) {
+      widget.handlePrice(proposedRide);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    // Listen for passenger picked updates
-    final stompSocketCubit = context.read<StompSocketCubit>();
-    stompSocketCubit.stream.listen((state) {
-      if (state is PassengerPickupReceived) {
-        // Check if this is a passenger picked message
-        setState(() {
-          _passengerPicked = true;
-        });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final source = context.read<AddressCubit>().source;
+      final destination = context.read<AddressCubit>().destination;
+      final bargainModel = context.read<AddressCubit>().bargainModel;
+
+      widget.startUpdates();
+
+      if (bargainModel != null) {
+        fetchRider(context, bargainModel.userId.toString());
       }
+
+      final stompSocketCubit = context.read<StompSocketCubit>();
+      stompSocketCubit.stream.listen((state) {
+        if (state is PassengerPickupReceived) {
+          widget.handlePickup(true);
+          setState(() {
+            _passengerPicked = true;
+          });
+
+          // if (source == null || destination == null) return;
+
+          // final sourceLocation = LatLng(source.lat, source.lng);
+          // final destinationLocation = LatLng(destination.lat, destination.lng);
+          // widget.drawPolyline(
+          //     sourceLocation, sourceLocation, destinationLocation);
+        }
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final acceptedRide = context.read<AddressCubit>().acceptedRide;
-    final proposedRide =
-        context.watch<ProposePriceCubit>().proposedRideRequestModel;
+    final bargainModel = context.read<AddressCubit>().bargainModel;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -76,18 +140,19 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        if (!_passengerPicked)
+                        if (!_passengerPicked) ...[
                           Text(
-                            '~${proposedRide?.minToReach ?? '--'} min',
+                            '~${bargainModel?.minToReach.toStringAsFixed(0) ?? '--'} min',
                             style: AppTypography.headline.copyWith(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primaryColor,
                             ),
                           ),
+                        ],
                         if (_passengerPicked)
                           Text(
-                            'Estimated arrival: ~${proposedRide?.minToReach ?? '--'} min',
+                            'Estimated arrival: ~${bargainModel?.minToReach.toStringAsFixed(0) ?? '--'} min',
                             style: AppTypography.headline.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -115,7 +180,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'BA44PA1838',
+                          bargainModel?.vehicleNumber ?? '--',
                           style: AppTypography.smallText.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -153,12 +218,27 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                             ),
                           ),
                           child: CircleAvatar(
-                            radius: 28,
-                            backgroundImage: AssetImage(Assets.icons.bike.path),
+                            radius: 30,
+                            backgroundColor: AppColors.gray.withOpacity(0.3),
+                            backgroundImage: (_rider?.user.imageName != null &&
+                                    _rider!.user.imageName!.isNotEmpty)
+                                ? NetworkImage(ApiEndpoints.baseUrl +
+                                    ApiEndpoints.getImage(
+                                        _rider!.user.imageName!))
+                                : null,
+                            child: (_rider?.user.imageName == null ||
+                                    _rider!.user.imageName!.isEmpty)
+                                ? const Icon(
+                                    Icons.camera_alt,
+                                    size: 40,
+                                    color: Colors.black54,
+                                  )
+                                : null,
                           ),
                         ),
                         Text(
-                          'Anil Rai',
+                          TextUtils.capitalizeEachWord(
+                              _rider?.user.name ?? '--'),
                           style: AppTypography.labelText.copyWith(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -197,7 +277,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Blue MOTOR-BIKE Honda',
+                                  bargainModel?.vehicleBrand ?? '--',
                                   style: AppTypography.smallText.copyWith(
                                     color:
                                         AppColors.primaryBlack.withOpacity(0.7),
@@ -219,11 +299,8 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                         icon: Icons.call_outlined,
                         label: 'Call',
                         color: Colors.green,
-                        onPressed: () => _makeEmergencyCall(
-                            context,
-                            proposedRide == null
-                                ? ''
-                                : proposedRide.user.mobileNo),
+                        onPressed: () => _makeEmergencyCall(context,
+                            _rider == null ? '' : _rider?.user.mobileNo ?? ''),
                       ),
                       const SizedBox(width: 12),
                       _buildActionButton(
@@ -426,6 +503,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
     final shouldCall = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            backgroundColor: AppColors.backgroundColor,
             title: Text(
               'Emergency Call',
               style: AppTypography.labelText.copyWith(
