@@ -18,6 +18,8 @@ class RideRequestModel {
   final int? ridebookedId;
   final int totalMin;
   final Category category;
+  final String token;
+  final String channel;
 
   RideRequestModel({
     required this.rideRequestId,
@@ -37,6 +39,8 @@ class RideRequestModel {
     required this.ridebookedId,
     required this.category,
     required this.totalMin,
+    required this.channel,
+    required this.token,
   });
 
   factory RideRequestModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +90,8 @@ class RideRequestModel {
       ridebookedId: json['ridebookedId'],
       category: Category.fromJson(json['category']),
       totalMin: json['total_min'],
+      channel: json['channel'] ?? '',
+      token: json['token'] ?? '',
     );
   }
 }

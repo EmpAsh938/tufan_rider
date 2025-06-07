@@ -1,7 +1,8 @@
+import 'dart:async';
+
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
@@ -12,12 +13,12 @@ import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/cubit/propose_price_cubit.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AcceptedBottomsheet extends StatefulWidget {
   final VoidCallback onPressed;
   final RideRequestModel request;
   final Function(bool) handlePickup;
+  final Function(bool) handleCompleted;
   final void Function(RideRequestModel) drawPolyline;
 
   const AcceptedBottomsheet({
@@ -26,6 +27,7 @@ class AcceptedBottomsheet extends StatefulWidget {
     required this.handlePickup,
     required this.request,
     required this.drawPolyline,
+    required this.handleCompleted,
   });
 
   @override
@@ -74,8 +76,9 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       child: Padding(
-        padding:
-            MediaQuery.of(context).viewInsets.add(const EdgeInsets.all(16)),
+        padding: MediaQuery.of(
+          context,
+        ).viewInsets.add(const EdgeInsets.all(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -192,8 +195,12 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                   backgroundColor: AppColors.primaryColor.withOpacity(0.1),
                   backgroundImage: (widget.request.user.imageName != null &&
                           widget.request.user.imageName!.isNotEmpty)
-                      ? NetworkImage(ApiEndpoints.baseUrl +
-                          ApiEndpoints.getImage(widget.request.user.imageName!))
+                      ? NetworkImage(
+                          ApiEndpoints.baseUrl +
+                              ApiEndpoints.getImage(
+                                widget.request.user.imageName!,
+                              ),
+                        )
                       : null,
                   child: (widget.request.user.imageName == null ||
                           widget.request.user.imageName!.isEmpty)
@@ -220,11 +227,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 16,
-                          ),
+                          Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
                             '4.8 (25 rides)',
@@ -238,8 +241,11 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () =>
-                      _makeEmergencyCall(context, widget.request.user.mobileNo),
+                  onPressed: () => _makeEmergencyCall(
+                    context,
+                    widget.request?.token ?? '',
+                    widget.request?.channel ?? '',
+                  ),
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -412,8 +418,11 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.person,
-                              size: 20, color: Colors.white),
+                          const Icon(
+                            Icons.person,
+                            size: 20,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Confirm Pickup',
@@ -441,8 +450,11 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.directions_car,
-                        size: 20, color: Colors.white),
+                    const Icon(
+                      Icons.directions_car,
+                      size: 20,
+                      color: Colors.white,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Complete Ride',
@@ -466,9 +478,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Column(
           children: [
             Container(
@@ -558,9 +568,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Column(
           children: [
             Container(
@@ -637,12 +645,14 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                             );
 
                     if (isCompleted) {
-                      Navigator.pop(context);
-                      context
-                          .read<StompSocketCubit>()
-                          .clearRide(widget.request);
+                      widget.handleCompleted(true);
+                      context.read<StompSocketCubit>().clearRide(
+                            widget.request,
+                          );
 
                       widget.onPressed();
+                      Navigator.pop(context);
+
                       // Navigator.pushReplacementNamed(context, AppRoutes.map);
                     } else {
                       CustomToast.show(
@@ -668,8 +678,16 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
     );
   }
 
-  Future<void> _makeEmergencyCall(BuildContext context, String number) async {
+  Future<void> _makeEmergencyCall(
+    BuildContext context,
+    String token,
+    String channelName,
+  ) async {
     setState(() => _isCalling = true);
+
+    print('Should call:');
+    print(token);
+    print(channelName);
 
     final shouldCall = await showDialog<bool>(
           context: context,
@@ -686,11 +704,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                     color: Colors.green.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.phone,
-                    size: 32,
-                    color: Colors.green,
-                  ),
+                  child: const Icon(Icons.phone, size: 32, color: Colors.green),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -703,7 +717,7 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
               ],
             ),
             content: Text(
-              'This will call ${TextUtils.capitalizeEachWord(widget.request.user.name)} at $number',
+              'This will initiate a voice call with ${TextUtils.capitalizeEachWord(widget.request.user.name)}.',
               style: AppTypography.labelText.copyWith(
                 color: AppColors.primaryBlack.withOpacity(0.7),
               ),
@@ -746,8 +760,11 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.phone,
-                              size: 20, color: Colors.white),
+                          const Icon(
+                            Icons.phone,
+                            size: 20,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Call Now',
@@ -771,23 +788,278 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
 
     if (shouldCall) {
       try {
-        final url = Uri.parse('tel:$number');
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url);
-        } else {
-          CustomToast.show(
-            'Could not launch phone app',
-            context: context,
-            toastType: ToastType.error,
-          );
-        }
+        // Initialize Agora engine
+        final engine = createAgoraRtcEngine();
+        await engine.initialize(
+          RtcEngineContext(
+            appId:
+                '3826ff3d16584c1998cc3f22f5b86a99', // Replace with your actual App ID
+          ),
+        );
+
+        // Request microphone permission
+        // final micStatus = await Permission.microphone.request();
+        // if (!micStatus.isGranted) {
+        //   CustomToast.show(
+        //     'Microphone permission required',
+        //     context: context,
+        //     toastType: ToastType.error,
+        //   );
+        //   return;
+        // }
+
+        // Configure engine
+        await engine.setChannelProfile(
+          ChannelProfileType.channelProfileCommunication,
+        );
+        await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+        await engine.enableAudio();
+
+        // Show in-call dialog
+        bool isMuted = false;
+        bool isSpeakerOn = true;
+        // Duration callDuration = Duration.zero;
+
+        // Start call timer
+        // void startTimer() {
+        //   callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        //     if (mounted) {
+        //       setState(() => callDuration += const Duration(seconds: 1));
+        //     }
+        //   });
+        // }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            // Join channel when dialog appears
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              await engine.joinChannel(
+                token: token, // Use token in production
+                channelId: channelName,
+                uid: 100, // Let Agora assign a UID
+                options: const ChannelMediaOptions(),
+              );
+              // startTimer();
+            });
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.phone,
+                          size: 32,
+                          color: isMuted ? Colors.grey : Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Call with ${TextUtils.capitalizeEachWord(widget.request.user.name)}',
+                        style: AppTypography.headline.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      // const SizedBox(height: 8),
+                      // Text(
+                      //   _formatDuration(callDuration),
+                      //   style: AppTypography.labelText.copyWith(
+                      //     color: AppColors.primaryBlack.withOpacity(0.6),
+                      //   ),
+                      // ),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Mute Button
+                          Column(
+                            children: [
+                              IconButton(
+                                icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
+                                color: isMuted ? Colors.red : Colors.green,
+                                iconSize: 32,
+                                onPressed: () {
+                                  setState(() => isMuted = !isMuted);
+                                  engine.muteLocalAudioStream(isMuted);
+                                },
+                              ),
+                              Text(
+                                isMuted ? 'Unmute' : 'Mute',
+                                style: AppTypography.labelText.copyWith(
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Speaker Button
+                          Column(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  isSpeakerOn
+                                      ? Icons.volume_up
+                                      : Icons.volume_off,
+                                ),
+                                color: isSpeakerOn ? Colors.green : Colors.grey,
+                                iconSize: 32,
+                                onPressed: () {
+                                  setState(() => isSpeakerOn = !isSpeakerOn);
+                                  engine.setEnableSpeakerphone(isSpeakerOn);
+                                },
+                              ),
+                              Text(
+                                isSpeakerOn ? 'Speaker On' : 'Speaker Off',
+                                style: AppTypography.labelText.copyWith(
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        // callTimer?.cancel();
+                        await engine.leaveChannel();
+                        await engine.release();
+                        Navigator.pop(context);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.call_end,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'End Call',
+                            style: AppTypography.labelText.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
       } catch (e) {
         CustomToast.show(
-          'Error making call: ${e.toString()}',
+          'Error connecting to Agora: ${e.toString()}',
           context: context,
           toastType: ToastType.error,
         );
       }
     }
   }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+  //   // Set up the Agora RTC engine instance
+  //   Future<void> _initializeAgoraVoiceSDK() async {
+  //     _engine = createAgoraRtcEngine();
+  //     if (_engine == null) return;
+  //     await _engine!.initialize(RtcEngineContext(
+  //       appId: '',
+  //       channelProfile: ChannelProfileType.channelProfileCommunication,
+  //     ));
+  //   }
+
+  // // Join a channel
+  //   Future<void> _joinChannel() async {
+  //     if (_engine == null) return;
+  //     await _engine!.joinChannel(
+  //       token: 'token',
+  //       channelId: 'channel',
+  //       options: const ChannelMediaOptions(
+  //         autoSubscribeAudio:
+  //             true, // Automatically subscribe to all audio streams
+  //         publishMicrophoneTrack: true, // Publish microphone-captured audio
+  //         // Use clientRoleBroadcaster to act as a host or clientRoleAudience for audience
+  //         clientRoleType: ClientRoleType.clientRoleBroadcaster,
+  //       ),
+  //       uid: 0,
+  //     );
+  //   }
+
+  // // Register an event handler for Agora RTC
+  //   void _setupEventHandlers() {
+  //     if (_engine == null) return;
+
+  //     _engine!.registerEventHandler(
+  //       RtcEngineEventHandler(
+  //         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+  //           debugPrint("Local user ${connection.localUid} joined");
+  //         },
+  //         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+  //           debugPrint("Remote user $remoteUid joined");
+  //           setState(() {
+  //             _remoteUid = remoteUid; // Store remote user ID
+  //           });
+  //         },
+  //         onUserOffline: (RtcConnection connection, int remoteUid,
+  //             UserOfflineReasonType reason) {
+  //           debugPrint("Remote user $remoteUid left");
+  //           setState(() {
+  //             _remoteUid = null; // Remove remote user ID
+  //           });
+  //         },
+  //       ),
+  //     );
+  //   }
+
+  // // Requests microphone permission
+  //   Future<void> _requestPermissions() async {
+  //     await [Permission.microphone].request();
+  //   }
+
+  // // Leaves the channel and releases resources
+  //   Future<void> _cleanupAgoraEngine() async {
+  //     if (_engine == null) return;
+
+  //     await _engine!.leaveChannel();
+  //     await _engine!.release();
+  //   }
+
+  // await _requestPermissions();
+  // await _initializeAgoraVoiceSDK();
+  // _setupEventHandlers();
+  // await _joinChannel();
 }

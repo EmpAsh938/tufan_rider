@@ -1,6 +1,9 @@
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:tufan_rider/core/agora/agora_voice_service.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 import 'package:tufan_rider/core/network/api_endpoints.dart';
@@ -20,20 +23,24 @@ import 'package:url_launcher/url_launcher.dart';
 class DriverArrivingBottomsheet extends StatefulWidget {
   final VoidCallback startUpdates;
   final Function(bool) handlePickup;
+  final Function(String) handleRiders;
   final Function(ProposedRideRequestModel) handlePrice;
   final VoidCallback onPressed;
-  final Future<void> Function(
-      {required LatLng destination,
-      required LatLng origin,
-      LatLng? waypoint}) drawPolyline;
+  final Future<void> Function({
+    required LatLng destination,
+    required LatLng origin,
+    LatLng? waypoint,
+  }) drawPolyline;
 
-  const DriverArrivingBottomsheet(
-      {super.key,
-      required this.onPressed,
-      required this.handlePickup,
-      required this.handlePrice,
-      required this.drawPolyline,
-      required this.startUpdates});
+  const DriverArrivingBottomsheet({
+    super.key,
+    required this.onPressed,
+    required this.handlePickup,
+    required this.handlePrice,
+    required this.drawPolyline,
+    required this.startUpdates,
+    required this.handleRiders,
+  });
 
   @override
   State<DriverArrivingBottomsheet> createState() =>
@@ -46,8 +53,11 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
 
   void fetchRider(BuildContext context, String riderId) async {
     try {
-      final rider =
-          await context.read<CreateRiderCubit>().getRiderById(riderId);
+      final rider = await context.read<CreateRiderCubit>().getRiderById(
+            riderId,
+          );
+      widget.handleRiders(rider.id.toString());
+
       setState(() {
         _rider = rider;
       });
@@ -73,8 +83,8 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final source = context.read<AddressCubit>().source;
-      final destination = context.read<AddressCubit>().destination;
+      // final source = context.read<AddressCubit>().source;
+      // final destination = context.read<AddressCubit>().destination;
       final bargainModel = context.read<AddressCubit>().bargainModel;
 
       widget.startUpdates();
@@ -222,9 +232,12 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                             backgroundColor: AppColors.gray.withOpacity(0.3),
                             backgroundImage: (_rider?.user.imageName != null &&
                                     _rider!.user.imageName!.isNotEmpty)
-                                ? NetworkImage(ApiEndpoints.baseUrl +
-                                    ApiEndpoints.getImage(
-                                        _rider!.user.imageName!))
+                                ? NetworkImage(
+                                    ApiEndpoints.baseUrl +
+                                        ApiEndpoints.getImage(
+                                          _rider!.user.imageName!,
+                                        ),
+                                  )
                                 : null,
                             child: (_rider?.user.imageName == null ||
                                     _rider!.user.imageName!.isEmpty)
@@ -238,7 +251,8 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                         ),
                         Text(
                           TextUtils.capitalizeEachWord(
-                              _rider?.user.name ?? '--'),
+                            _rider?.user.name ?? '--',
+                          ),
                           style: AppTypography.labelText.copyWith(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -253,17 +267,23 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primaryColor.withOpacity(0.1),
+                                  color: AppColors.primaryColor.withOpacity(
+                                    0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.star,
-                                        size: 14, color: Colors.amber),
+                                    Icon(
+                                      Icons.star,
+                                      size: 14,
+                                      color: Colors.amber,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '4.9',
@@ -279,8 +299,9 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                                 child: Text(
                                   bargainModel?.vehicleBrand ?? '--',
                                   style: AppTypography.smallText.copyWith(
-                                    color:
-                                        AppColors.primaryBlack.withOpacity(0.7),
+                                    color: AppColors.primaryBlack.withOpacity(
+                                      0.7,
+                                    ),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -299,8 +320,11 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                         icon: Icons.call_outlined,
                         label: 'Call',
                         color: Colors.green,
-                        onPressed: () => _makeEmergencyCall(context,
-                            _rider == null ? '' : _rider?.user.mobileNo ?? ''),
+                        onPressed: () => _makeEmergencyCall(
+                          context,
+                          acceptedRide?.token ?? '',
+                          acceptedRide?.channel ?? '',
+                        ),
                       ),
                       const SizedBox(width: 12),
                       _buildActionButton(
@@ -342,8 +366,11 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                       ),
                       Row(
                         children: [
-                          Icon(Icons.payment,
-                              size: 20, color: AppColors.primaryColor),
+                          Icon(
+                            Icons.payment,
+                            size: 20,
+                            color: AppColors.primaryColor,
+                          ),
                           const SizedBox(width: 8),
                           RichText(
                             text: TextSpan(
@@ -363,8 +390,9 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                                 TextSpan(
                                   text: '  Cash',
                                   style: TextStyle(
-                                    color:
-                                        AppColors.primaryBlack.withOpacity(0.6),
+                                    color: AppColors.primaryBlack.withOpacity(
+                                      0.6,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -499,7 +527,8 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
     );
   }
 
-  void _makeEmergencyCall(BuildContext context, String phonenumber) async {
+  void _makeEmergencyCall(
+      BuildContext context, String token, String channelName) async {
     final shouldCall = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -512,7 +541,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
               ),
             ),
             content: Text(
-              'This will call rider immediately. Proceed?',
+              'This will start a voice call. Proceed?',
               style: AppTypography.labelText,
             ),
             actions: [
@@ -539,22 +568,109 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
           ),
         ) ??
         false;
-
+    print('Should call: $shouldCall');
+    print(token);
+    print(channelName);
     if (shouldCall) {
       try {
-        final Uri url = Uri(scheme: 'tel', path: phonenumber);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url);
-        } else {
+        // Initialize Agora engine
+        final engine = createAgoraRtcEngine();
+        await engine.initialize(
+          RtcEngineContext(
+            appId:
+                '3826ff3d16584c1998cc3f22f5b86a99', // Replace with your actual App ID
+          ),
+        );
+
+        // Request microphone permission
+        final micStatus = await Permission.microphone.request();
+        if (!micStatus.isGranted) {
           CustomToast.show(
-            'Could not launch phone app',
+            'Microphone permission required',
             context: context,
             toastType: ToastType.error,
           );
+          return;
         }
+
+        // Configure engine
+        await engine.setChannelProfile(
+          ChannelProfileType.channelProfileCommunication,
+        );
+        await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+        await engine.enableAudio();
+
+        // Show in-call dialog
+        bool isMuted = false;
+        bool isSpeakerOn = true;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            // Join channel when dialog appears
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              await engine.joinChannel(
+                token: token, // Use token in production
+                channelId: channelName,
+                uid: 10, // Let Agora assign a UID
+                options: const ChannelMediaOptions(),
+              );
+            });
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text('Emergency Call'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('You are now in an emergency voice call.'),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          IconButton(
+                            icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
+                            onPressed: () {
+                              setState(() => isMuted = !isMuted);
+                              engine.muteLocalAudioStream(isMuted);
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              isSpeakerOn ? Icons.volume_up : Icons.volume_off,
+                            ),
+                            onPressed: () {
+                              setState(() => isSpeakerOn = !isSpeakerOn);
+                              engine.setEnableSpeakerphone(isSpeakerOn);
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        await engine.leaveChannel();
+                        await engine.release();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('End Call'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
       } catch (e) {
-        CustomToast.show('Error making call',
-            context: context, toastType: ToastType.error);
+        CustomToast.show(
+          'Error starting call: ${e.toString()}',
+          context: context,
+          toastType: ToastType.error,
+        );
       }
     }
   }

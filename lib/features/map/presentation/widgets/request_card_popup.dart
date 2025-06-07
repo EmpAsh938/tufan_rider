@@ -157,15 +157,15 @@ class _RequestCardPopupState extends State<RequestCardPopup>
             for (var rideRequest in state.rideRequest) {
               // if (!existingRequestIds.contains(rideRequest.rideRequestId)) {
               _addRequest(rideRequest);
+              final riderUniqueId = UniqueKey().toString();
               final newMarker = Marker(
-                markerId: MarkerId(rideRequest.rideRequestId.toString()),
+                markerId: MarkerId(riderUniqueId),
                 position: LatLng(rideRequest.riderLati, rideRequest.riderLong),
                 icon: widget.riderMarkerIcon ??
                     BitmapDescriptor.defaultMarkerWithHue(
                         BitmapDescriptor.hueBlue),
               );
-              widget.createMarkers(
-                  rideRequest.rideRequestId.toString(), newMarker);
+              widget.createMarkers(riderUniqueId, newMarker);
               // }
             }
           }
@@ -229,7 +229,7 @@ class _RequestCardPopupState extends State<RequestCardPopup>
 
                     context.read<StompSocketCubit>().subscribeToRideCompletion(
                         request.rideRequestId.toString());
-                    context.read<StompSocketCubit>().listenToMessage();
+                    // context.read<StompSocketCubit>().listenToMessage();
                     context.read<StompSocketCubit>().subscribeToPassengerPickup(
                         request.rideRequestId.toString());
                     final riderLocation =

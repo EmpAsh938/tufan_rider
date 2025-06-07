@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -134,14 +135,26 @@ class _RiderRequestCardPopupState extends State<RiderRequestCardPopup>
           if (state is RideRejectedReceived) {
             if (_requests.isEmpty) return;
 
-            _removeRequestById(state.rideRequest.rideRequestId.toString());
-            // widget.resetModals();
+            final existingRequest = _requests.firstWhereOrNull(
+              (r) => r.rideRequestId == state.rideRequest.rideRequestId,
+            );
+
+            if (existingRequest != null) {
+              _removeRequestById(state.rideRequest.rideRequestId.toString());
+              widget.resetModals();
+            }
           }
           if (state is RideDeclineReceived) {
             if (_requests.isEmpty) return;
 
-            _removeRequestById(state.rideRequest.rideRequestId.toString());
-            widget.resetModals();
+            final existingRequest = _requests.firstWhereOrNull(
+              (r) => r.rideRequestId == state.rideRequest.rideRequestId,
+            );
+
+            if (existingRequest != null) {
+              _removeRequestById(state.rideRequest.rideRequestId.toString());
+              widget.resetModals();
+            }
           }
           if (state is RideApproveReceived) {
             if (_requests.isEmpty) return;

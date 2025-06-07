@@ -56,6 +56,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
   bool isAccepted = false;
   bool isBargain = false;
   bool _handlePickup = false;
+  bool _isCompleted = false;
   RideRequestModel? request;
   // Set<Marker> _markers = {};
 
@@ -215,10 +216,12 @@ class _RiderMapScreenState extends State<RiderMapScreen>
 
   void resetModals() {
     print('RESETTING');
+    if (!isBargain && !_isCompleted) return;
     stopUpdates();
     setState(() {
       isAccepted = false;
       isBargain = false;
+      _isCompleted = false;
       request = null;
       _handlePickup = false;
       _markers.clear();
@@ -226,6 +229,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
       polylineCoordinates.clear();
     });
     _checkAndFetchLocation();
+    startUpdates(null, false);
   }
 
   void showApprove(RideRequestModel request) {
@@ -341,7 +345,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
           _markers['current_location'] = updatedMarker;
         });
 
-        if (request == null || !isAccepted) return;
+        // if (request == null || !isAccepted) return;
 
         // final passengerDestinationMarker = createMarker(
         //   position: LatLng(request.dLatitude, request.dLongitude),
@@ -362,32 +366,33 @@ class _RiderMapScreenState extends State<RiderMapScreen>
         // _markers.add(passengerDestinationMarker);
         // _markers.add(passengerSourceMarker);
 
-        if (_handlePickup) {
+        if (_handlePickup && request != null) {
           setState(() {
             _markers.remove(request.user.id.toString());
           });
         }
 
-        final mid = LatLng(request.sLatitude, request.sLongitude);
+        final mid =
+            LatLng(request?.sLatitude ?? 0.0, request?.sLongitude ?? 0.0);
         final destinationLocation =
-            LatLng(request.dLatitude, request.dLongitude);
+            LatLng(request?.dLatitude ?? 0.0, request?.dLongitude ?? 0.0);
 
         if (isAccepted || _handlePickup) {
           _getPolyline(isRiderOnly ? _center : mid, destinationLocation);
         }
 
-        if (isAccepted) {
-          final RideMessageModel rideMessageModel = RideMessageModel(
-            latitude: position.latitude,
-            longitude: position.longitude,
-            type:
-                'rider-${request.user.id.toString()}-${request.rideRequestId.toString()}',
-            userId: request.user.id,
-            rideRequestId: request.rideRequestId,
-          );
-
-          context.read<StompSocketCubit>().sendMessage(rideMessageModel);
-        }
+        // if (isAccepted) {
+        final RideMessageModel rideMessageModel = RideMessageModel(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          type:
+              'rider-${request?.user.id.toString() ?? ''}-${request?.rideRequestId.toString() ?? ''}',
+          userId: request?.user.id,
+          rideRequestId: request?.rideRequestId,
+        );
+        // }
+        print('message sent');
+        context.read<StompSocketCubit>().sendMessage(rideMessageModel);
       } catch (e) {
         print('❌ Failed to get location or send message: $e');
       }
@@ -409,6 +414,12 @@ class _RiderMapScreenState extends State<RiderMapScreen>
   void handlePickup(bool value) {
     setState(() {
       _handlePickup = value;
+    });
+  }
+
+  void handleCompleted(bool value) {
+    setState(() {
+      _isCompleted = value;
     });
   }
 
@@ -626,6 +637,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
                               drawPolyline: restartLiveLocationPolyline,
                               onPressed: resetModals,
                               request: request!,
+                              handleCompleted: handleCompleted,
                             )),
 
                       // Drawer

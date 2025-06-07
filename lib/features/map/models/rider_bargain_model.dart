@@ -7,7 +7,7 @@ class RiderBargainModel {
   final double proposedPrice;
   final String vehicleType;
   final int rideRequestId;
-  final String vehicleNumber;
+  final String? vehicleNumber;
   final int id;
   final double riderLati;
   final double riderLong;

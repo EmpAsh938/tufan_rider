@@ -84,6 +84,8 @@ class _MapScreenState extends State<MapScreen>
   bool _autoAcceptRiders = false;
   bool _isPlayed = false;
 
+  String? riderId;
+
   ProposedRideRequestModel? price;
 
   LatLng? _sourceLocation;
@@ -111,6 +113,12 @@ class _MapScreenState extends State<MapScreen>
   void handleAutoAcceptRiders(bool value) {
     setState(() {
       _autoAcceptRiders = value;
+    });
+  }
+
+  void handleRiders(String id) {
+    setState(() {
+      riderId = id;
     });
   }
 
@@ -557,10 +565,23 @@ class _MapScreenState extends State<MapScreen>
     });
   }
 
-  void addMarkerToRiderMarkers(String id, Marker marker) {
+  void addMarkerToRiderMarkers(String id, Marker marker) async {
     setState(() {
       _riderMarkers[id] = marker;
     });
+
+    // 7. Animate camera
+    // if (_controller.isCompleted) {
+    //   final GoogleMapController controller = await _controller.future;
+    //   controller.animateCamera(
+    //     CameraUpdate.newCameraPosition(
+    //       CameraPosition(
+    //         target: marker.position,
+    //         zoom: 10,
+    //       ),
+    //     ),
+    //   );
+    // }
   }
 
   void _showRideCompletedDialog(BuildContext context) {
@@ -575,8 +596,6 @@ class _MapScreenState extends State<MapScreen>
         final loginResponse = context.read<AuthCubit>().loginResponse;
         final userId = loginResponse?.user.id.toString() ?? '';
         final token = loginResponse?.token ?? '';
-        final riderId = price?.user.id.toString() ?? '';
-
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
@@ -666,7 +685,7 @@ class _MapScreenState extends State<MapScreen>
                                         setState(() => isSubmitting = true);
                                         final success = await context
                                             .read<AddressCubit>()
-                                            .createRating(userId, riderId,
+                                            .createRating(userId, riderId ?? '',
                                                 token, selectedRating);
 
                                         setState(() {
@@ -837,13 +856,8 @@ class _MapScreenState extends State<MapScreen>
     _checkAndFetchLocation();
     _player = AudioPlayer();
     _init();
-    // startUpdates();
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // _stompSocketCubit = context.read<StompSocketCubit>();
+    // startUpdates();
   }
 
   @override
@@ -870,6 +884,9 @@ class _MapScreenState extends State<MapScreen>
             : _locationEnabled
                 ? BlocListener<StompSocketCubit, StompSocketState>(
                     listener: (context, socketState) {
+                    // if (socketState is StompSocketConnected) {
+                    //   context.read<StompSocketCubit>().listenToMessage();
+                    // }
                     if (socketState is RideCompletionReceive) {
                       stopUpdates();
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -888,74 +905,76 @@ class _MapScreenState extends State<MapScreen>
                           context.read<AuthCubit>().loginResponse;
                       if (loginResponse == null) return;
 
-                      if (incomingUserId == loginResponse.user.id.toString()) {
-                        final LatLng newPosition = LatLng(
-                            ridemessageModel.latitude,
-                            ridemessageModel.longitude);
-                        final Marker newMarker = Marker(
-                          markerId: MarkerId(ridemessageModel.rideRequestId
-                              .toString()), // Unique key
-                          position: newPosition,
-                          infoWindow: InfoWindow(
-                              title: ridemessageModel.rideRequestId.toString()),
-                          icon: riderMarkerIcon ??
-                              BitmapDescriptor.defaultMarkerWithHue(
-                                  BitmapDescriptor.hueBlue),
+                      // if (incomingUserId == loginResponse.user.id.toString()) {
+                      final LatLng newPosition = LatLng(
+                          ridemessageModel.latitude,
+                          ridemessageModel.longitude);
+                      final Marker newMarker = Marker(
+                        markerId: MarkerId(ridemessageModel.rideRequestId
+                            .toString()), // Unique key
+                        position: newPosition,
+                        infoWindow: InfoWindow(
+                            title: ridemessageModel.rideRequestId.toString()),
+                        icon: riderMarkerIcon ??
+                            BitmapDescriptor.defaultMarkerWithHue(
+                                BitmapDescriptor.hueBlue),
 
-                          // icon: _customIcon,
-                        );
+                        // icon: _customIcon,
+                      );
 
-                        // Clear the old one and add the updated marker
-                        addMarkerToRiderMarkers(
-                            ridemessageModel.rideRequestId.toString(),
-                            newMarker);
-                        final requestRide =
-                            context.read<AddressCubit>().rideRequest;
-                        if (requestRide == null) return;
-                        final riderLocation = LatLng(ridemessageModel.latitude,
-                            ridemessageModel.longitude);
-                        final destinationLocation = LatLng(
-                            requestRide!.dLatitude, requestRide.dLongitude);
-                        if (_sourceLocation == null) return;
+                      // Clear the old one and add the updated marker
+                      addMarkerToRiderMarkers(
+                          ridemessageModel.rideRequestId.toString(), newMarker);
+                      final requestRide =
+                          context.read<AddressCubit>().rideRequest;
+                      if (requestRide == null) return;
+                      final riderLocation = LatLng(ridemessageModel.latitude,
+                          ridemessageModel.longitude);
+                      final destinationLocation =
+                          LatLng(requestRide.dLatitude, requestRide.dLongitude);
+                      if (_sourceLocation == null) return;
+
+                      if (_hasPickedup) {
+                        _getPolyline(
+                            origin: _sourceLocation!,
+                            destination: destinationLocation,
+                            waypoint: null);
+                      } else if (_hasAcceptedRequest) {
+                        _getPolyline(
+                            origin: riderLocation,
+                            destination: _sourceLocation!,
+                            waypoint: null);
+                      }
+                      final destinationMaker = createMarker(
+                          position: destinationLocation,
+                          label: 'Your destination');
+                      setState(() {
                         if (_hasPickedup) {
-                          _getPolyline(
-                              origin: _sourceLocation!,
-                              destination: destinationLocation,
-                              waypoint: null);
-                        } else {
-                          _getPolyline(
-                              origin: riderLocation,
-                              destination: _sourceLocation!,
-                              waypoint: null);
+                          _riderMarkers.clear();
                         }
-                        final destinationMaker = createMarker(
-                            position: destinationLocation,
-                            label: 'Your destination');
-                        setState(() {
-                          if (_hasPickedup) {
-                            _riderMarkers.clear();
-                          }
-                          _destinationLocationMarker = destinationMaker;
-                        });
+                        _destinationLocationMarker = destinationMaker;
+                      });
 
+                      if (_hasAcceptedRequest) {
                         checkIfRiderIsNear(
                             riderLocation.latitude,
                             riderLocation.longitude,
                             _sourceLocation!.latitude,
                             _sourceLocation!.longitude);
-                        // final RideMessageModel newModal = RideMessageModel(
-                        //   latitude: _center.latitude,
-                        //   longitude: _center.longitude,
-                        //   type:
-                        //       'passenger-${loginResponse.user.id.toString()}-${ridemessageModel.rideRequestId.toString()}',
-                        //   userId: loginResponse.user.id,
-                        //   rideRequestId: ridemessageModel.rideRequestId,
-                        // );
-
-                        // context.read<StompSocketCubit>().sendMessage(newModal);
-
-                        // _getPolyline(riderLocation, sourceLocation, destinationLocation)
                       }
+                      // final RideMessageModel newModal = RideMessageModel(
+                      //   latitude: _center.latitude,
+                      //   longitude: _center.longitude,
+                      //   type:
+                      //       'passenger-${loginResponse.user.id.toString()}-${ridemessageModel.rideRequestId.toString()}',
+                      //   userId: loginResponse.user.id,
+                      //   rideRequestId: ridemessageModel.rideRequestId,
+                      // );
+
+                      // context.read<StompSocketCubit>().sendMessage(newModal);
+
+                      // _getPolyline(riderLocation, sourceLocation, destinationLocation)
+                      // }
                     }
                   }, child: BlocBuilder<AddressCubit, AddressState>(
                     builder: (context, addressState) {
@@ -1291,6 +1310,7 @@ class _MapScreenState extends State<MapScreen>
                                     startUpdates: startUpdates,
                                     drawPolyline: _getPolyline,
                                     onPressed: resetMap,
+                                    handleRiders: handleRiders,
                                   ),
                                 ),
                               ]

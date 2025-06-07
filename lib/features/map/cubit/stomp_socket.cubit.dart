@@ -60,6 +60,7 @@ class StompSocketCubit extends Cubit<StompSocketState> {
   void _onConnect(StompFrame frame) {
     print('✅ Connected to STOMP');
     emit(StompSocketConnected());
+    listenToMessage();
   }
 
   void listenToMessage() {

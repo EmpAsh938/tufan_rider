@@ -43,6 +43,8 @@
 	<string>This app needs permission to save cropped images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library to select profile pictures.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Need microphone access for voice calls</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
