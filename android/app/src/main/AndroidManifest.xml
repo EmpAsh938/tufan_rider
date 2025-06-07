@@ -22,8 +22,8 @@
 
     <application
         android:label="tufan_rider"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:name="Tufan Ride"
+        android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true"
         >
         <activity
