@@ -21,31 +21,6 @@ class RideHistoryScreen extends StatefulWidget {
 class _RideHistoryScreenState extends State<RideHistoryScreen> {
   bool _isLoading = true;
 
-  Future<void> getDeviceDetails() async {
-    final deviceInfo = DeviceInfoPlugin();
-
-    try {
-      if (Theme.of(context).platform == TargetPlatform.android) {
-        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        print('Running on Android:');
-        print('Brand: ${androidInfo.brand}');
-        print('Device: ${androidInfo.device}');
-        print('Model: ${androidInfo.model}');
-        print('Android Version: ${androidInfo.version.release}');
-        print('SDK: ${androidInfo.version.sdkInt}');
-      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
-        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-        print('Running on iOS:');
-        print('Model: ${iosInfo.utsname.machine}');
-        print('System Version: ${iosInfo.systemVersion}');
-        print('System Name: ${iosInfo.systemName}');
-        print('Name: ${iosInfo.name}');
-      }
-    } catch (e) {
-      print('Failed to get device info: $e');
-    }
-  }
-
   Future<void> fetchRideHistory() async {
     try {
       final loginResponse = context.read<AuthCubit>().loginResponse;

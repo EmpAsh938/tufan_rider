@@ -70,6 +70,7 @@ class MyApp extends StatelessWidget {
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, theme) {
           return MaterialApp(
+            debugShowCheckedModeBanner: false,
             navigatorKey: navigatorKey,
             title: 'Tufan Ride Share',
             theme: AppThemes.lightTheme,

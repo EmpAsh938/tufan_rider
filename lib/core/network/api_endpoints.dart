@@ -13,6 +13,9 @@ class ApiEndpoints {
   static String modeChanger(String userId) => '/users/usermodechanger/$userId';
 
   static String getImage(String imagePath) => '/users/image/$imagePath';
+  static String getRiderImage(String imagePath) => '/rider/image/$imagePath';
+  static String getVehicelImage(String imagePath) =>
+      '/vehicles/image/$imagePath';
   static String updateProfile(String userId) => '/users/$userId';
 
   static String requestOTP(emailOrPhone) => '/auth/send?input=$emailOrPhone';
@@ -53,8 +56,11 @@ class ApiEndpoints {
   // riders
   static String createRider(String userId, String categoryId) =>
       '/user/$userId/category/$categoryId/riders';
+  static String updateRider(String riderId) => '/rider/$riderId';
   static String createVehicle(String userId, String categoryId) =>
       '/vehicles/user/$userId/category/$categoryId';
+  static String updateVehicle(String vehicleId) => '/vehicles/$vehicleId';
+  static String getVehicle(String userId) => '/vehicles/user/$userId/';
 
   static String getRiderByUser(String userId) => '/user/$userId/riders';
   static String getRiderById(String riderId) => '/riders/$riderId';
@@ -85,8 +91,9 @@ class ApiEndpoints {
       '/emergencycontact/$emergencyId';
 
   // payments
+  static String addBalance(String riderId) => '/rider/$riderId/balance';
   static String getTransactionHistory(String riderId) =>
-      'riders/$riderId/statement';
+      '/rider/$riderId/statement';
 
   // notifications
   static String updateFcmToken(String userId) => '/users/$userId/deviceToken';

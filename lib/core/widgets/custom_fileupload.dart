@@ -5,16 +5,18 @@ import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
 
 /// A row that lets you tap to pick a file (e.g. an image),
-/// displays [label] or the chosen filename, and shows a thumbnail if [pickedFile] is non‐null.
+/// displays [label] or the chosen filename, and shows a thumbnail if [pickedFile] or [networkImageUrl] is provided.
 class CustomFileupload extends StatelessWidget {
   final String label;
   final File? pickedFile;
+  final String? networkImageUrl;
   final VoidCallback onTap;
 
   const CustomFileupload({
     super.key,
     required this.label,
     this.pickedFile,
+    this.networkImageUrl,
     required this.onTap,
   });
 
@@ -38,7 +40,7 @@ class CustomFileupload extends StatelessWidget {
               child: Text(
                 displayText,
                 style: AppTypography.labelText.copyWith(
-                  color: pickedFile != null
+                  color: pickedFile != null || networkImageUrl != null
                       ? AppColors.primaryBlack
                       : AppColors.primaryBlack.withOpacity(0.6),
                 ),
@@ -48,7 +50,7 @@ class CustomFileupload extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-            // Thumbnail or placeholder icon
+            // Thumbnail (local or network) or placeholder icon
             Container(
               width: 40,
               height: 40,
@@ -56,22 +58,24 @@ class CustomFileupload extends StatelessWidget {
                 color: AppColors.gray.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: pickedFile != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.file(
-                        pickedFile!,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Icon(
-                      Icons.upload_file,
-                      color: AppColors.primaryColor,
-                    ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: _buildImageThumbnail(),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildImageThumbnail() {
+    if (pickedFile != null) {
+      return Image.file(pickedFile!, fit: BoxFit.cover);
+    } else if (networkImageUrl != null && networkImageUrl!.isNotEmpty) {
+      return Image.network(networkImageUrl!, fit: BoxFit.cover);
+    } else {
+      return Icon(Icons.upload_file, color: AppColors.primaryColor);
+    }
   }
 }

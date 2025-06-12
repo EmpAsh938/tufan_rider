@@ -6,6 +6,7 @@ import 'package:tufan_rider/features/auth/models/registration_request.dart';
 import 'package:tufan_rider/features/map/models/location_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
+import 'package:tufan_rider/features/rider/map/models/update_vehicle_model.dart';
 import 'dio_client.dart';
 import 'api_endpoints.dart';
 
@@ -149,10 +150,17 @@ class ApiService {
   Future<Response> completeRegistration(
       RegistrationRequest registrationRequest) async {
     try {
+      final data = registrationRequest.toJson();
+
+      if (data['email'] == null || (data['email'] as String).trim().isEmpty) {
+        data.remove('email');
+      }
+
       final response = await _dio.post(
         ApiEndpoints.register,
-        data: registrationRequest,
+        data: data,
       );
+
       print(response);
       return response;
     } on DioException catch (e) {
@@ -230,6 +238,9 @@ class ApiService {
   Future<Response> updateRideRequest(LocationModel location, String price,
       String rideRequestId, String destinationName, String token) async {
     try {
+      print(location.latitude);
+      print(location.longitude);
+      print(destinationName);
       final response =
           await _dio.put(ApiEndpoints.updateRideRequest(rideRequestId),
               options: Options(
@@ -318,6 +329,24 @@ class ApiService {
     }
   }
 
+  Future<Response> updateRider(
+      String riderId, String token, CreateRiderModel riderModel) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.updateRider(riderId),
+        data: riderModel.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> createVehicle(String userId, String categoryId, String token,
       CreateVehicleModel vehicleModel) async {
     try {
@@ -336,9 +365,36 @@ class ApiService {
     }
   }
 
+  Future<Response> updateVehicle(
+      String userId, String token, UpdateVehicleModel vehicleModel) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.updateVehicle(userId),
+        data: vehicleModel.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
   Future<Response> getRiderByUser(String userId) async {
     try {
       final response = _dio.get(ApiEndpoints.getRiderByUser(userId));
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> getVehicle(String userId) async {
+    try {
+      final response = _dio.get(ApiEndpoints.getVehicle(userId));
       return response;
     } on DioException catch (e) {
       throw DioExceptions.fromDioError(e);
@@ -688,6 +744,29 @@ class ApiService {
             'Authorization': 'Sandip $token',
           },
         ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw DioExceptions.fromDioError(e);
+    }
+  }
+
+  Future<Response> addBalance(
+    String riderId,
+    String token,
+    String balance,
+  ) async {
+    try {
+      final response = _dio.put(
+        ApiEndpoints.addBalance(riderId),
+        options: Options(
+          headers: {
+            'Authorization': 'Sandip $token',
+          },
+        ),
+        data: {
+          'balance': balance,
+        },
       );
       return response;
     } on DioException catch (e) {

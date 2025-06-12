@@ -7,6 +7,7 @@ import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart'
 import 'package:tufan_rider/features/rider/map/models/proposed_ride_request_model.dart';
 import 'package:tufan_rider/features/rider/map/models/rider_model.dart';
 import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
+import 'package:tufan_rider/features/rider/map/models/update_vehicle_model.dart';
 import 'package:tufan_rider/features/rider/map/models/vehicle_response.dart';
 
 class RiderRepository {
@@ -23,6 +24,19 @@ class RiderRepository {
     final response = await _apiService.createRider(
       userId,
       categoryId,
+      token,
+      riderModel,
+    );
+    return RiderResponse.fromJson(response.data);
+  }
+
+  Future<RiderResponse> updateRider(
+    String userId,
+    String token,
+    CreateRiderModel riderModel,
+  ) async {
+    final response = await _apiService.updateRider(
+      userId,
       token,
       riderModel,
     );
@@ -89,6 +103,34 @@ class RiderRepository {
     return VehicleResponseModel.fromJson(response.data);
   }
 
+  Future<VehicleResponseModel> updateVehicle(
+    String userId,
+    String token,
+    UpdateVehicleModel vehicleModel,
+  ) async {
+    final response = await _apiService.updateVehicle(
+      userId,
+      token,
+      vehicleModel,
+    );
+
+    return VehicleResponseModel.fromJson(response.data);
+  }
+
+  Future<VehicleResponseModel> getVehicle(String userId) async {
+    final response = await _apiService.getVehicle(userId);
+
+    if (response.data is List) {
+      final vehiclesList = response.data as List;
+      if (vehiclesList.isEmpty) throw Exception("No vehicles found");
+      return VehicleResponseModel.fromJson(
+          vehiclesList.first); // Parse the first item
+    } else {
+      // If it's not a list, assume it's a single vehicle
+      return VehicleResponseModel.fromJson(response.data);
+    }
+  }
+
   Future<void> uploadRiderDocuments(
     File uploadedFile,
     String userId,
@@ -151,6 +193,20 @@ class RiderRepository {
           .toList();
     } else {
       throw Exception("Unexpected response format");
+    }
+  }
+
+  Future<bool> addBalance(
+    String riderId,
+    String token,
+    String balance,
+  ) async {
+    try {
+      final response = await _apiService.addBalance(riderId, token, balance);
+      return true;
+    } catch (e) {
+      print('Error adding balance: $e');
+      throw Exception("Failed to add balance");
     }
   }
 

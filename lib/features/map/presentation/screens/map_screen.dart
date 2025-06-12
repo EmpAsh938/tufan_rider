@@ -93,7 +93,8 @@ class _MapScreenState extends State<MapScreen>
   Marker? _currentLocationMarker;
   Marker? _destinationLocationMarker;
 
-  BitmapDescriptor? riderMarkerIcon;
+  BitmapDescriptor? riderBikeMarkerIcon;
+  BitmapDescriptor? riderCarMarkerIcon;
 
   Set<Polyline> _polylines = {};
   List<LatLng> polylineCoordinates = [];
@@ -313,8 +314,9 @@ class _MapScreenState extends State<MapScreen>
       _drawPolyline(origin, destination);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Polyline Error: $e")));
+        // ScaffoldMessenger.of(context)
+        //     .showSnackBar(SnackBar(content: Text("Polyline Error: $e")));
+        print(e.toString());
       }
     }
   }
@@ -492,7 +494,7 @@ class _MapScreenState extends State<MapScreen>
         'isFromFocused': label == 'From',
         'isToFocused': label == 'To',
       },
-    ).then((addressSearchState) {
+    ).then((addressSearchState) async {
       if (addressSearchState != null &&
           addressSearchState is Map<String, dynamic>) {
         if (addressSearchState['isFromFocused']) {
@@ -511,6 +513,27 @@ class _MapScreenState extends State<MapScreen>
       final addressInfo = locator.get<AddressCubit>().fetchAddress();
       final source = addressInfo.source;
       final destination = addressInfo.destination;
+      if (source != null) {
+        await locator.get<AddressCubit>().sendCurrentLocationToServer();
+
+        setSourceMarker(LatLng(source.lat, source.lng), source.name);
+
+        if (_controller.isCompleted) {
+          final GoogleMapController controller = await _controller.future;
+          controller.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: LatLng(source.lat, source.lng),
+                zoom: 14,
+              ),
+            ),
+          );
+        }
+      }
+      if (destination != null) {
+        setDestinationMarker(
+            LatLng(destination.lat, destination.lng), destination.name);
+      }
       setState(() {
         if (source != null) sourceController.text = source.name ?? '';
         if (destination != null) {
@@ -812,7 +835,8 @@ class _MapScreenState extends State<MapScreen>
         Assets.markers.carMarker.path,
       );
       setState(() {
-        riderMarkerIcon = _categoryId == 1 ? bikeIcon : carIcon;
+        riderBikeMarkerIcon = bikeIcon;
+        riderCarMarkerIcon = carIcon;
       });
     } catch (e) {
       print("Failed to load icon: $e");
@@ -843,6 +867,35 @@ class _MapScreenState extends State<MapScreen>
     _updateTimer = null;
     _polylines.clear();
     polylineCoordinates.clear();
+  }
+
+  void setDestinationMarker(LatLng latLng, String? address) {
+    // create marker
+    final newDestMarker = createMarker(
+        position: latLng,
+        label: 'Destination Location',
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed));
+
+    setState(() {
+      _destinationLocationMarker = newDestMarker;
+      _isDestinationSettingOn = false;
+      destinationController.text = address ?? '';
+    });
+  }
+
+  void setSourceMarker(LatLng latLng, String? address) {
+    // create marker
+    final newSourceMarker = createMarker(
+        position: latLng,
+        label: 'Source Location',
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen));
+
+    setState(() {
+      _sourceLocation = latLng;
+      _currentLocationMarker = newSourceMarker;
+      _isSourceSettingOn = false;
+      sourceController.text = address ?? '';
+    });
   }
 
   @override
@@ -899,7 +952,10 @@ class _MapScreenState extends State<MapScreen>
 
                     if (socketState is RideMessageReceived) {
                       final ridemessageModel = socketState.rideRequest;
+                      final actualRideRequestId =
+                          ridemessageModel.rideRequestId;
                       final incomingData = ridemessageModel.type.split('-');
+                      final incomingRiderType = incomingData[0];
                       final incomingUserId = incomingData[1];
                       final loginResponse =
                           context.read<AuthCubit>().loginResponse;
@@ -910,12 +966,16 @@ class _MapScreenState extends State<MapScreen>
                           ridemessageModel.latitude,
                           ridemessageModel.longitude);
                       final Marker newMarker = Marker(
-                        markerId: MarkerId(ridemessageModel.rideRequestId
-                            .toString()), // Unique key
+                        markerId: MarkerId(actualRideRequestId == null
+                            ? ridemessageModel.userId.toString()
+                            : ridemessageModel.rideRequestId
+                                .toString()), // Unique key
                         position: newPosition,
                         infoWindow: InfoWindow(
                             title: ridemessageModel.rideRequestId.toString()),
-                        icon: riderMarkerIcon ??
+                        icon: (incomingRiderType == 'rider1'
+                                ? riderBikeMarkerIcon
+                                : riderCarMarkerIcon) ??
                             BitmapDescriptor.defaultMarkerWithHue(
                                 BitmapDescriptor.hueBlue),
 
@@ -924,7 +984,10 @@ class _MapScreenState extends State<MapScreen>
 
                       // Clear the old one and add the updated marker
                       addMarkerToRiderMarkers(
-                          ridemessageModel.rideRequestId.toString(), newMarker);
+                          actualRideRequestId == null
+                              ? ridemessageModel.userId.toString()
+                              : ridemessageModel.rideRequestId.toString(),
+                          newMarker);
                       final requestRide =
                           context.read<AddressCubit>().rideRequest;
                       if (requestRide == null) return;
@@ -934,34 +997,37 @@ class _MapScreenState extends State<MapScreen>
                           LatLng(requestRide.dLatitude, requestRide.dLongitude);
                       if (_sourceLocation == null) return;
 
-                      if (_hasPickedup) {
-                        _getPolyline(
-                            origin: _sourceLocation!,
-                            destination: destinationLocation,
-                            waypoint: null);
-                      } else if (_hasAcceptedRequest) {
-                        _getPolyline(
-                            origin: riderLocation,
-                            destination: _sourceLocation!,
-                            waypoint: null);
-                      }
-                      final destinationMaker = createMarker(
-                          position: destinationLocation,
-                          label: 'Your destination');
-                      setState(() {
+                      if (ridemessageModel.rideRequestId != null) {
                         if (_hasPickedup) {
-                          _riderMarkers.clear();
+                          _getPolyline(
+                              origin: _sourceLocation!,
+                              destination: destinationLocation,
+                              waypoint: null);
+                        } else if (_hasAcceptedRequest) {
+                          _getPolyline(
+                              origin: riderLocation,
+                              destination: _sourceLocation!,
+                              waypoint: null);
                         }
-                        _destinationLocationMarker = destinationMaker;
-                      });
+                        final destinationMaker = createMarker(
+                            position: destinationLocation,
+                            label: 'Your destination');
+                        setState(() {
+                          if (_hasPickedup) {
+                            _riderMarkers.clear();
+                          }
+                          _destinationLocationMarker = destinationMaker;
+                        });
 
-                      if (_hasAcceptedRequest) {
-                        checkIfRiderIsNear(
-                            riderLocation.latitude,
-                            riderLocation.longitude,
-                            _sourceLocation!.latitude,
-                            _sourceLocation!.longitude);
+                        if (_hasAcceptedRequest) {
+                          checkIfRiderIsNear(
+                              riderLocation.latitude,
+                              riderLocation.longitude,
+                              _sourceLocation!.latitude,
+                              _sourceLocation!.longitude);
+                        }
                       }
+
                       // final RideMessageModel newModal = RideMessageModel(
                       //   latitude: _center.latitude,
                       //   longitude: _center.longitude,
@@ -1351,7 +1417,8 @@ class _MapScreenState extends State<MapScreen>
                                   }),
                             ),
                             RequestCardPopup(
-                              riderMarkerIcon: riderMarkerIcon,
+                              riderBikeMarkerIcon: riderBikeMarkerIcon,
+                              riderCarMarkerIcon: riderCarMarkerIcon,
                               prepareDriverArriving: prepareDriverArriving,
                               createMarkers: addMarkerToRiderMarkers,
                               drawPolyline: _getPolyline,

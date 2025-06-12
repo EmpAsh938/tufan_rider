@@ -80,7 +80,9 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
 
                       await context.read<AddressCubit>().updateRideRequest(
                             RideLocation(
-                                lat: state.dLatitude, lng: state.dLongitude),
+                                lat: state.dLatitude,
+                                lng: state.dLongitude,
+                                name: state.dName),
                             (state.actualPrice - 10).toString(),
                             state.rideRequestId.toString(),
                             loginResponse!.token,
@@ -117,7 +119,9 @@ class _OfferPriceBottomSheetState extends State<OfferPriceBottomSheet> {
                     widget.onPressed(false);
                     await context.read<AddressCubit>().updateRideRequest(
                           RideLocation(
-                              lat: state.dLatitude, lng: state.dLongitude),
+                              lat: state.dLatitude,
+                              lng: state.dLongitude,
+                              name: state.dName),
                           (state.actualPrice + 10).toString(),
                           state.rideRequestId.toString(),
                           loginResponse!.token,

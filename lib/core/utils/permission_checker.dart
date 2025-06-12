@@ -1,14 +1,11 @@
+import 'dart:io';
+
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionChecker {
   static Future<bool> checkLocationPermission() async {
-    final status = await Permission.location.request();
-    final alwaysStatus = await Permission.locationAlways.request();
-    final whenStatus = await Permission.locationWhenInUse.request();
-
-    return status == PermissionStatus.granted ||
-        alwaysStatus == PermissionStatus.granted ||
-        whenStatus == PermissionStatus.granted;
+    final status = await Permission.locationWhenInUse.request();
+    return status == PermissionStatus.granted;
   }
 
   static Future<bool> checkCallPermission() async {
@@ -28,11 +25,14 @@ class PermissionChecker {
   }
 
   static Future<bool> requestAllPermissions() async {
-    final statuses = await [
+    final List<Permission> permissions = [
       Permission.location,
       Permission.phone,
-      Permission.storage, // Covers gallery selection
-    ].request();
+      if (Platform.isAndroid) Permission.storage,
+      if (Platform.isIOS) Permission.photos,
+    ];
+
+    final statuses = await permissions.request();
 
     return statuses.values
         .every((status) => status == PermissionStatus.granted);

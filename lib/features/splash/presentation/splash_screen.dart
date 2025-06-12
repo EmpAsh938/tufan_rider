@@ -28,9 +28,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _initAndNavigate() async {
     authCubit.initialize();
 
-    // Check permissions
-    await PermissionChecker.requestAllPermissions();
-    // await PermissionChecker.checkGalleryPermission();
+    try {
+      // Check permissions
+      await PermissionChecker.requestAllPermissions();
+      // await PermissionChecker.checkGalleryPermission();
+    } catch (e) {
+      debugPrint('Error initializing Firebase: $e');
+    }
 
     await Future.delayed(const Duration(seconds: 2));
 

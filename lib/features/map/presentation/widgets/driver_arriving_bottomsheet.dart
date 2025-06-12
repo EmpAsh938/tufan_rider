@@ -320,10 +320,14 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
                         icon: Icons.call_outlined,
                         label: 'Call',
                         color: Colors.green,
+                        // onPressed: () => _makeEmergencyCall(
+                        //   context,
+                        //   acceptedRide?.token ?? '',
+                        //   acceptedRide?.channel ?? '',
+                        // ),
                         onPressed: () => _makeEmergencyCall(
                           context,
-                          acceptedRide?.token ?? '',
-                          acceptedRide?.channel ?? '',
+                          _rider?.user.mobileNo ?? '',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -527,8 +531,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
     );
   }
 
-  void _makeEmergencyCall(
-      BuildContext context, String token, String channelName) async {
+  void _makeEmergencyCall(BuildContext context, String phoneNumber) async {
     final shouldCall = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -541,7 +544,7 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
               ),
             ),
             content: Text(
-              'This will start a voice call. Proceed?',
+              'This will start a phone call. Proceed?',
               style: AppTypography.labelText,
             ),
             actions: [
@@ -568,110 +571,265 @@ class _DriverArrivingBottomsheetState extends State<DriverArrivingBottomsheet> {
           ),
         ) ??
         false;
-    print('Should call: $shouldCall');
-    print(token);
-    print(channelName);
-    if (shouldCall) {
-      try {
-        // Initialize Agora engine
-        final engine = createAgoraRtcEngine();
-        await engine.initialize(
-          RtcEngineContext(
-            appId:
-                '3826ff3d16584c1998cc3f22f5b86a99', // Replace with your actual App ID
-          ),
-        );
 
-        // Request microphone permission
-        final micStatus = await Permission.microphone.request();
-        if (!micStatus.isGranted) {
-          CustomToast.show(
-            'Microphone permission required',
-            context: context,
-            toastType: ToastType.error,
-          );
-          return;
-        }
+    if (!shouldCall) return;
 
-        // Configure engine
-        await engine.setChannelProfile(
-          ChannelProfileType.channelProfileCommunication,
-        );
-        await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-        await engine.enableAudio();
-
-        // Show in-call dialog
-        bool isMuted = false;
-        bool isSpeakerOn = true;
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) {
-            // Join channel when dialog appears
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              await engine.joinChannel(
-                token: token, // Use token in production
-                channelId: channelName,
-                uid: 10, // Let Agora assign a UID
-                options: const ChannelMediaOptions(),
-              );
-            });
-
-            return StatefulBuilder(
-              builder: (context, setState) {
-                return AlertDialog(
-                  title: const Text('Emergency Call'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('You are now in an emergency voice call.'),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          IconButton(
-                            icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
-                            onPressed: () {
-                              setState(() => isMuted = !isMuted);
-                              engine.muteLocalAudioStream(isMuted);
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              isSpeakerOn ? Icons.volume_up : Icons.volume_off,
-                            ),
-                            onPressed: () {
-                              setState(() => isSpeakerOn = !isSpeakerOn);
-                              engine.setEnableSpeakerphone(isSpeakerOn);
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () async {
-                        await engine.leaveChannel();
-                        await engine.release();
-                        Navigator.pop(context);
-                      },
-                      child: const Text('End Call'),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      } catch (e) {
-        CustomToast.show(
-          'Error starting call: ${e.toString()}',
-          context: context,
-          toastType: ToastType.error,
-        );
-      }
+    final Uri callUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(callUri)) {
+      await launchUrl(callUri);
+    } else {
+      CustomToast.show(
+        'Could not launch phone call',
+        context: context,
+        toastType: ToastType.error,
+      );
     }
+  }
+
+  // Future<void> _makeEmergencyCall(
+  //   BuildContext context,
+  //   String token,
+  //   String channelName,
+  // ) async {
+  //   if (!mounted) return;
+  //   // setState(() => _isCalling = true);
+
+  //   final shouldCall = await showDialog<bool>(
+  //         context: context,
+  //         builder: (context) => _CallConfirmDialog(name: ''),
+  //       ) ??
+  //       false;
+
+  //   // setState(() => _isCalling = false);
+
+  //   if (!shouldCall) return;
+
+  //   final engine = createAgoraRtcEngine();
+
+  //   try {
+  //     await engine.initialize(
+  //       const RtcEngineContext(appId: '5c61f42e947b4b22a65dc1c66deb0664'),
+  //     );
+
+  //     final micStatus = await Permission.microphone.request();
+  //     if (!micStatus.isGranted) {
+  //       if (!mounted) return;
+  //       CustomToast.show(
+  //         'Microphone permission required',
+  //         context: context,
+  //         toastType: ToastType.error,
+  //       );
+  //       return;
+  //     }
+
+  //     await engine
+  //       ..setChannelProfile(ChannelProfileType.channelProfileCommunication)
+  //       ..setClientRole(role: ClientRoleType.clientRoleBroadcaster)
+  //       ..enableAudio()
+  //       ..setEnableSpeakerphone(true);
+
+  //     if (!mounted) return;
+
+  //     await showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (_) => _OngoingCallDialog(
+  //         engine: engine,
+  //         name: 'test',
+  //         // token: token,
+  //         token:
+  //             '007eJxTYJC1P+Bwo2NDY23KYqbjRo3a6xeHnbiuNTvZzt/Ffn7jk3AFBtNkM8M0E6NUSxPzJJMkI6NEM9OUZMNkM7OU1CQDMzOT6b/cMhoCGRl0ul6yMjJAIIjPzZCckZiXl5oTn5iUzMAAAAk5IeU=',
+  //         // channelName: channelName,
+  //         channelName: 'channel_abc',
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     CustomToast.show(
+  //       'Error: ${e.toString()}',
+  //       context: context,
+  //       toastType: ToastType.error,
+  //     );
+  //   }
+  // }
+}
+
+class _CallConfirmDialog extends StatelessWidget {
+  final String name;
+  const _CallConfirmDialog({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.backgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.phone, size: 32, color: Colors.green),
+          ),
+          const SizedBox(height: 16),
+          Text('Call Passenger',
+              style: AppTypography.headline.copyWith(fontSize: 18)),
+        ],
+      ),
+      content: Text(
+        'This will initiate a voice call with ${TextUtils.capitalizeEachWord(name)}.',
+        style: AppTypography.labelText.copyWith(
+          color: AppColors.primaryBlack.withOpacity(0.7),
+        ),
+        textAlign: TextAlign.center,
+      ),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel',
+                    style: AppTypography.labelText.copyWith(
+                      fontWeight: FontWeight.w600,
+                    )),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                icon: const Icon(Icons.phone, color: Colors.white),
+                label: Text('Call Now',
+                    style: AppTypography.labelText.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    )),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _OngoingCallDialog extends StatefulWidget {
+  final RtcEngine engine;
+  final String name;
+  final String channelName;
+  final String token;
+  const _OngoingCallDialog(
+      {required this.engine,
+      required this.channelName,
+      required this.token,
+      required this.name});
+
+  @override
+  State<_OngoingCallDialog> createState() => _OngoingCallDialogState();
+}
+
+class _OngoingCallDialogState extends State<_OngoingCallDialog> {
+  bool isMuted = false;
+  bool isSpeakerOn = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await widget.engine.joinChannel(
+        token: widget.token,
+        channelId: widget.channelName,
+        uid: 100,
+        options: const ChannelMediaOptions(),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.engine.leaveChannel();
+    widget.engine.release();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.phone,
+              size: 32,
+              color: isMuted ? Colors.grey : Colors.green,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Call with ${TextUtils.capitalizeEachWord(widget.name)}',
+              style: AppTypography.headline.copyWith(fontSize: 18)),
+        ],
+      ),
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Column(
+            children: [
+              IconButton(
+                icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
+                color: isMuted ? Colors.red : Colors.green,
+                onPressed: () {
+                  setState(() => isMuted = !isMuted);
+                  widget.engine.muteLocalAudioStream(isMuted);
+                },
+              ),
+              Text(isMuted ? 'Unmute' : 'Mute',
+                  style: AppTypography.labelText.copyWith(fontSize: 12)),
+            ],
+          ),
+          Column(
+            children: [
+              IconButton(
+                icon: Icon(isSpeakerOn ? Icons.volume_up : Icons.volume_off),
+                color: isSpeakerOn ? Colors.green : Colors.grey,
+                onPressed: () {
+                  setState(() => isSpeakerOn = !isSpeakerOn);
+                  widget.engine.setEnableSpeakerphone(isSpeakerOn);
+                },
+              ),
+              Text(isSpeakerOn ? 'Speaker On' : 'Speaker Off',
+                  style: AppTypography.labelText.copyWith(fontSize: 12)),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.call_end, color: Colors.white),
+          label: Text('End Call',
+              style: AppTypography.labelText.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              )),
+        ),
+      ],
+    );
   }
 }

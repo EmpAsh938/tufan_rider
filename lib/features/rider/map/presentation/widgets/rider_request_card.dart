@@ -82,11 +82,11 @@ class RiderRequestCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          TextUtils.capitalizeEachWord(request.user.name),
-                          style: AppTypography.labelText.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                        Flexible(
+                          child: Text(
+                            TextUtils.capitalizeEachWord(request.user.name),
+                            style: AppTypography.labelText,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const Spacer(),

@@ -4,6 +4,7 @@ class RegistrationRequest {
   final String mobileNo;
   final String otp;
   final String password;
+  final Map<String, dynamic> deviceInfo;
   // final String branchName;
   // final String dateOfBirth;
 
@@ -13,6 +14,7 @@ class RegistrationRequest {
     required this.mobileNo,
     required this.otp,
     required this.password,
+    required this.deviceInfo,
     // required this.branchName,
     // required this.dateOfBirth,
   });
@@ -24,6 +26,7 @@ class RegistrationRequest {
       mobileNo: json['mobileNo'],
       otp: json['otp'],
       password: json['password'],
+      deviceInfo: json['deviceInfo'] ?? {},
       // branchName: json['branch_Name'],
       // dateOfBirth: json['date_of_Birth'],
     );
@@ -36,6 +39,7 @@ class RegistrationRequest {
       'mobileNo': mobileNo,
       'otp': otp,
       'password': password,
+      'deviceInfo': deviceInfo,
       // 'branch_Name': branchName,
       // 'date_of_Birth': dateOfBirth,
     };

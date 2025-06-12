@@ -15,11 +15,16 @@ import 'package:tufan_rider/core/model/ride_message_model.dart';
 import 'package:tufan_rider/core/utils/map_helper.dart';
 import 'package:tufan_rider/core/widgets/custom_bottomsheet.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
+import 'package:tufan_rider/features/auth/models/login_response.dart';
 import 'package:tufan_rider/features/map/cubit/address_cubit.dart';
 import 'package:tufan_rider/features/map/cubit/address_state.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket.cubit.dart';
 import 'package:tufan_rider/features/map/cubit/stomp_socket_state.dart';
 import 'package:tufan_rider/features/map/models/ride_request_model.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
+import 'package:tufan_rider/features/rider/map/models/rider_response.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/accepted_bottomsheet.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/bargain_price_bottomsheet.dart';
 import 'package:tufan_rider/features/rider/map/presentation/widgets/rider_request_card_popup.dart';
@@ -58,6 +63,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
   bool _handlePickup = false;
   bool _isCompleted = false;
   RideRequestModel? request;
+  RiderResponse? riderResponse;
   // Set<Marker> _markers = {};
 
   Map<String, Marker> _markers = {};
@@ -307,8 +313,9 @@ class _RiderMapScreenState extends State<RiderMapScreen>
       _drawPolyline(_center, destinationLocation);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        // ScaffoldMessenger.of(context)
+        //     .showSnackBar(SnackBar(content: Text(e.toString())));
+        print(e.toString());
       }
     }
   }
@@ -386,8 +393,8 @@ class _RiderMapScreenState extends State<RiderMapScreen>
           latitude: position.latitude,
           longitude: position.longitude,
           type:
-              'rider-${request?.user.id.toString() ?? ''}-${request?.rideRequestId.toString() ?? ''}',
-          userId: request?.user.id,
+              'rider${riderResponse?.category.categoryId ?? ''}-${request?.user.id.toString() ?? ''}-${request?.rideRequestId.toString() ?? ''}',
+          userId: riderResponse?.user.id ?? 0,
           rideRequestId: request?.rideRequestId,
         );
         // }
@@ -420,6 +427,15 @@ class _RiderMapScreenState extends State<RiderMapScreen>
   void handleCompleted(bool value) {
     setState(() {
       _isCompleted = value;
+    });
+  }
+
+  void fetchUser() {
+    final userDetails = context.read<CreateRiderCubit>().riderResponse;
+    setState(() {
+      if (userDetails != null) {
+        riderResponse = userDetails;
+      }
     });
   }
 
@@ -470,6 +486,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
     _player = AudioPlayer();
     _init();
     _loadMapStyle();
+    fetchUser();
     doSocketInitialization();
     _checkAndFetchLocation();
     startUpdates(null, false);
@@ -638,6 +655,7 @@ class _RiderMapScreenState extends State<RiderMapScreen>
                               onPressed: resetModals,
                               request: request!,
                               handleCompleted: handleCompleted,
+                              sourceLocation: _center,
                             )),
 
                       // Drawer

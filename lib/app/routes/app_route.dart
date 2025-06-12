@@ -12,6 +12,7 @@ import 'package:tufan_rider/features/rider/map/presentation/screens/rider_credit
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_registration.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_signupflow.dart';
+import 'package:tufan_rider/features/rider/map/presentation/screens/rider_updateflow.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/change_phone_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/emergency_screen.dart';
 import 'package:tufan_rider/features/sidebar/presentation/screens/profile_screen.dart';
@@ -35,6 +36,7 @@ class AppRoutes {
   static const String emergency = '/emergency';
   static const String support = '/support';
   static const String riderSignupFlow = '/riderSignup';
+  static const String riderUpdateflow = '/riderUpdate';
   static const String riderCredit = '/riderCredit';
   static const String riderCreditHistory = '/riderCreditHistory';
   static const String permissionScreen = '/permissions';
@@ -54,6 +56,8 @@ class AppRoutes {
         return _slideFromRight(const ResetPasswordScreen(), routeSettings);
       case riderSignupFlow:
         return _slideFromRight(const RiderSignupflow(), routeSettings);
+      case riderUpdateflow:
+        return _slideFromRight(const RiderUpdateflow(), routeSettings);
       case riderCredit:
         return _slideFromRight(const RiderCreditScreen(), routeSettings);
       case riderCreditHistory:

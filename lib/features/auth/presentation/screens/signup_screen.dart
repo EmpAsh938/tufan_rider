@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,55 +42,88 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       TextEditingController();
 
   int _currentPage = 0;
-
-  File? _imageFile;
+  Map<String, dynamic> deviceDetails = {};
+  // File? _imageFile;
 
   String? selectedBranch;
 
-  Future<void> _pickImage() async {
-    // Request permissions
-    // final status = await Permission.photos.request();
-    // if (!status.isGranted) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Permission denied')),
-    //   );
-    //   return;
-    // }
+  Future<void> getDeviceDetails() async {
+    final deviceInfo = DeviceInfoPlugin();
 
-    // Pick image
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
+    try {
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        print('Running on Android:');
+        print('Brand: ${androidInfo.brand}');
+        print('Device: ${androidInfo.device}');
+        print('Model: ${androidInfo.model}');
+        print('Android Version: ${androidInfo.version.release}');
+        print('SDK: ${androidInfo.version.sdkInt}');
 
-    if (pickedFile == null) return;
-
-    // Crop image
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop Image',
-          toolbarColor: Colors.black,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-        ),
-        IOSUiSettings(
-          title: 'Crop Image',
-          aspectRatioLockEnabled: false,
-          resetButtonHidden: false,
-          rotateButtonsHidden: false,
-          rotateClockwiseButtonHidden: false,
-          doneButtonTitle: 'Done',
-          cancelButtonTitle: 'Cancel',
-        )
-      ],
-    );
-
-    if (croppedFile != null) {
-      setState(() => _imageFile = File(croppedFile.path));
+        deviceDetails = {
+          'brand': androidInfo.brand,
+          'device': androidInfo.device,
+          'model': androidInfo.model,
+          'androidVersion': androidInfo.version.release,
+          'sdkInt': androidInfo.version.sdkInt,
+        };
+      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        print('Running on iOS:');
+        print('Model: ${iosInfo.utsname.machine}');
+        print('System Version: ${iosInfo.systemVersion}');
+        print('System Name: ${iosInfo.systemName}');
+        print('Name: ${iosInfo.name}');
+      }
+    } catch (e) {
+      print('Failed to get device info: $e');
     }
   }
+
+  // Future<void> _pickImage() async {
+  //   // Request permissions
+  //   // final status = await Permission.photos.request();
+  //   // if (!status.isGranted) {
+  //   //   ScaffoldMessenger.of(context).showSnackBar(
+  //   //     const SnackBar(content: Text('Permission denied')),
+  //   //   );
+  //   //   return;
+  //   // }
+
+  //   // Pick image
+  //   final pickedFile = await ImagePicker().pickImage(
+  //     source: ImageSource.gallery,
+  //   );
+
+  //   if (pickedFile == null) return;
+
+  //   // Crop image
+  //   final croppedFile = await ImageCropper().cropImage(
+  //     sourcePath: pickedFile.path,
+  //     uiSettings: [
+  //       AndroidUiSettings(
+  //         toolbarTitle: 'Crop Image',
+  //         toolbarColor: Colors.black,
+  //         toolbarWidgetColor: Colors.white,
+  //         initAspectRatio: CropAspectRatioPreset.original,
+  //         lockAspectRatio: false,
+  //       ),
+  //       IOSUiSettings(
+  //         title: 'Crop Image',
+  //         aspectRatioLockEnabled: false,
+  //         resetButtonHidden: false,
+  //         rotateButtonsHidden: false,
+  //         rotateClockwiseButtonHidden: false,
+  //         doneButtonTitle: 'Done',
+  //         cancelButtonTitle: 'Cancel',
+  //       )
+  //     ],
+  //   );
+
+  //   if (croppedFile != null) {
+  //     setState(() => _imageFile = File(croppedFile.path));
+  //   }
+  // }
 
   void nextPage() {
     if (!_formKey.currentState!.validate()) return;
@@ -112,6 +146,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         mobileNo: phoneController.text,
         otp: otp,
         password: passwordController.text,
+        deviceInfo: deviceDetails,
         // branchName: selectedBranch!,
       );
       context
@@ -134,6 +169,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getDeviceDetails();
   }
 
   @override
@@ -380,9 +421,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           CustomTextField(
             controller: emailController,
             hintText: 'Email Address',
-            labelText: 'Email Address',
-            validator: FormValidator.validateEmail,
-            onChanged: (_) => _formKey.currentState?.validate(),
+            labelText: 'Email Address (Optional)',
+            // validator: FormValidator.validateEmail,
+            // onChanged: (_) => _formKey.currentState?.validate(),
           ),
           // const SizedBox(height: 20),
           // CustomButton(text: 'Next', onPressed: nextPage),

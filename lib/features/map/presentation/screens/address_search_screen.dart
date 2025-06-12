@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tufan_rider/core/constants/api_constants.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
@@ -13,7 +14,9 @@ import 'package:tufan_rider/gen/assets.gen.dart';
 import 'package:http/http.dart' as http;
 
 class AddressSearchScreen extends StatefulWidget {
-  const AddressSearchScreen({super.key});
+  const AddressSearchScreen({
+    super.key,
+  });
 
   @override
   State<AddressSearchScreen> createState() => _AddressSearchScreenState();
@@ -187,6 +190,12 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
               "Choose your route",
               style: AppTypography.headline.copyWith(fontSize: 18),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.done),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
             centerTitle: true,
           ),
           body: Padding(
@@ -284,6 +293,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                                   lng: details['lng'],
                                   name: suggestion[
                                       'description'])); // Save source with lat, lng, address
+
                               setState(() => fromSuggestions = []);
                             } else {
                               toController.text =
@@ -293,7 +303,13 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                                   lng: details['lng'],
                                   name: suggestion[
                                       'description'])); // Save source with lat, lng, address
+
                               setState(() => toSuggestions = []);
+
+                              if (fromController.text.isNotEmpty &&
+                                  toController.text.isNotEmpty) {
+                                Navigator.pop(context);
+                              }
                             }
                           }
                         },

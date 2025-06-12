@@ -3,12 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/app/routes/app_route.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
-import 'package:tufan_rider/core/utils/custom_toast.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_state.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_cubit.dart';
 import 'package:tufan_rider/features/rider/map/presentation/screens/rider_map_screen.dart';
 import 'package:tufan_rider/gen/assets.gen.dart';
 
@@ -29,10 +29,20 @@ class _RiderRegistrationState extends State<RiderRegistration> {
     }
   }
 
+  void getVehicle() {
+    final loginResponse = context.read<AuthCubit>().loginResponse;
+    if (loginResponse != null) {
+      context
+          .read<CreateVehicleCubit>()
+          .getVehicle(loginResponse.user.id.toString(), '');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     getRiderByUser();
+    getVehicle();
   }
 
   @override
@@ -79,6 +89,10 @@ class _RiderRegistrationState extends State<RiderRegistration> {
                   if (riderResponse != null &&
                       riderResponse.status.toLowerCase() == 'pending') {
                     return _buildPendingApprovalUI();
+                  }
+                  if (riderResponse != null &&
+                      riderResponse.status.toLowerCase() == 'rejected') {
+                    return _buildRejectedUI();
                   }
 
                   // Case 3: No rider exists (default case)
@@ -201,5 +215,38 @@ class _RiderRegistrationState extends State<RiderRegistration> {
             },
           ),
         ));
+  }
+
+  Widget _buildRejectedUI() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cancel, color: Colors.red, size: 60),
+            SizedBox(height: 16),
+            Text(
+              'Your application has been rejected.',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Please contact support or try again later.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            CustomButton(
+              text: "Update Documents here",
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.riderUpdateflow);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

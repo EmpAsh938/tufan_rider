@@ -1,4 +1,4 @@
-package com.example.tufan_rider
+package com.mytufan.tufan_ride
 
 import io.flutter.embedding.android.FlutterActivity
 

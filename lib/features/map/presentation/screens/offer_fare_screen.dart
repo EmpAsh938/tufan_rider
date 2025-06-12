@@ -48,8 +48,8 @@ class _OfferFareScreenState extends State<OfferFareScreen> {
     final authCubit = locator.get<AuthCubit>();
     final sourceInfo = addressCubit.source;
     final destinationInfo = addressCubit.destination;
-    final fareInfo =
-        await addressCubit.getFare(destinationInfo, authCubit.loginResponse);
+    final fareInfo = await addressCubit.getFare(
+        destinationInfo, authCubit.loginResponse, widget.categoryId);
     if (fareInfo != null) addressCubit.setFare(fareInfo);
     setState(() {
       loginResponse = authCubit.loginResponse;

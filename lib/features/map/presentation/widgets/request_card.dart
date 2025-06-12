@@ -5,7 +5,6 @@ import 'package:tufan_rider/core/network/api_endpoints.dart';
 import 'package:tufan_rider/core/utils/text_utils.dart';
 import 'package:tufan_rider/core/widgets/custom_button.dart';
 import 'package:tufan_rider/features/map/models/rider_bargain_model.dart';
-import 'package:tufan_rider/gen/assets.gen.dart';
 
 class RequestCard extends StatelessWidget {
   final RiderBargainModel request;
@@ -65,8 +64,11 @@ class RequestCard extends StatelessWidget {
                         style: AppTypography.labelText),
                     const SizedBox(height: 4),
                     // Text(TextUtils.capitalizeEachWord(request.name),
-                    Text(TextUtils.capitalizeEachWord(request.name),
-                        style: AppTypography.labelText),
+                    Text(
+                      TextUtils.capitalizeEachWord(request.name),
+                      style: AppTypography.labelText,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 4),
                     // Row(
                     //   children: [

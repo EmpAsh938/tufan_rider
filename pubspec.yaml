@@ -111,21 +111,21 @@ flutter_gen:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/company.png"
+  image_path: "assets/images/launcher.jpeg"
   min_sdk_android: 21 # android min sdk min:16, default 21
 
 flutter_native_splash:
   color: "#ffffff"
   image: assets/images/light.jpeg
-  branding: assets/images/light.jpeg
-  color_dark: "#121212"
+  # branding: assets/images/light.jpeg
+  color_dark: "#F04F18"
   image_dark: assets/images/dark.jpeg
-  branding_dark: assets/images/dark.jpeg
+  # branding_dark: assets/images/dark.jpeg
 
   android_12:
     image: assets/images/light.jpeg
     icon_background_color: "#ffffff"
     image_dark: assets/images/dark.jpeg
-    icon_background_color_dark: "#121212"
+    icon_background_color_dark: "#F04F18"
 
   web: false

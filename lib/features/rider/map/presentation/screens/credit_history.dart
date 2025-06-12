@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:tufan_rider/core/constants/app_colors.dart';
 import 'package:tufan_rider/core/constants/app_text_styles.dart';
+import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/rider_payment_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/rider_payment_state.dart';
 
@@ -13,26 +15,16 @@ class CreditHistory extends StatefulWidget {
 }
 
 class _CreditHistoryState extends State<CreditHistory> {
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'type': 'loaded',
-      'amount': 500,
-      'date': '2023-05-15',
-      'time': '10:30 AM',
-    },
-    {
-      'type': 'deducted',
-      'amount': 100,
-      'date': '2023-05-14',
-      'time': '02:15 PM',
-    },
-    {
-      'type': 'loaded',
-      'amount': 300,
-      'date': '2023-05-10',
-      'time': '09:45 AM',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+    if (riderResponse != null) {
+      context
+          .read<RiderPaymentCubit>()
+          .getTransactionHistory(riderResponse.id.toString(), 'token');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +40,11 @@ class _CreditHistoryState extends State<CreditHistory> {
               return const Center(child: CircularProgressIndicator());
             } else if (state is RiderPaymentFetched) {
               final transactions = state.transactions;
+              if (transactions.isEmpty) {
+                return const Center(
+                  child: Text('No transactions available.'),
+                );
+              }
               return ListView.builder(
                 physics:
                     const AlwaysScrollableScrollPhysics(), // Ensures scrolling works
@@ -55,6 +52,20 @@ class _CreditHistoryState extends State<CreditHistory> {
                 itemCount: transactions.length,
                 itemBuilder: (context, index) {
                   final transaction = transactions[index];
+                  final dateTimeList = transaction['dateTime'];
+                  final dateTime = DateTime(
+                    dateTimeList[0],
+                    dateTimeList[1],
+                    dateTimeList[2],
+                    dateTimeList[3],
+                    dateTimeList[4],
+                    dateTimeList[5],
+                    (dateTimeList.length > 6) ? (dateTimeList[6] ~/ 1000) : 0,
+                  );
+
+                  final formattedDate =
+                      DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
@@ -77,18 +88,18 @@ class _CreditHistoryState extends State<CreditHistory> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                transaction['type'] == 'loaded'
+                                transaction['type'] == 'CREDIT'
                                     ? 'Credit Loaded'
                                     : 'Credit Deducted',
                                 style: AppTypography.labelText.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: transaction['type'] == 'loaded'
+                                  color: transaction['type'] == 'CREDIT'
                                       ? AppColors.primaryGreen
                                       : AppColors.primaryRed,
                                 ),
                               ),
                               Text(
-                                '${transaction['balance']} NPR',
+                                '${transaction['amount']} NPR',
                                 style: AppTypography.labelText.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -97,8 +108,7 @@ class _CreditHistoryState extends State<CreditHistory> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            // '${transaction.date} • ${transaction.time}',
-                            '2024-05-14',
+                            formattedDate,
                             style: AppTypography.paragraph.copyWith(
                               color: AppColors.primaryBlack.withOpacity(0.6),
                             ),

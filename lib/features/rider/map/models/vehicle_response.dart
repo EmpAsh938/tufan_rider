@@ -6,9 +6,9 @@ class VehicleResponseModel {
   final String vehicleBrand;
   final String vehicleNumber;
   final String productionYear;
-  final String vechicleImg;
-  final String billBook1;
-  final String billBook2;
+  final String? vechicleImg;
+  final String? billBook1;
+  final String? billBook2;
   final Category category;
 
   VehicleResponseModel({

@@ -4,7 +4,12 @@ import 'package:tufan_rider/features/map/models/ride_request_model.dart';
 class RiderResponse {
   final int id;
   final String driverLicense;
+  final String nidNo;
+  final String citizenNo;
   final String selfieWithIdCard;
+  final String licenseImage;
+  final String citizenFront;
+  final String citizenBack;
   final String dateOfBirth;
   final double? balance;
   final List<int> addedDate;
@@ -19,7 +24,12 @@ class RiderResponse {
     required this.id,
     required this.driverLicense,
     required this.selfieWithIdCard,
+    required this.licenseImage,
+    required this.citizenFront,
+    required this.citizenBack,
     required this.dateOfBirth,
+    required this.nidNo,
+    required this.citizenNo,
     this.balance,
     required this.addedDate,
     this.updatedDate,
@@ -35,6 +45,11 @@ class RiderResponse {
       id: json['id'],
       driverLicense: json['driver_License'],
       selfieWithIdCard: json['selfieWithIdCard'] ?? '',
+      licenseImage: json['license_Image'] ?? '',
+      citizenFront: json['citizen_Front'] ?? '',
+      citizenBack: json['citizen_Back'] ?? '',
+      nidNo: json['nid_No'] ?? '',
+      citizenNo: json['citizen_No'] ?? '',
       dateOfBirth: json['date_Of_Birth'],
       balance: json['balance']?.toDouble(),
       addedDate: List<int>.from(json['addedDate'] ?? []),
@@ -54,7 +69,12 @@ class RiderResponse {
       'id': id,
       'driver_License': driverLicense,
       'selfieWithIdCard': selfieWithIdCard,
+      'license_Image': licenseImage,
+      'citizen_Front': citizenFront,
+      'citizen_Back': citizenBack,
       'date_Of_Birth': dateOfBirth,
+      'nid_No': nidNo,
+      'citizen_No': citizenNo,
       'balance': balance,
       'addedDate': addedDate,
       'updatedDate': updatedDate,

@@ -11,7 +11,8 @@ import 'package:tufan_rider/features/map/presentation/widgets/request_card.dart'
 
 class RequestCardPopup extends StatefulWidget {
   final VoidCallback prepareDriverArriving;
-  final BitmapDescriptor? riderMarkerIcon;
+  final BitmapDescriptor? riderBikeMarkerIcon;
+  final BitmapDescriptor? riderCarMarkerIcon;
   final Future<void> Function(
       {required LatLng destination,
       required LatLng origin,
@@ -19,7 +20,8 @@ class RequestCardPopup extends StatefulWidget {
   final Function(String id, Marker marker) createMarkers;
   const RequestCardPopup({
     super.key,
-    required this.riderMarkerIcon,
+    required this.riderBikeMarkerIcon,
+    required this.riderCarMarkerIcon,
     required this.prepareDriverArriving,
     required this.createMarkers,
     required this.drawPolyline,
@@ -158,14 +160,14 @@ class _RequestCardPopupState extends State<RequestCardPopup>
               // if (!existingRequestIds.contains(rideRequest.rideRequestId)) {
               _addRequest(rideRequest);
               final riderUniqueId = UniqueKey().toString();
-              final newMarker = Marker(
-                markerId: MarkerId(riderUniqueId),
-                position: LatLng(rideRequest.riderLati, rideRequest.riderLong),
-                icon: widget.riderMarkerIcon ??
-                    BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueBlue),
-              );
-              widget.createMarkers(riderUniqueId, newMarker);
+              // final newMarker = Marker(
+              //   markerId: MarkerId(riderUniqueId),
+              //   position: LatLng(rideRequest.riderLati, rideRequest.riderLong),
+              //   icon: widget.riderMarkerIcon ??
+              //       BitmapDescriptor.defaultMarkerWithHue(
+              //           BitmapDescriptor.hueBlue),
+              // );
+              // widget.createMarkers(riderUniqueId, newMarker);
               // }
             }
           }

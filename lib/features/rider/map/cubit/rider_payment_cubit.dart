@@ -16,4 +16,13 @@ class RiderPaymentCubit extends Cubit<RiderPaymentState> {
       emit(RiderPaymentError(e.toString()));
     }
   }
+
+  Future<bool> addBalance(String riderId, String token, String balance) async {
+    try {
+      return await _repository.addBalance(riderId, token, balance);
+    } catch (e) {
+      print(e.toString());
+      return false;
+    }
+  }
 }

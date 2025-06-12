@@ -77,6 +77,7 @@ class AddressCubit extends Cubit<AddressState> {
   Future<FareResponse?> getFare(
     RideLocation? destinationInfo,
     LoginResponse? loginResponse,
+    String categoryId,
   ) async {
     try {
       if (destinationInfo == null || loginResponse == null) {
@@ -90,7 +91,7 @@ class AddressCubit extends Cubit<AddressState> {
       final data = await _repository.getFare(
         location,
         loginResponse.user.id.toString(),
-        '1',
+        categoryId,
         loginResponse.token,
       );
       return data;

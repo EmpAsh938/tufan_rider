@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_vehicle_state.dart';
 import 'package:tufan_rider/features/rider/map/models/create_vehicle_model.dart';
+import 'package:tufan_rider/features/rider/map/models/update_vehicle_model.dart';
 import 'package:tufan_rider/features/rider/map/models/vehicle_response.dart';
 import 'package:tufan_rider/features/rider/map/repository/rider_repository.dart';
 
@@ -24,6 +25,35 @@ class CreateVehicleCubit extends Cubit<CreateVehicleState> {
     try {
       final vehicleData = await _repository.createVehicle(
           userId, categoryId, token, vehicleModel);
+      _vehicleResponseModel = vehicleData;
+      emit(CreateVehicleSuccess(vehicleData));
+    } catch (e) {
+      emit(CreateVehicleFailure(e.toString()));
+    }
+  }
+
+  Future<void> getVehicle(
+    String userId,
+    String token,
+  ) async {
+    try {
+      final vehicleData = await _repository.getVehicle(userId);
+      _vehicleResponseModel = vehicleData;
+      emit(CreateVehicleSuccess(vehicleData));
+    } catch (e) {
+      emit(CreateVehicleFailure(e.toString()));
+    }
+  }
+
+  Future<void> updateVehicle(
+    String userId,
+    String token,
+    UpdateVehicleModel vehicleModel,
+  ) async {
+    emit(CreateVehicleLoading());
+    try {
+      final vehicleData =
+          await _repository.updateVehicle(userId, token, vehicleModel);
       _vehicleResponseModel = vehicleData;
       emit(CreateVehicleSuccess(vehicleData));
     } catch (e) {

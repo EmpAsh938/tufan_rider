@@ -10,7 +10,9 @@ import 'package:tufan_rider/core/widgets/custom_drawer.dart';
 import 'package:tufan_rider/core/widgets/custom_textfield.dart';
 import 'package:imepay_merchant_sdk/start_sdk.dart';
 import 'package:tufan_rider/core/utils/random_id_generator.dart';
+import 'package:tufan_rider/features/auth/cubit/auth_cubit.dart';
 import 'package:tufan_rider/features/rider/map/cubit/create_rider_cubit.dart';
+import 'package:tufan_rider/features/rider/map/cubit/rider_payment_cubit.dart';
 
 class RiderCreditScreen extends StatefulWidget {
   const RiderCreditScreen({super.key});
@@ -23,15 +25,15 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
   final GlobalKey<TooltipState> tooltipKey = GlobalKey<TooltipState>();
   final TextEditingController _amountController = TextEditingController();
 
-  final merchantCode = 'DEMOIMEP';
-  final merchantName = 'IME Pay Demo';
+  final merchantCode = 'TUFAN';
+  final merchantName = 'TUFAN';
   final merchantUrl =
-      'https://stg.imepay.com.np:7979/api/sdk/recordTransaction';
-  final module = 'DEMOIMEP';
-  final user = 'demoimepay';
-  final password = 'IMEPay@123';
+      'https://payment.imepay.com.np:7979/api/sdk/recordTransaction';
+  final module = 'TUFAN';
+  final user = 'tufantransport';
+  final password = 'Tufan@321';
   final deliveryUrl = 'http://172.20.22.11:1717/api/sdk/deliveryService';
-  final buildType = BuildType.STAGE;
+  final buildType = BuildType.LIVE;
 
   void _initiatePayment(BuildContext context) async {
     final refId = generateRandomId();
@@ -45,8 +47,13 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
       return;
     }
 
+    final riderResponse = context.read<CreateRiderCubit>().riderResponse;
+    final loginResponse = context.read<AuthCubit>().loginResponse;
+
+    if (riderResponse == null || loginResponse == null) return;
+
     try {
-      var result = await StartSdk.callSdk(
+      final result = await StartSdk.callSdk(
         context,
         merchantCode: merchantCode,
         merchantName: merchantName,
@@ -60,9 +67,24 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
         buildType: buildType,
       );
 
-      print(result.toString());
+      final isSuccess = await context.read<RiderPaymentCubit>().addBalance(
+          riderResponse.id.toString(),
+          loginResponse.token,
+          _amountController.text);
+
+      if (isSuccess) {
+        Navigator.pop(context); // Close the modal
+        CustomToast.show(
+          'Payment successful! Credits loaded.',
+          context: context,
+          toastType: ToastType.success,
+        );
+      } else {
+        throw Exception('Failed to load credits');
+      }
     } catch (e) {
-      print(e);
+      CustomToast.show(e.toString(),
+          context: context, toastType: ToastType.error);
     }
   }
 
@@ -223,7 +245,7 @@ class _RiderCreditScreenState extends State<RiderCreditScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              "NPR${riderResponse == null ? 0 : riderResponse.balance}",
+                              "NPR${riderResponse == null ? 0 : riderResponse?.balance ?? 0.0}",
                               style: AppTypography.labelText.copyWith(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
