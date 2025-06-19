@@ -50,7 +50,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAhH5Yk__Na0m6yjc3uc1YghnPtXxba5ug',
+    apiKey: '',
     appId: '1:1035950122120:android:3bfd8bb5610eea30f2ab3d',
     messagingSenderId: '1035950122120',
     projectId: 'tufan-rideshare',
@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAz7Q4WXSCVqYYEnkmsiaJLPhK2LhXPnK4',
+    apiKey: '',
     appId: '1:1035950122120:ios:a90a9902b0f92872f2ab3d',
     messagingSenderId: '1035950122120',
     projectId: 'tufan-rideshare',

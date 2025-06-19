@@ -58,7 +58,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
-               android:value="AIzaSyAXs9F40dZwRZVioQJiXw4S82ZQ5dWFaXw"/>
+               android:value=""/>
 
         <!-- Add this if you're using FirebaseInitProvider manually -->
         <meta-data
