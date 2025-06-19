@@ -34,7 +34,7 @@ class User {
   final int id;
   final dynamic currentLocation;
   final String name;
-  final String email;
+  final String? email;
   final String? managerAddress;
   final String mobileNo;
   final String? imageName;
@@ -51,7 +51,7 @@ class User {
     required this.id,
     this.currentLocation,
     required this.name,
-    required this.email,
+    this.email,
     this.managerAddress,
     required this.mobileNo,
     required this.imageName,
@@ -70,7 +70,7 @@ class User {
       id: json['id'],
       currentLocation: json['currentLocation'],
       name: json['name'],
-      email: json['email'],
+      email: json['email'] != null ? json['email'] as String : null,
       managerAddress: json['managerAddress'],
       mobileNo: json['mobileNo'],
       imageName: json['imageName'],

@@ -90,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final name = loginResponse.user.name.split(' ');
       firstNameController.text = name[0];
       lastNameController.text = name.length == 1 ? '' : name[name.length - 1];
-      emailController.text = loginResponse.user.email;
+      emailController.text = loginResponse.user.email ?? '';
     }
   }
 

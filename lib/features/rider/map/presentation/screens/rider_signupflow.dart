@@ -367,7 +367,7 @@ class _RiderSignupflowState extends State<RiderSignupflow> {
           userId.toString(),
           token,
           fullName,
-          _loginResponse!.user.email,
+          _loginResponse!.user.email ?? '',
           _loginResponse!.user.mobileNo,
           '',
         );

@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => WebViewScreen(
-                  url: 'https://tufan.netlify.app',
+                  url: 'https://mytufan.com/policy',
                   title: 'Privacy Policy',
                 ),
               ),
@@ -111,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => WebViewScreen(
-                  url: 'https://tufan.netlify.app',
+                  url: 'https://mytufan.com/terms-and-conditions',
                   title: 'Terms and conditions',
                 ),
               ),

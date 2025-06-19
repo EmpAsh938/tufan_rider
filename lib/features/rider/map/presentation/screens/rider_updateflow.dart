@@ -371,7 +371,7 @@ class _RiderUpdateflowState extends State<RiderUpdateflow> {
           userId.toString(),
           token,
           fullName,
-          _loginResponse!.user.email,
+          _loginResponse!.user.email ?? '',
           _loginResponse!.user.mobileNo,
           '',
         );
@@ -690,7 +690,7 @@ class _RiderUpdateflowState extends State<RiderUpdateflow> {
                                       CustomButton(
                                           text: _currentPage < pages - 1
                                               ? 'Next'
-                                              : 'Register',
+                                              : 'Finish',
                                           onPressed: nextPage),
                                   ],
                                 ],

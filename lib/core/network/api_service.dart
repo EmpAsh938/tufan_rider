@@ -79,7 +79,7 @@ class ApiService {
         ApiEndpoints.updateProfile(userId),
         data: {
           'name': name,
-          'email': email,
+          // 'email': email,
           'mobileNo': phone,
           'password': password,
         },

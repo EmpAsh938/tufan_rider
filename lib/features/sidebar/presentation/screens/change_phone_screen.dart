@@ -63,7 +63,7 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
         loginResponse.user.id.toString(),
         loginResponse.token,
         loginResponse.user.name,
-        loginResponse.user.email,
+        loginResponse.user.email ?? '',
         phoneController.text,
         passwordController.text,
       );

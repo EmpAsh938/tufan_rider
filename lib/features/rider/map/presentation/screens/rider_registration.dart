@@ -132,6 +132,13 @@ class _RiderRegistrationState extends State<RiderRegistration> {
                   style: AppTypography.labelText,
                 ),
                 const SizedBox(height: 32),
+                SizedBox(height: 20),
+                CustomButton(
+                  text: "Update Documents here",
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.riderUpdateflow);
+                  },
+                ),
                 // TextButton(
                 //   onPressed: () {
                 //     // Optionally: Contact support or check status

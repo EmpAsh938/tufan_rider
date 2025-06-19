@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+// import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -937,185 +937,185 @@ class _AcceptedBottomsheetState extends State<AcceptedBottomsheet> {
   }
 }
 
-class _CallConfirmDialog extends StatelessWidget {
-  final String name;
-  const _CallConfirmDialog({required this.name});
+// class _CallConfirmDialog extends StatelessWidget {
+//   final String name;
+//   const _CallConfirmDialog({required this.name});
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.phone, size: 32, color: Colors.green),
-          ),
-          const SizedBox(height: 16),
-          Text('Call Passenger',
-              style: AppTypography.headline.copyWith(fontSize: 18)),
-        ],
-      ),
-      content: Text(
-        'This will initiate a voice call with ${TextUtils.capitalizeEachWord(name)}.',
-        style: AppTypography.labelText.copyWith(
-          color: AppColors.primaryBlack.withOpacity(0.7),
-        ),
-        textAlign: TextAlign.center,
-      ),
-      actions: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Cancel',
-                    style: AppTypography.labelText.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                icon: const Icon(Icons.phone, color: Colors.white),
-                label: Text('Call Now',
-                    style: AppTypography.labelText.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    )),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return AlertDialog(
+//       backgroundColor: AppColors.backgroundColor,
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+//       title: Column(
+//         children: [
+//           Container(
+//             padding: const EdgeInsets.all(12),
+//             decoration: BoxDecoration(
+//               color: Colors.green.withOpacity(0.1),
+//               shape: BoxShape.circle,
+//             ),
+//             child: const Icon(Icons.phone, size: 32, color: Colors.green),
+//           ),
+//           const SizedBox(height: 16),
+//           Text('Call Passenger',
+//               style: AppTypography.headline.copyWith(fontSize: 18)),
+//         ],
+//       ),
+//       content: Text(
+//         'This will initiate a voice call with ${TextUtils.capitalizeEachWord(name)}.',
+//         style: AppTypography.labelText.copyWith(
+//           color: AppColors.primaryBlack.withOpacity(0.7),
+//         ),
+//         textAlign: TextAlign.center,
+//       ),
+//       actions: [
+//         Row(
+//           children: [
+//             Expanded(
+//               child: OutlinedButton(
+//                 onPressed: () => Navigator.pop(context, false),
+//                 child: Text('Cancel',
+//                     style: AppTypography.labelText.copyWith(
+//                       fontWeight: FontWeight.w600,
+//                     )),
+//               ),
+//             ),
+//             const SizedBox(width: 12),
+//             Expanded(
+//               child: ElevatedButton.icon(
+//                 onPressed: () => Navigator.pop(context, true),
+//                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+//                 icon: const Icon(Icons.phone, color: Colors.white),
+//                 label: Text('Call Now',
+//                     style: AppTypography.labelText.copyWith(
+//                       color: Colors.white,
+//                       fontWeight: FontWeight.w600,
+//                     )),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ],
+//     );
+//   }
+// }
 
-class _OngoingCallDialog extends StatefulWidget {
-  final RtcEngine engine;
-  final String name;
-  final String channelName;
-  final String token;
-  const _OngoingCallDialog(
-      {required this.engine,
-      required this.channelName,
-      required this.token,
-      required this.name});
+// class _OngoingCallDialog extends StatefulWidget {
+//   final RtcEngine engine;
+//   final String name;
+//   final String channelName;
+//   final String token;
+//   const _OngoingCallDialog(
+//       {required this.engine,
+//       required this.channelName,
+//       required this.token,
+//       required this.name});
 
-  @override
-  State<_OngoingCallDialog> createState() => _OngoingCallDialogState();
-}
+//   @override
+//   State<_OngoingCallDialog> createState() => _OngoingCallDialogState();
+// }
 
-class _OngoingCallDialogState extends State<_OngoingCallDialog> {
-  bool isMuted = false;
-  bool isSpeakerOn = true;
+// class _OngoingCallDialogState extends State<_OngoingCallDialog> {
+//   bool isMuted = false;
+//   bool isSpeakerOn = true;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await widget.engine.joinChannel(
-        // token: widget.token,
-        token:
-            '007eJxTYJC1P+Bwo2NDY23KYqbjRo3a6xeHnbiuNTvZzt/Ffn7jk3AFBtNkM8M0E6NUSxPzJJMkI6NEM9OUZMNkM7OU1CQDMzOT6b/cMhoCGRl0ul6yMjJAIIjPzZCckZiXl5oTn5iUzMAAAAk5IeU=',
-        // channelId: widget.channelName,
-        channelId: 'channel_abc',
-        uid: 100,
-        options: const ChannelMediaOptions(),
-      );
-    });
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     WidgetsBinding.instance.addPostFrameCallback((_) async {
+//       await widget.engine.joinChannel(
+//         // token: widget.token,
+//         token:
+//             '007eJxTYJC1P+Bwo2NDY23KYqbjRo3a6xeHnbiuNTvZzt/Ffn7jk3AFBtNkM8M0E6NUSxPzJJMkI6NEM9OUZMNkM7OU1CQDMzOT6b/cMhoCGRl0ul6yMjJAIIjPzZCckZiXl5oTn5iUzMAAAAk5IeU=',
+//         // channelId: widget.channelName,
+//         channelId: 'channel_abc',
+//         uid: 100,
+//         options: const ChannelMediaOptions(),
+//       );
+//     });
+//   }
 
-  @override
-  void dispose() {
-    widget.engine.leaveChannel();
-    widget.engine.release();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     widget.engine.leaveChannel();
+//     widget.engine.release();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.phone,
-              size: 32,
-              color: isMuted ? Colors.grey : Colors.green,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('Call with ${TextUtils.capitalizeEachWord(widget.name)}',
-              style: AppTypography.headline.copyWith(fontSize: 18)),
-        ],
-      ),
-      content: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Column(
-            children: [
-              IconButton(
-                icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
-                color: isMuted ? Colors.red : Colors.green,
-                onPressed: () {
-                  setState(() => isMuted = !isMuted);
-                  widget.engine.muteLocalAudioStream(isMuted);
-                },
-              ),
-              Text(isMuted ? 'Unmute' : 'Mute',
-                  style: AppTypography.labelText.copyWith(fontSize: 12)),
-            ],
-          ),
-          Column(
-            children: [
-              IconButton(
-                icon: Icon(isSpeakerOn ? Icons.volume_up : Icons.volume_off),
-                color: isSpeakerOn ? Colors.green : Colors.grey,
-                onPressed: () {
-                  setState(() => isSpeakerOn = !isSpeakerOn);
-                  widget.engine.setEnableSpeakerphone(isSpeakerOn);
-                },
-              ),
-              Text(isSpeakerOn ? 'Speaker On' : 'Speaker Off',
-                  style: AppTypography.labelText.copyWith(fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.call_end, color: Colors.white),
-          label: Text('End Call',
-              style: AppTypography.labelText.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              )),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return AlertDialog(
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+//       title: Column(
+//         children: [
+//           Container(
+//             padding: const EdgeInsets.all(12),
+//             decoration: BoxDecoration(
+//               color: Colors.green.withOpacity(0.1),
+//               shape: BoxShape.circle,
+//             ),
+//             child: Icon(
+//               Icons.phone,
+//               size: 32,
+//               color: isMuted ? Colors.grey : Colors.green,
+//             ),
+//           ),
+//           const SizedBox(height: 16),
+//           Text('Call with ${TextUtils.capitalizeEachWord(widget.name)}',
+//               style: AppTypography.headline.copyWith(fontSize: 18)),
+//         ],
+//       ),
+//       content: Row(
+//         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//         children: [
+//           Column(
+//             children: [
+//               IconButton(
+//                 icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
+//                 color: isMuted ? Colors.red : Colors.green,
+//                 onPressed: () {
+//                   setState(() => isMuted = !isMuted);
+//                   widget.engine.muteLocalAudioStream(isMuted);
+//                 },
+//               ),
+//               Text(isMuted ? 'Unmute' : 'Mute',
+//                   style: AppTypography.labelText.copyWith(fontSize: 12)),
+//             ],
+//           ),
+//           Column(
+//             children: [
+//               IconButton(
+//                 icon: Icon(isSpeakerOn ? Icons.volume_up : Icons.volume_off),
+//                 color: isSpeakerOn ? Colors.green : Colors.grey,
+//                 onPressed: () {
+//                   setState(() => isSpeakerOn = !isSpeakerOn);
+//                   widget.engine.setEnableSpeakerphone(isSpeakerOn);
+//                 },
+//               ),
+//               Text(isSpeakerOn ? 'Speaker On' : 'Speaker Off',
+//                   style: AppTypography.labelText.copyWith(fontSize: 12)),
+//             ],
+//           ),
+//         ],
+//       ),
+//       actions: [
+//         ElevatedButton.icon(
+//           style: ElevatedButton.styleFrom(
+//             backgroundColor: Colors.red,
+//             padding: const EdgeInsets.symmetric(vertical: 14),
+//             shape: RoundedRectangleBorder(
+//               borderRadius: BorderRadius.circular(12),
+//             ),
+//           ),
+//           onPressed: () => Navigator.pop(context),
+//           icon: const Icon(Icons.call_end, color: Colors.white),
+//           label: Text('End Call',
+//               style: AppTypography.labelText.copyWith(
+//                 color: Colors.white,
+//                 fontWeight: FontWeight.w600,
+//               )),
+//         ),
+//       ],
+//     );
+//   }
+// }

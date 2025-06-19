@@ -13,7 +13,7 @@
 <uses-permission android:name="android.permission.CAMERA"/>
 
 <!-- Photo/Gallery access for Android 13+ -->
-<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
 
 <!-- Storage access for Android 12 and below -->
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
